@@ -141,7 +141,7 @@ autosaver = Target(
 
 py2exe_options = dict(
     packages = [],
-##    excludes = "tof_specials Tkinter".split(),
+    excludes = "_ssl _hashlib pyreadline doctest pickle optparse pdb unittest difflib inspect".split(),
 ##    ignores = "dotblas gnosis.xml.pickle.parsers._cexpat mx.DateTime".split(),
 ##    dll_excludes = "MSVCP90.dll mswsock.dll powrprof.dll".split(),
     optimize=2,
@@ -155,14 +155,14 @@ py2exe_options = dict(
 
 setup(name="name",
       # console based executables
-      console=[autosaver],
+      #console=[autosaver],
       #windows = [{
       #          "script": "autosaver.py",
       #          "icon_resources": [(0, "KW.ico")]
       #      }],
 
       # windows subsystem executables (no console)
-      #windows=[autosaver],
+      windows=[autosaver],
 
       # py2exe options
       zipfile='library.zip', # or None

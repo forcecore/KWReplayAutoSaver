@@ -1,11 +1,18 @@
 #!/usr/bin/python3
 # -*- coding: utf8 -*-
+import sys
+import os
+
+# we need to redirect some pipes BEFORE importing wx.
+sys.stdout = open(os.devnull, 'w')
+sys.stderr = open(os.devnull, 'w')
 import wx
 import wx.adv
 
 # my own classes
 from args import Args
 from watcher import Watcher
+
 
 
 class TaskBarIcon( wx.adv.TaskBarIcon ) :

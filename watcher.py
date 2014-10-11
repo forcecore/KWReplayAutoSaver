@@ -88,6 +88,10 @@ class Watcher :
 
 		newf += ".KWReplay" # don't forget the extension!
 
+		# sanitize the names.
+		for char in [ "<", ">", ":", "\"", "/", "\\", "|", "?", "*" ] :
+			newf = newf.replace( char, "_" )
+
 		newf = os.path.join( path, newf )
 
 		os.replace( tmpf, newf )

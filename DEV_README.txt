@@ -42,19 +42,15 @@ C:\Users\Mark\AppData\Local\Temp\pip-404ydr4s-build
 Storing debug log for failure in C:\Users\Mark\pip\pip.log 
 ----------------------------------------------------------------
 
-At the moment, I'm using Python 3.4.1 (on windows) +
-installed wxWidgets 3.9.2 library with the installer. (32 bits, not 64)
-
+At the moment, I'm using Python 3.4.1 (on windows).
 python-3.4.2.msi
-wxMSW-3.0.2-Setup.exe
 
 all with default installation options.
 oops, not default. For Python, I've add them to PATH.
 This will allow you run "pip" command from the cmd console.
 With pip, install Phoenix.
 
-C:\Users\BoolBada\Dropbox\profile\myKWReplays\rep_tool>pip install -U --pre -f http:/
-/wxpython.org/Phoenix/snapshot-builds/ wxPython_Phoenix
+C:\Users\BoolBada\Dropbox\profile\myKWReplays\rep_tool>pip install -U --pre -f http://wxpython.org/Phoenix/snapshot-builds/ wxPython_Phoenix
 
 Notice the space between snapshot-builds/ and wxPython_Phoenix.
 
