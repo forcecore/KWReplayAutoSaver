@@ -1,5 +1,14 @@
 This readme is for developers, who might be interested in improving this replay autosaver.
 
+
+
+The git repository for this project is available at:
+https://github.com/forcecore/KWReplayAutoSaver
+
+Begin from autosaver.py, it uses other class to accomplish the job.
+
+-------------------------------------------------------------------
+
 Python 3 has its own py2exe functionality, yay!
 Read about it here:
 https://pypi.python.org/pypi/py2exe/0.9.2.0
