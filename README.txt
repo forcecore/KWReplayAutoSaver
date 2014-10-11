@@ -22,6 +22,7 @@ This replay saver will monitor the last replay and create a copy of it it when
 the program thinks it saw a change to the last replay. This copying can
 occur a few times during a match, which is probably the reason why KWRT
 chose to go for semi-automatic method, rather than fully automatic method.
+(But don't worry, you'll get only one replay from one game!)
 
 The new name for the replay will contain the time stamp and some of the
 player information (one of the players who isn't you, you know that you are
