@@ -156,13 +156,13 @@ py2exe_options = dict(
 setup(name="name",
       # console based executables
       #console=[autosaver],
-      #windows = [{
-      #          "script": "autosaver.py",
-      #          "icon_resources": [(0, "KW.ico")]
-      #      }],
+      windows = [{
+                "script": "autosaver.py",
+                "icon_resources": [(0, "KW.ico")]
+            }],
 
       # windows subsystem executables (no console)
-      windows=[autosaver],
+      #windows=[autosaver],
 
       # py2exe options
       zipfile='library.zip', # or None
