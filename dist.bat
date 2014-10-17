@@ -1,3 +1,7 @@
+IF EXIST dist GOTO SKIP_MKDIR
+mkdir dist
+:SKIP_MKDIR
+
 IF NOT EXIST dist GOTO SKIP_DIR_DEL
 del dist\*.*
 :SKIP_DIR_DEL
