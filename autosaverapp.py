@@ -18,12 +18,14 @@ import wx.adv
 # my own classes
 from args import Args
 from watcher import Watcher
+from replayviewer import ReplayViewer
 
 
 
 class AutoSaverApp( wx.adv.TaskBarIcon ) :
 	def __init__( self, iconf ) :
-		super(AutoSaverApp, self).__init__()
+		#super(AutoSaverApp, self).__init__()
+		super().__init__()
 
 		self.POLL_INTERVAL = 2000 # in msec
 		self.CONFIGF = 'config.ini'
@@ -42,7 +44,7 @@ class AutoSaverApp( wx.adv.TaskBarIcon ) :
 		self.timer.Start( self.POLL_INTERVAL )
 
 		# event bindings
-		#self.Bind( wx.adv.EVT_TASKBAR_LEFT_DOWN, self.on_left_down )
+		self.Bind( wx.adv.EVT_TASKBAR_LEFT_DCLICK, self.on_left_dclick )
 		# might show replay manager in the future, but not now.
 
 		self.Bind( wx.EVT_TIMER, self.on_timer, self.timer )
@@ -66,9 +68,6 @@ class AutoSaverApp( wx.adv.TaskBarIcon ) :
 	def CreatePopupMenu( self ) :
 		menu = wx.Menu()
 
-		# change last replay file
-		self.create_menu_item( menu, 'Change last replay file', self.on_set_last_replay )
-
 		# checkable thingy
 		self.add_username = menu.AppendCheckItem( wx.ID_ANY, 'Add user name',
 				'Append player names to the replay name' )
@@ -76,6 +75,12 @@ class AutoSaverApp( wx.adv.TaskBarIcon ) :
 		# context menu check items DO NOT have internal state!!
 		# we must set checkedness here
 		menu.Bind( wx.EVT_MENU, self.on_add_username, id=self.add_username.GetId() )
+
+		# change last replay file
+		self.create_menu_item( menu, 'Change last replay file', self.on_set_last_replay )
+
+		# Replay Manager thingy
+		self.create_menu_item( menu, 'Open replay manager', self.on_left_dclick )
 
 		# -----------------
 		menu.AppendSeparator()
@@ -88,9 +93,14 @@ class AutoSaverApp( wx.adv.TaskBarIcon ) :
 		#icon = wx.IconFromBitmap( wx.Bitmap( iconf ) )
 		icon = wx.Icon( iconf, wx.BITMAP_TYPE_ICO )
 		self.SetIcon( icon, "Kane's Wrath replay auto saver" )
+	
+	def open_replay_viewer( self ) :
+		path = os.path.dirname( self.args.last_replay )
+		replay_viewer = ReplayViewer( self, path )
+		replay_viewer.Show( True )
 
-	#def on_left_down(self, event):
-	#	print( 'Tray icon was left-clicked.' )
+	def on_left_dclick( self, event ) :
+		self.open_replay_viewer()
 
 	def on_set_last_replay( self, event ) :
 		self.args.set_last_replay() # invoke open dialog
