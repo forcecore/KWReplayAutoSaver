@@ -24,7 +24,7 @@ class Player :
 	]
 
 	ai_personality_tab = [
-		'Rnd_style', 'invalid',
+		'Rnd_pers', 'invalid',
 		'Balanced', 'Rusher', 'Turtle', 'Guerilla', 'Streamroller'
 	]
 
