@@ -14,7 +14,23 @@ class ReplayViewer( wx.Frame ) :
 
 		self.path = path
 		self.populate_replay_list( path )
+
+		self.names = None # scratch memory for replay renaming presets (for context menu)
+		self.old_name = "" # lets have a space for the old replay name too.
 	
+	def change_dir( self ) :
+		anyf = "Select_Any_File"
+		diag = wx.FileDialog( None, "Select Folder", "", "",
+			"Any File (*.*)|*.*",
+			wx.FD_OPEN )
+		diag.SetFilename( anyf )
+		
+		if diag.ShowModal() == wx.ID_OK :
+			self.path = os.path.dirname( diag.GetPath() )
+			self.populate_replay_list( self.path ) # refresh list
+
+		diag.Destroy()
+
 	def scan_replay_files( self, path ) :
 		fs = []
 		for f in os.listdir( path ) :
@@ -78,7 +94,73 @@ class ReplayViewer( wx.Frame ) :
 			self.player_list.SetItem( pos, 2, Player.decode_faction( p.faction ) )
 			self.player_list.SetItem( pos, 3, Player.decode_color( p.color ) )
 
+	# Generate the context menu when rep_list is right clicked.
+	def replay_context_menu( self, event ) :
+		pos = event.GetIndex()
+		if pos < 0 :
+			return
 
+		# get the replay file name
+		rep_name = self.rep_list.GetItem( pos, 1 ).GetText()
+		fname = os.path.join( self.path, rep_name )
+		self.old_name = fname
+
+		# generate some predefined replay renamings
+		kwr = KWReplay( fname )
+		self.names = []
+		self.names.append( kwr.decode_timestamp( kwr.timestamp ) )
+		self.names.append( self.names[0] + " " + Watcher.player_list( kwr ) )
+
+		# make context menu
+		menu = wx.Menu()
+		# context menu using self.names :
+		for i, txt in enumerate( self.names ) :
+			item = wx.MenuItem( menu, i, "Rename as " + txt )
+			menu.Bind( wx.EVT_MENU, self.replay_context_menu_presetClicked, id=item.GetId() )
+			menu.Append( item )
+
+		# custom rename menu
+		item = wx.MenuItem( menu, -1, "Rename as ..." )
+		menu.Bind( wx.EVT_MENU, self.replay_context_menu_Clicked, id=item.GetId() )
+		menu.Append( item )
+		
+		self.rep_list.PopupMenu( menu, event.GetPoint() ) # popup the context menu.
+		menu.Destroy() # prevents memory leaks haha
+	
+	def replay_context_menu_Clicked( self, event ) :
+		print( 'haha' )
+	
+	def replay_context_menu_presetClicked( self, event ) :
+		assert self.names
+		index = event.GetId()
+		rep_name = self.names[ index ]
+		rep_name += ".KWReplay"
+		for char in [ "<", ">", ":", "\"", "/", "\\", "|", "?", "*" ] :
+			rep_name = rep_name.replace( char, "_" )
+
+		# this is the full name.
+		fname = os.path.join( self.path, rep_name )
+
+		# see if it already exits.
+		if os.path.isfile( fname ) :
+			diag = wx.MessageDialog( self, fname + " already exists! Not renaming.", "Error",
+					wx.OK|wx.ICON_ERROR )
+			diag.ShowModal()
+			diag.Destroy()
+		else :
+			# rename the file
+			assert self.old_name
+			os.rename( self.old_name, fname )
+
+			# update the item.
+			self.update_replay_name( rep_name )
+	
+	def update_replay_name( self, rep_name ) :
+		pos = self.rep_list.GetFocusedItem()
+		if pos < 0 :
+			return
+		# get the selected item and fill desc_text.
+		self.rep_list.SetItem( pos, 1, rep_name ) # replay name
 
 	def do_layout( self ) :
 		self.SetMinSize( (1024, 800) )
@@ -110,7 +192,7 @@ class ReplayViewer( wx.Frame ) :
 		desc_panel = wx.Panel( self, -1 ) #, style=wx.SUNKEN_BORDER )
 		ref_panel = wx.Panel( self, -1 ) #, style=wx.SUNKEN_BORDER )
 		#panel.SetBackgroundColour("GREEN")
-		self.opendir_btn = wx.Button( ref_panel, label="Open Folder", pos=(0,0) )
+		self.opendir_btn = wx.Button( ref_panel, label="Change Folder", pos=(0,0) )
 		self.refresh_btn = wx.Button( ref_panel, label="Rescan Folder", pos=(90,0) )
 		game_desc = wx.StaticText( desc_panel, label="Game Description:", pos=(5,5) )
 		self.desc_text = wx.TextCtrl( desc_panel, size=(400,-1), pos=(115,2) )
@@ -133,20 +215,13 @@ class ReplayViewer( wx.Frame ) :
 		self.populate_replay_list( self.path )
 
 	def on_opendir_btnClick( self, event ) :
-		anyf = "Select_Any_File"
-		diag = wx.FileDialog( None, "Select Folder", "", "",
-			"Any File (*.*)|*.*",
-			wx.FD_OPEN )
-		diag.SetFilename( anyf )
-		
-		if diag.ShowModal() == wx.ID_OK :
-			self.path = os.path.dirname( diag.GetPath() )
-			self.populate_replay_list( self.path ) # refresh list
-
-		diag.Destroy()
+		self.change_dir()
 	
+	def on_rep_listRightClick( self, event ) :
+		self.replay_context_menu( event )
+
 	def on_rep_listClick( self, event ) :
-		pos = self.rep_list.GetFocusedItem()
+		pos = event.GetIndex()
 		if pos < 0 :
 			return
 		# get the selected item and fill desc_text.
@@ -158,8 +233,11 @@ class ReplayViewer( wx.Frame ) :
 	
 	def event_bindings( self ) :
 		self.refresh_btn.Bind( wx.EVT_BUTTON, self.on_refresh_btnClick )
-		self.rep_list.Bind( wx.EVT_LIST_ITEM_SELECTED, self.on_rep_listClick )
+
 		self.opendir_btn.Bind( wx.EVT_BUTTON, self.on_opendir_btnClick)
+
+		self.rep_list.Bind( wx.EVT_LIST_ITEM_SELECTED, self.on_rep_listClick )
+		self.rep_list.Bind( wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_rep_listRightClick )
 
 
 
