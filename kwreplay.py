@@ -50,7 +50,7 @@ class Player :
 		self.team = -1
 		self.ip = "" # human only
 		self.tt_or_ft = "" # human only
-		self.faction = ""
+		self.faction = -1
 		self.team = -1
 		self.clan = "" # human only
 		self.color = ""
@@ -77,6 +77,9 @@ class Player :
 		unknown = data[10]
 		self.clan = data[11]
 		self.name = self.name[1:]
+	
+	def is_observer( self ) :
+		return self.faction == 2
 	
 	def decode_ai( self, data ) :
 		# 0  1 2  3  4   5 6

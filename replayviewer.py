@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 from args import Args
 from kwreplay import Player, KWReplay
+from watcher import Watcher
 import os
 import datetime
 import wx

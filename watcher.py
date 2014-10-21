@@ -84,7 +84,7 @@ class Watcher :
 		newf = r.decode_timestamp( r.timestamp )
 
 		if add_username :
-			newf += " " + self.player_list( r )
+			newf += " " + Watcher.player_list( r )
 
 		newf += ".KWReplay" # don't forget the extension!
 
@@ -102,7 +102,7 @@ class Watcher :
 	# returns a nice readable list of players.
 	# Actually only returns count and one player's name but anyway :S
 	# r: da replay class
-	def player_list( self, r ) :
+	def player_list( r ) :
 		# count AI players.
 		ai = 0
 		h = 0
@@ -111,8 +111,11 @@ class Watcher :
 				ai += 1
 			else :
 				# don't count post commentator!
-				if p.name != "post Commentator" :
-					h += 1
+				if p.name == "post Commentator" :
+					continue
+				if p.is_observer() : # don't count observer
+					continue
+				h += 1
 
 		if h == 0 :
 			# this can happen, when you observe and watch AIs fight each other, theoretically.
@@ -123,17 +126,18 @@ class Watcher :
 			else :
 				return "vs AI"
 		elif h == 2 :
-			return "vs " + self.find_a_nonsaver( r ).name
+			return "vs " + Watcher.find_a_nonsaver( r ).name
 		else :
-			return str( h ) + "p game with " + self.find_a_nonsaver( r ).name
+			return str( h ) + "p game with " + Watcher.find_a_nonsaver( r ).name
 
 
 
 	# find any human player who is not the saver.
 	# r: da replay class
-	def find_a_nonsaver( self, r ) :
+	def find_a_nonsaver( r ) :
 		for i, p in enumerate( r.players ) :
-			if (not p.is_ai) and i != r.replay_saver :
+			# if non ai non saver non observer...
+			if (not p.is_ai) and (i != r.replay_saver) and (not p.is_observer()) :
 				return p
 		return None
 
