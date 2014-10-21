@@ -131,6 +131,19 @@ class ReplayViewer( wx.Frame ) :
 
 	def on_refresh_btnClick( self, event ) :
 		self.populate_replay_list( self.path )
+
+	def on_opendir_btnClick( self, event ) :
+		anyf = "Select_Any_File"
+		diag = wx.FileDialog( None, "Select Folder", "", "",
+			"Any File (*.*)|*.*",
+			wx.FD_OPEN )
+		diag.SetFilename( anyf )
+		
+		if diag.ShowModal() == wx.ID_OK :
+			self.path = os.path.dirname( diag.GetPath() )
+			self.populate_replay_list( self.path ) # refresh list
+
+		diag.Destroy()
 	
 	def on_rep_listClick( self, event ) :
 		pos = self.rep_list.GetFocusedItem()
@@ -146,6 +159,7 @@ class ReplayViewer( wx.Frame ) :
 	def event_bindings( self ) :
 		self.refresh_btn.Bind( wx.EVT_BUTTON, self.on_refresh_btnClick )
 		self.rep_list.Bind( wx.EVT_LIST_ITEM_SELECTED, self.on_rep_listClick )
+		self.opendir_btn.Bind( wx.EVT_BUTTON, self.on_opendir_btnClick)
 
 
 
