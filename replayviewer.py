@@ -4,6 +4,7 @@ from kwreplay import Player, KWReplay
 from watcher import Watcher
 import os
 import datetime
+import subprocess
 import wx
 
 class ReplayViewer( wx.Frame ) :
@@ -123,12 +124,24 @@ class ReplayViewer( wx.Frame ) :
 		item = wx.MenuItem( menu, -1, "Rename as ..." )
 		menu.Bind( wx.EVT_MENU, self.replay_context_menu_Clicked, id=item.GetId() )
 		menu.Append( item )
+
+		# open contaning folder
+		item = wx.MenuItem( menu, -1, "Open containing folder" )
+		menu.Bind( wx.EVT_MENU, self.open_containing_folder, id=item.GetId() )
+		menu.Append( item )
 		
 		self.rep_list.PopupMenu( menu, event.GetPoint() ) # popup the context menu.
 		menu.Destroy() # prevents memory leaks haha
 	
+	def open_containing_folder( self, event ) :
+		# not relying wxPython!
+		cmd = 'explorer /select,"%s"' % (self.old_name)
+		#print( cmd )
+		subprocess.Popen( cmd )
+	
 	def replay_context_menu_Clicked( self, event ) :
-		print( 'haha' )
+		# I'd use the save dialog!
+		pass
 	
 	def replay_context_menu_presetClicked( self, event ) :
 		assert self.names
@@ -193,7 +206,7 @@ class ReplayViewer( wx.Frame ) :
 		ref_panel = wx.Panel( self, -1 ) #, style=wx.SUNKEN_BORDER )
 		#panel.SetBackgroundColour("GREEN")
 		self.opendir_btn = wx.Button( ref_panel, label="Change Folder", pos=(0,0) )
-		self.refresh_btn = wx.Button( ref_panel, label="Rescan Folder", pos=(90,0) )
+		self.refresh_btn = wx.Button( ref_panel, label="Rescan Folder", pos=(100,0) )
 		game_desc = wx.StaticText( desc_panel, label="Game Description:", pos=(5,5) )
 		self.desc_text = wx.TextCtrl( desc_panel, size=(400,-1), pos=(115,2) )
 		self.modify_btn = wx.Button( desc_panel, label="Modify!", pos=(525,0) )
