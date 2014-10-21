@@ -56,8 +56,8 @@ class ReplayViewer( wx.Frame ) :
 		date = t.strftime("%x")
 
 		index = self.rep_list.GetItemCount()
-		pos = self.rep_list.InsertItem( index, kwr.map_name ) # map name
-		self.rep_list.SetItem( pos, 1, rep ) # replay name
+		pos = self.rep_list.InsertItem( index, rep ) # replay name
+		self.rep_list.SetItem( pos, 1, kwr.map_name ) # replay name
 		self.rep_list.SetItem( pos, 2, kwr.desc ) # desc
 		self.rep_list.SetItem( pos, 3, time ) # time
 		self.rep_list.SetItem( pos, 4, date ) # date
@@ -75,7 +75,7 @@ class ReplayViewer( wx.Frame ) :
 		assert pos >= 0
 		assert self.path
 		self.player_list.DeleteAllItems()
-		rep = self.rep_list.GetItem( pos, 1 ).GetText() # the replay fname
+		rep = self.rep_list.GetItem( pos, 0 ).GetText() # the replay fname
 		fname = os.path.join( self.path, rep )
 		kwr = KWReplay( fname )
 
@@ -102,12 +102,16 @@ class ReplayViewer( wx.Frame ) :
 			return
 
 		# get the replay file name
-		rep_name = self.rep_list.GetItem( pos, 1 ).GetText()
+		# handled by "select" event: EVT_LIST_ITEM_SELECTED
+		# ... I thought so but in fact, I can right click and rename multiple times without
+		# generating EVT_LIST_ITEM_SELECTED.
+		# Do it here again!
+		rep_name = self.rep_list.GetItem( pos, 0 ).GetText()
 		fname = os.path.join( self.path, rep_name )
 		self.old_name = fname
 
 		# generate some predefined replay renamings
-		kwr = KWReplay( fname )
+		kwr = KWReplay( self.old_name )
 		self.names = []
 		self.names.append( kwr.decode_timestamp( kwr.timestamp ) )
 		self.names.append( self.names[0] + " " + Watcher.player_list( kwr ) )
@@ -121,8 +125,8 @@ class ReplayViewer( wx.Frame ) :
 			menu.Append( item )
 
 		# custom rename menu
-		item = wx.MenuItem( menu, -1, "Rename as ..." )
-		menu.Bind( wx.EVT_MENU, self.replay_context_menu_Clicked, id=item.GetId() )
+		item = wx.MenuItem( menu, -1, "Rename" )
+		menu.Bind( wx.EVT_MENU, self.replay_context_menu_rename, id=item.GetId() )
 		menu.Append( item )
 
 		# open contaning folder
@@ -139,15 +143,22 @@ class ReplayViewer( wx.Frame ) :
 		#print( cmd )
 		subprocess.Popen( cmd )
 	
-	def replay_context_menu_Clicked( self, event ) :
-		# I'd use the save dialog!
-		pass
+	def replay_context_menu_rename( self, event ) :
+		item = self.rep_list.GetFocusedItem()
+		self.rep_list.EditLabel( item )
 	
 	def replay_context_menu_presetClicked( self, event ) :
 		assert self.names
 		index = event.GetId()
 		rep_name = self.names[ index ]
-		rep_name += ".KWReplay"
+		self.rename_with_stem( rep_name )
+	
+	def rename_with_stem( self, rep_name ) :
+		# Add extension if not exists
+		if not rep_name.lower().endswith( ".kwreplay" ) :
+			rep_name += ".KWReplay"
+
+		# sanitize invalid char
 		for char in [ "<", ">", ":", "\"", "/", "\\", "|", "?", "*" ] :
 			rep_name = rep_name.replace( char, "_" )
 
@@ -156,24 +167,74 @@ class ReplayViewer( wx.Frame ) :
 
 		# see if it already exits.
 		if os.path.isfile( fname ) :
-			diag = wx.MessageDialog( self, fname + " already exists! Not renaming.", "Error",
+			diag = wx.MessageDialog( self, fname + "\nalready exists! Not renaming.", "Error",
 					wx.OK|wx.ICON_ERROR )
 			diag.ShowModal()
 			diag.Destroy()
 		else :
 			# rename the file
-			assert self.old_name
-			os.rename( self.old_name, fname )
+			self.do_renaming( rep_name )
 
-			# update the item.
-			self.update_replay_name( rep_name )
-	
-	def update_replay_name( self, rep_name ) :
+	# Given new rep_name
+	# do renaming in the file system and
+	# update the entry in the viewer.
+	def do_renaming( self, rep_name ) :
+		# rename in the file system.
+		assert self.old_name
+		# self.old_name is already with full path.
+		if not os.path.isfile( self.old_name ) :
+			# for some reason the old one may not exist.
+			# perhaps due to not refreshed list.
+			msg = "Replay does not exists! Please rescan the folder!"
+			diag = wx.MessageDialog( self, msg, "Error", wx.OK|wx.ICON_ERROR )
+			diag.ShowModal()
+			diag.Destroy()
+			return
+
+		fname = os.path.join( self.path, rep_name )
+		os.rename( self.old_name, fname )
+
+		# rename in the viewer
 		pos = self.rep_list.GetFocusedItem()
 		if pos < 0 :
 			return
 		# get the selected item and fill desc_text.
-		self.rep_list.SetItem( pos, 1, rep_name ) # replay name
+		self.rep_list.SetItem( pos, 0, rep_name ) # replay name
+	
+	def custom_rename( self, event ) :
+		pos = self.rep_list.GetFocusedItem()
+		if pos < 0 :
+			return
+		old_stem = self.rep_list.GetItem( pos, 0 ).GetText()
+		event.Veto() # undos all edits from the user, for now.
+		# if valid, the edit is accepted and updated by some update function.
+
+		stem = event.GetText() # newly edited text
+		if old_stem == stem :
+			# user pressed esc or something
+			return
+
+		if not stem.lower().endswith( ".kwreplay" ) :
+			stem += ".KWReplay"
+
+		# Check for invalid char
+		for char in [ "<", ">", ":", "\"", "/", "\\", "|", "?", "*" ] :
+			if char in stem :
+				msg = "File name must not contain the following:\n"
+				msg += "<>:\"/\\|?*"
+				diag = wx.MessageDialog( self, msg, "Error", wx.OK|wx.ICON_ERROR )
+				diag.ShowModal()
+				diag.Destroy()
+				return
+
+		# Accepted.
+		self.rename_with_stem( stem )
+
+		# You can keep renaming without generating right click or left click events.
+		# Update old_name to compensate for this.
+		self.old_name = os.path.join( self.path, stem )
+
+
 
 	def do_layout( self ) :
 		self.SetMinSize( (1024, 800) )
@@ -188,15 +249,15 @@ class ReplayViewer( wx.Frame ) :
 		self.player_list.InsertColumn( 3, 'Color' )
 		self.player_list.SetColumnWidth( 1, 400 )
 
-		# player list
-		self.rep_list = wx.ListCtrl( self, size=(-1,200), style=wx.LC_REPORT )
-		self.rep_list.InsertColumn( 0, 'Map' )
-		self.rep_list.InsertColumn( 1, 'Name' )
+		# replay list
+		self.rep_list = wx.ListCtrl( self, size=(-1,200), style=wx.LC_REPORT|wx.LC_EDIT_LABELS )
+		self.rep_list.InsertColumn( 0, 'Name' )
+		self.rep_list.InsertColumn( 1, 'Map' )
 		self.rep_list.InsertColumn( 2, 'Description' )
 		self.rep_list.InsertColumn( 3, 'Time' )
 		self.rep_list.InsertColumn( 4, 'Date' )
-		self.rep_list.SetColumnWidth( 0, 180 )
-		self.rep_list.SetColumnWidth( 1, 400 )
+		self.rep_list.SetColumnWidth( 0, 400 )
+		self.rep_list.SetColumnWidth( 1, 180 )
 		self.rep_list.SetColumnWidth( 2, 200 )
 		self.rep_list.SetColumnWidth( 3, 100 )
 		self.rep_list.SetColumnWidth( 4, 100 )
@@ -241,8 +302,15 @@ class ReplayViewer( wx.Frame ) :
 		txt = self.rep_list.GetItem( pos, 2 ).GetText()
 		self.desc_text.SetValue( txt )
 
+		# remember the old name
+		rep = self.rep_list.GetItem( pos, 0 ).GetText()
+		self.old_name = os.path.join( self.path, rep )
+
 		# fill faction info
 		self.populate_faction_info( pos )
+	
+	def on_rep_list_end_label_edit( self, event ) :
+		self.custom_rename( event )
 	
 	def event_bindings( self ) :
 		self.refresh_btn.Bind( wx.EVT_BUTTON, self.on_refresh_btnClick )
@@ -251,6 +319,7 @@ class ReplayViewer( wx.Frame ) :
 
 		self.rep_list.Bind( wx.EVT_LIST_ITEM_SELECTED, self.on_rep_listClick )
 		self.rep_list.Bind( wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_rep_listRightClick )
+		self.rep_list.Bind( wx.EVT_LIST_END_LABEL_EDIT, self.on_rep_list_end_label_edit )
 
 
 
