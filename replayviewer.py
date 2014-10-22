@@ -12,6 +12,7 @@ class ReplayViewer( wx.Frame ) :
 		super().__init__( parent, title='Replay Info Viewer', size=(1024,800) )
 		self.do_layout()
 		self.event_bindings()
+		self.create_accel_tab()
 
 		self.path = path
 		self.populate_replay_list( path )
@@ -125,12 +126,17 @@ class ReplayViewer( wx.Frame ) :
 			menu.Append( item )
 
 		# custom rename menu
-		item = wx.MenuItem( menu, -1, "Rename" )
+		item = wx.MenuItem( menu, -1, "&Rename (F2)" )
 		menu.Bind( wx.EVT_MENU, self.replay_context_menu_rename, id=item.GetId() )
 		menu.Append( item )
 
+		# delete replay menu
+		item = wx.MenuItem( menu, -1, "&Delete (Del)" )
+		menu.Bind( wx.EVT_MENU, self.replay_context_menu_delete, id=item.GetId() )
+		menu.Append( item )
+
 		# open contaning folder
-		item = wx.MenuItem( menu, -1, "Open containing folder" )
+		item = wx.MenuItem( menu, -1, "&Open containing folder" )
 		menu.Bind( wx.EVT_MENU, self.open_containing_folder, id=item.GetId() )
 		menu.Append( item )
 		
@@ -146,7 +152,29 @@ class ReplayViewer( wx.Frame ) :
 	def replay_context_menu_rename( self, event ) :
 		item = self.rep_list.GetFocusedItem()
 		self.rep_list.EditLabel( item )
-	
+
+	# Delete this replay?
+	def replay_context_menu_delete( self, event ) :
+		pos = self.rep_list.GetFocusedItem()
+		if pos < 0 :
+			return
+		rep_name = self.rep_list.GetItem( pos, 0 ).GetText()
+
+		diag = wx.MessageDialog( self,
+				"Really delete " + rep_name + "?",
+				"Confirm Deletion",
+				wx.YES_NO|wx.YES_DEFAULT|wx.ICON_QUESTION )
+		result = diag.ShowModal()
+		diag.Destroy()
+
+		if result == wx.ID_YES :
+			# delete the file
+			# the context menu should have old_name correct by now.
+			assert self.old_name
+			os.remove( self.old_name )
+			# delete the list.
+			self.rep_list.DeleteItem( pos )
+
 	def replay_context_menu_presetClicked( self, event ) :
 		assert self.names
 		index = event.GetId()
@@ -282,6 +310,20 @@ class ReplayViewer( wx.Frame ) :
 		self.SetAutoLayout(True)
 		self.SetSizer(box1)
 		self.Layout()
+
+	def create_accel_tab( self ) :
+		# Accelerator table (short cut keys)
+		self.id_rename = wx.NewId()
+		self.id_del = wx.NewId()
+
+		self.Bind( wx.EVT_MENU, self.replay_context_menu_rename, id=self.id_rename )
+		self.Bind( wx.EVT_MENU, self.replay_context_menu_delete, id=self.id_del )
+
+		accel_tab = wx.AcceleratorTable([
+				( wx.ACCEL_NORMAL, wx.WXK_F2, self.id_rename ),
+				( wx.ACCEL_NORMAL, wx.WXK_DELETE, self.id_del )
+			])
+		self.SetAcceleratorTable( accel_tab )
 
 
 
