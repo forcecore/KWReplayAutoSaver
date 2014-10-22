@@ -150,6 +150,9 @@ class ReplayViewer( wx.Frame ) :
 		subprocess.Popen( cmd )
 	
 	def replay_context_menu_rename( self, event ) :
+		if not self.old_name :
+			# pressed F2 without selecting any item!
+			return
 		item = self.rep_list.GetFocusedItem()
 		self.rep_list.EditLabel( item )
 
@@ -354,8 +357,31 @@ class ReplayViewer( wx.Frame ) :
 	def on_rep_list_end_label_edit( self, event ) :
 		self.custom_rename( event )
 	
+	def on_modify_btnClick( self, event ) :
+		if not self.old_name : 
+			# pressed modify! button without selecting anything.
+			return
+
+		# I think I could use self.old_name but...
+		pos = self.rep_list.GetFocusedItem()
+		if pos < 0 :
+			return
+		rep = self.rep_list.GetItem( pos, 0 ).GetText()
+		fname = os.path.join( self.path, rep )
+
+		desc = self.desc_text.GetValue()
+
+		# so, old_name should be quite valid by now.
+		kwr = KWReplay()
+		kwr.modify_desc_inplace( fname, desc )
+
+		# update it in the interface.
+		self.rep_list.SetItem( pos, 2, desc ) # desc
+	
 	def event_bindings( self ) :
 		self.refresh_btn.Bind( wx.EVT_BUTTON, self.on_refresh_btnClick )
+
+		self.modify_btn.Bind( wx.EVT_BUTTON, self.on_modify_btnClick )
 
 		self.opendir_btn.Bind( wx.EVT_BUTTON, self.on_opendir_btnClick)
 

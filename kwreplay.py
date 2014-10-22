@@ -9,6 +9,7 @@
 import struct # bin file enc/dec
 import sys
 import re
+import io
 import codecs
 import datetime
 
@@ -175,6 +176,17 @@ class KWReplay :
 		f.close()
 		g.close()
 
+	def modify_desc_inplace( self, fname, desc ) :
+		g = io.BytesIO()
+		f = open( fname, 'rb' )
+		self.modify_desc_stream( f, g, desc )
+		f.close()
+
+		f = open( fname, 'wb' )
+		f.write( g.getbuffer() )
+		f.close()
+		g.close()
+
 	# ummm... I think I can read all game data then write again,
 	# in the future...
 	def modify_desc_stream( self, f, g, desc ) :
@@ -189,7 +201,6 @@ class KWReplay :
 		self.write_ver_info( g )
 
 		self.title = self.read_tb_str( f ) # game title
-		print( self.title )
 		self.write_tb_str( g, self.title )
 
 		# now here comes the game description
@@ -529,9 +540,10 @@ def main() :
 	fname = "1.KWReplay"
 	if len( sys.argv ) >= 2 :
 		fname = sys.argv[1]
-	#kw = KWReplay( fname=fname, verbose=True )
-	kw = KWReplay()
-	kw.modify_desc( fname, "2.KWReplay", "매치 설명 있음" )
+	kw = KWReplay( fname=fname, verbose=True )
+	#kw = KWReplay()
+	#kw.modify_desc( fname, "2.KWReplay", "매치 설명 있음" )
+	#kw.modify_desc_inplace( "2.KWReplay", "show me the money 오예" )
 
 if __name__ == "__main__" :
 	main()
