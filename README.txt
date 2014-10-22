@@ -27,8 +27,17 @@ chose to go for semi-automatic method, rather than fully automatic method.
 The new name for the replay will contain the time stamp and some of the
 player information (one of the players who isn't you, you know that you are
 playing!), e.g, "2014-10-11T1653 vs BoolBada".
-You can choose not to have player info by right click on the tray icon and
+You can choose not to have player info by right clicking on the tray icon and
 unchecking the option.
+
+Double clicking or selecting "Open replay manager" tray menu will launch
+replay manager application. Like the KWRT, it can read many informations
+from the replay file without launching the game.
+In addition, it has many features such as:
+* Rename with time stamp, (like KWRT) by right clicking on the replays list.
+* Modify/embed description into the replay.
+* Search replays by player, map, description or replay file name.
+* Supports UTF-8. No more unreadable information!
 
 
 
