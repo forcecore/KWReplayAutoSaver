@@ -1,79 +1,93 @@
 <!DOCTYPE html>
 <html>
-
   <head>
     <meta charset='utf-8'>
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <meta name="description" content="Kwreplayautosaver : Automatically saves the last replays of Kane&#39;s Wrath while the game is running">
-
-    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
-
-    <title>Kwreplayautosaver</title>
+    <link href='https://fonts.googleapis.com/css?family=Chivo:900' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <title>KWRAS - Kane&#39;s Wrath Replay Auto Saver by forcecore</title>
   </head>
 
   <body>
+    <div id="container">
+      <div class="inner">
 
-    <!-- HEADER -->
-    <div id="header_wrap" class="outer">
-        <header class="inner">
-          <a id="forkme_banner" href="https://github.com/forcecore/KWReplayAutoSaver">View on GitHub</a>
-
-          <h1 id="project_title">Kwreplayautosaver</h1>
-          <h2 id="project_tagline">Automatically saves the last replays of Kane&#39;s Wrath while the game is running</h2>
-
-            <section id="downloads">
-              <a class="zip_download_link" href="https://github.com/forcecore/KWReplayAutoSaver/zipball/master">Download this project as a .zip file</a>
-              <a class="tar_download_link" href="https://github.com/forcecore/KWReplayAutoSaver/tarball/master">Download this project as a tar.gz file</a>
-            </section>
+        <header>
+          <h1>KWRAS - Kane&#39;s Wrath Replay Auto Saver</h1>
+          <h2>Automatically saves the last replays of Kane&#39;s Wrath while the game is running</h2>
         </header>
+
+        <section id="downloads" class="clearfix">
+          <a href="https://github.com/forcecore/KWReplayAutoSaver/zipball/master" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/forcecore/KWReplayAutoSaver/tarball/master" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/forcecore/KWReplayAutoSaver" id="view-on-github" class="button"><span>View on GitHub</span></a>
+        </section>
+
+        <hr>
+
+        <section id="main_content">
+          <h1>
+<a name="about" class="anchor" href="#about"><span class="octicon octicon-link"></span></a>ABOUT</h1>
+
+<p>There's a very good tool at <a href="http://airlea.nl/kwrt/">http://airlea.nl/kwrt/</a>, which allow players to save
+their replays semi-automatically. However, I've decided to write my own tool
+since even the semi-automatic feature doesn't work for me.</p>
+
+<h1>
+<a name="installation" class="anchor" href="#installation"><span class="octicon octicon-link"></span></a>INSTALLATION</h1>
+
+<p>Grab the latest release from <a href="https://github.com/forcecore/KWReplayAutoSaver/releases">https://github.com/forcecore/KWReplayAutoSaver/releases</a>.
+Simply unzip the files to any folder of your choice and run autosaver.exe.
+The application will run in tray and watch for any changes of the last replay.
+At the first run, it will ask for the "Last Replay.KWReplay", which has
+variable names depending on the language settings of the game you installed.</p>
+
+<h1>
+<a name="usage" class="anchor" href="#usage"><span class="octicon octicon-link"></span></a>USAGE</h1>
+
+<p>This replay saver will monitor the last replay and create a copy of it it when
+the program thinks it saw a change to the last replay. This copying can
+occur a few times during a match, which is probably the reason why KWRT
+chose to go for semi-automatic method, rather than fully automatic method.
+(But don't worry, you'll get only one replay from one game!)</p>
+
+<p>The new name for the replay will contain the time stamp and some of the
+player information (one of the players who isn't you, you know that you are
+playing!), e.g, "2014-10-11T1653 vs BoolBada".
+You can choose not to have player info by right clicking on the tray icon and
+unchecking the option.</p>
+
+<p>Double clicking or selecting "Open replay manager" tray menu will launch
+replay manager application. Like the KWRT, it can read many informations
+from the replay file without launching the game.
+In addition, it has many features such as:</p>
+
+<ul>
+<li>Rename with time stamp, (like KWRT) by right clicking on the replays list.</li>
+<li>Modify/embed description into the replay.</li>
+<li>Search replays by player, map, description or replay file name.</li>
+<li>Supports UTF-8. No more unreadable information!</li>
+</ul>
+
+<p>The releases and the sourcodes are available at:
+<a href="https://github.com/forcecore/KWReplayAutoSaver">https://github.com/forcecore/KWReplayAutoSaver</a></p>
+
+<p>The replay format is credited to R Schneider:
+<a href="http://www.gamereplays.org/community/index.php?showtopic=706067&amp;st=0&amp;p=7863248&amp;#entry7863248">http://www.gamereplays.org/community/index.php?showtopic=706067&amp;st=0&amp;p=7863248&amp;#entry7863248</a></p>
+        </section>
+
+        <footer>
+          KWRAS - Kane&#39;s Wrath Replay Auto Saver is maintained by <a href="https://github.com/forcecore">forcecore</a><br>
+          This page was generated by <a href="http://pages.github.com">GitHub Pages</a>. Tactile theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.
+        </footer>
+
+        
+      </div>
     </div>
-
-    <!-- MAIN CONTENT -->
-    <div id="main_content_wrap" class="outer">
-      <section id="main_content" class="inner">
-        <h3>
-<a name="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages"><span class="octicon octicon-link"></span></a>Welcome to GitHub Pages.</h3>
-
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
-
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
-</code></pre>
-
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
-
-<h3>
-<a name="designer-templates" class="anchor" href="#designer-templates"><span class="octicon octicon-link"></span></a>Designer Templates</h3>
-
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
-
-<h3>
-<a name="rather-drive-stick" class="anchor" href="#rather-drive-stick"><span class="octicon octicon-link"></span></a>Rather Drive Stick?</h3>
-
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
-
-<h3>
-<a name="authors-and-contributors" class="anchor" href="#authors-and-contributors"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
-
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
-
-<h3>
-<a name="support-or-contact" class="anchor" href="#support-or-contact"><span class="octicon octicon-link"></span></a>Support or Contact</h3>
-
-<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
-      </section>
-    </div>
-
-    <!-- FOOTER  -->
-    <div id="footer_wrap" class="outer">
-      <footer class="inner">
-        <p class="copyright">Kwreplayautosaver maintained by <a href="https://github.com/forcecore">forcecore</a></p>
-        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
-      </footer>
-    </div>
-
-    
-
   </body>
 </html>
