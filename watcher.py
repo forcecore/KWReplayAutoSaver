@@ -80,7 +80,7 @@ class Watcher :
 		shutil.copyfile( self.last_replay, tmpf )
 
 		# analyze the replay and deduce its name
-		r = KWReplay( tmpf )
+		r = KWReplay( fname=tmpf )
 		newf = r.decode_timestamp( r.timestamp )
 
 		if add_username :

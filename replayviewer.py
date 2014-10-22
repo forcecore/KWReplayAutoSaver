@@ -48,7 +48,7 @@ class ReplayViewer( wx.Frame ) :
 
 	def add_replay( self, path, rep ) :
 		fname = os.path.join( path, rep )
-		kwr = KWReplay( fname )
+		kwr = KWReplay( fname=fname )
 
 		# we need map, name, game desc, time and date.
 		# Fortunately, only time and date need computation.
@@ -78,7 +78,7 @@ class ReplayViewer( wx.Frame ) :
 		self.player_list.DeleteAllItems()
 		rep = self.rep_list.GetItem( pos, 0 ).GetText() # the replay fname
 		fname = os.path.join( self.path, rep )
-		kwr = KWReplay( fname )
+		kwr = KWReplay( fname=fname )
 
 		for p in kwr.players :
 			# p is the Player class. You are quite free to do anything!
@@ -112,7 +112,7 @@ class ReplayViewer( wx.Frame ) :
 		self.old_name = fname
 
 		# generate some predefined replay renamings
-		kwr = KWReplay( self.old_name )
+		kwr = KWReplay( fname=self.old_name )
 		self.names = []
 		self.names.append( kwr.decode_timestamp( kwr.timestamp ) )
 		self.names.append( self.names[0] + " " + Watcher.player_list( kwr ) )

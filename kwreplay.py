@@ -133,7 +133,7 @@ class Player :
 
 
 class KWReplay :
-	def __init__( self, fname, verbose=False ) :
+	def __init__( self, fname=None, verbose=False ) :
 		# These are Kane's Wrath constants
 		self.MAGIC_SIZE = 18
 		self.U1_SIZE = 33
@@ -160,9 +160,45 @@ class KWReplay :
 
 		self.timestamp = 0
 
-		self.readFromFile( fname )
+		if fname :
+			self.loadFromFile( fname )
 
+	# Opens a file fname and modifies the description part.
+	# No reading other info, but just does hex editing to desc part only.
+	# Warning: the file is modified, in place!
+	def modify_desc( self, srcf, destf, desc ) :
+		f = open( srcf, 'rb' )
+		g = open( destf, 'wb' )
 
+		self.modify_desc_stream( f, g, desc )
+
+		f.close()
+		g.close()
+
+	# ummm... I think I can read all game data then write again,
+	# in the future...
+	def modify_desc_stream( self, f, g, desc ) :
+		# these are based on loadFromFile function.
+		self.magic = self.read_cstr( f, self.MAGIC_SIZE ) # magic
+		self.write_cstr( g, self.magic ) # write to dest
+
+		self.hnumber1 = self.game_network_info( f ) # skip network info
+		self.write_game_network_info( g, self.hnumber1 )
+
+		self.set_ver_info( f ) # skip ver info
+		self.write_ver_info( g )
+
+		self.title = self.read_tb_str( f ) # game title
+		print( self.title )
+		self.write_tb_str( g, self.title )
+
+		# now here comes the game description
+		old_desc = self.read_tb_str( f )
+		self.write_tb_str( g, desc ) # write new description
+
+		# now copy the rest of the stream as is.
+		buf = f.read()
+		g.write( buf )
 
 	def decode_timestamp( self, stamp ) :
 		t = datetime.datetime.fromtimestamp( stamp )
@@ -171,7 +207,7 @@ class KWReplay :
 	
 
 
-	def readFromFile( self, fname ) :
+	def loadFromFile( self, fname ) :
 		f = open( fname, 'rb' )
 
 		self.magic = self.read_cstr( f, self.MAGIC_SIZE )
@@ -383,6 +419,12 @@ class KWReplay :
 	
 
 
+	def write_ver_info( self, f ) :
+		self.write_uint32( f, self.vermajor )
+		self.write_uint32( f, self.verminor )
+		self.write_uint32( f, self.buildmajor )
+		self.write_uint32( f, self.buildminor )
+
 	def set_ver_info( self, f ) :
 		self.vermajor = self.read_uint32( f )
 		self.verminor = self.read_uint32( f )
@@ -403,6 +445,10 @@ class KWReplay :
 		tmp = f.read( 4 )
 		i = struct.unpack( 'I', tmp )[ 0 ]
 		return i
+
+	def write_uint32( self, f, val ) :
+		data = struct.pack( 'I', val )
+		f.write( data )
 	
 
 
@@ -421,12 +467,29 @@ class KWReplay :
 		#data = buf.decode( "utf-16" )
 		return buf
 
+	def write_tb_str( self, f, string, write_len=False ) :
+		if write_len :
+			self.write_uint32( len( string ) )
+
+		# string data
+		data = string.encode( "utf-16le" )
+		f.write( data )
+
+		if not write_len :
+			# 2 bytes of zero for null termination.
+			self.write_byte( f, 0 )
+			self.write_byte( f, 0 ) # null termination, if not writing len.
+
 
 
 	def read_byte( self, f ) :
 		data = f.read( 1 )
 		data = struct.unpack( 'b', data )[0]
 		return data
+
+	def write_byte( self, f, data ) :
+		data = struct.pack( 'b', data )
+		f.write( data )
 
 
 
@@ -445,13 +508,19 @@ class KWReplay :
 
 		return data
 
-
+	def write_game_network_info( self, f, hnumber1 ) :
+		self.write_byte( f, hnumber1 )
 
 	def read_cstr( self, f, length ) :
 		data = f.read( length )
 		#s = struct.unpack( "18s", data )
 		data = data.decode( "utf-8" )
 		return data
+
+	def write_cstr( self, f, data ) :
+		#data = data.encode( "utf-8" )
+		data = data.encode( "ascii" ) # cstr is meant to be ascii.
+		f.write( data )
 
 ###
 ###
@@ -460,7 +529,9 @@ def main() :
 	fname = "1.KWReplay"
 	if len( sys.argv ) >= 2 :
 		fname = sys.argv[1]
-	kw = KWReplay( fname, verbose=True )
+	#kw = KWReplay( fname=fname, verbose=True )
+	kw = KWReplay()
+	kw.modify_desc( fname, "2.KWReplay", "매치 설명 있음" )
 
 if __name__ == "__main__" :
 	main()
