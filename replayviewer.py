@@ -3,6 +3,7 @@ from args import Args
 from kwreplay import Player, KWReplay
 from watcher import Watcher
 import os
+import time
 import datetime
 import subprocess
 import wx
@@ -23,6 +24,10 @@ class ReplayViewer( wx.Frame ) :
 			# i.e, context menus.
 		self.custom_old_name = ""
 			# this one, is for remembering the old fname for custom renames.
+
+		# managing sort state XD
+		self.last_clicked_col = -1 # last clicked column number
+		self.ascending = True # sort by ascending order?
 	
 	def change_dir( self ) :
 		anyf = "Select_Any_File"
@@ -242,6 +247,39 @@ class ReplayViewer( wx.Frame ) :
 		# rename in the viewer
 		self.rep_list.SetItem( pos, 0, rep_name ) # replay name
 	
+	def key_func( self, item, col ) :
+		if col == 4 :
+			# date!!!
+			return time.strptime( item[ col ], "%x" )
+		else :
+			return item[ col ]
+	
+	def sort_rep_list( self, col, asc ) :
+		items = self.retrieve_rep_list_items()
+		items.sort( key=lambda item: self.key_func( item, col ) )
+		if not asc :
+			items.reverse()
+		self.rep_list.DeleteAllItems()
+		self.insert_rep_list_items( items )
+	
+	def insert_rep_list_items( self, items ) :
+		for item in items :
+			index = self.rep_list.GetItemCount()
+			pos = self.rep_list.InsertItem( index, item[0] ) # replay name
+			for i in range( 1, 5 ) :
+				# other items
+				self.rep_list.SetItem( pos, i, item[i] )
+
+	def retrieve_rep_list_items( self ) :
+		# turn all items into a list.
+		items = []
+		for i in range( self.rep_list.GetItemCount() ) :
+			item = []
+			for j in range( 5 ) : # there are 5 cols
+				item.append( self.rep_list.GetItem( i, j ).GetText() )
+			items.append( item )
+		return items
+	
 
 
 	def do_layout( self ) :
@@ -394,6 +432,18 @@ class ReplayViewer( wx.Frame ) :
 
 		# update it in the interface.
 		self.rep_list.SetItem( pos, 2, desc ) # desc
+
+	# sort by clicked column
+	def on_rep_list_col_click( self, event ) :
+		# determine ascending or descending.
+		if self.last_clicked_col == event.GetColumn() :
+			self.ascending = not self.ascending
+		else :
+			self.ascending = True
+		self.last_clicked_col = event.GetColumn()
+
+		# now lets do the sorting
+		self.sort_rep_list( event.GetColumn(), self.ascending )
 	
 	def event_bindings( self ) :
 		self.refresh_btn.Bind( wx.EVT_BUTTON, self.on_refresh_btnClick )
@@ -406,6 +456,7 @@ class ReplayViewer( wx.Frame ) :
 		self.rep_list.Bind( wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_rep_listRightClick )
 		self.rep_list.Bind( wx.EVT_LIST_END_LABEL_EDIT, self.on_rep_list_end_label_edit )
 		self.rep_list.Bind( wx.EVT_LIST_BEGIN_LABEL_EDIT, self.on_rep_list_begin_label_edit )
+		self.rep_list.Bind( wx.EVT_LIST_COL_CLICK, self.on_rep_list_col_click )
 
 
 
