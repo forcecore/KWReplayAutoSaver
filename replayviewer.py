@@ -18,7 +18,11 @@ class ReplayViewer( wx.Frame ) :
 		self.populate_replay_list( path )
 
 		self.names = None # scratch memory for replay renaming presets (for context menu)
-		self.old_name = "" # lets have a space for the old replay name too.
+		self.ctx_old_name = "" # lets have a space for the old replay name too.
+			# this one is for remembering click/right clicked ones only.
+			# i.e, context menus.
+		self.custom_old_name = ""
+			# this one, is for remembering the old fname for custom renames.
 	
 	def change_dir( self ) :
 		anyf = "Select_Any_File"
@@ -109,10 +113,10 @@ class ReplayViewer( wx.Frame ) :
 		# Do it here again!
 		rep_name = self.rep_list.GetItem( pos, 0 ).GetText()
 		fname = os.path.join( self.path, rep_name )
-		self.old_name = fname
+		self.ctx_old_name = fname
 
 		# generate some predefined replay renamings
-		kwr = KWReplay( fname=self.old_name )
+		kwr = KWReplay( fname=self.ctx_old_name )
 		self.names = []
 		self.names.append( kwr.decode_timestamp( kwr.timestamp ) )
 		self.names.append( self.names[0] + " " + Watcher.player_list( kwr ) )
@@ -145,12 +149,12 @@ class ReplayViewer( wx.Frame ) :
 	
 	def open_containing_folder( self, event ) :
 		# not relying wxPython!
-		cmd = 'explorer /select,"%s"' % (self.old_name)
+		cmd = 'explorer /select,"%s"' % (self.ctx_old_name)
 		#print( cmd )
 		subprocess.Popen( cmd )
 	
 	def replay_context_menu_rename( self, event ) :
-		if not self.old_name :
+		if not self.ctx_old_name :
 			# pressed F2 without selecting any item!
 			return
 		item = self.rep_list.GetFocusedItem()
@@ -163,6 +167,10 @@ class ReplayViewer( wx.Frame ) :
 			return
 		rep_name = self.rep_list.GetItem( pos, 0 ).GetText()
 
+		# delete with DEL key, without focusing any item works but
+		# at least, we have confirm
+		# Glitch that I will not bother to fix.
+
 		diag = wx.MessageDialog( self,
 				"Really delete " + rep_name + "?",
 				"Confirm Deletion",
@@ -173,18 +181,22 @@ class ReplayViewer( wx.Frame ) :
 		if result == wx.ID_YES :
 			# delete the file
 			# the context menu should have old_name correct by now.
-			assert self.old_name
-			os.remove( self.old_name )
+			assert self.ctx_old_name
+			os.remove( self.ctx_old_name )
 			# delete the list.
 			self.rep_list.DeleteItem( pos )
 
 	def replay_context_menu_presetClicked( self, event ) :
 		assert self.names
-		index = event.GetId()
+		pos = self.rep_list.GetFocusedItem()
+		index = event.GetId() # menu index
 		rep_name = self.names[ index ]
-		self.rename_with_stem( rep_name )
-	
-	def rename_with_stem( self, rep_name ) :
+		self.rename_with_stem( pos, self.ctx_old_name, rep_name )
+
+	# given some user friendly name "rep_name" as stem,
+	# canonicalize it.
+	# pos = rep_list entry position to update
+	def rename_with_stem( self, pos, old_name, rep_name ) :
 		# Add extension if not exists
 		if not rep_name.lower().endswith( ".kwreplay" ) :
 			rep_name += ".KWReplay"
@@ -204,16 +216,18 @@ class ReplayViewer( wx.Frame ) :
 			diag.Destroy()
 		else :
 			# rename the file
-			self.do_renaming( rep_name )
+			self.do_renaming( pos, old_name, rep_name )
 
 	# Given new rep_name
 	# do renaming in the file system and
 	# update the entry in the viewer.
-	def do_renaming( self, rep_name ) :
+	# pos = rep_list entry position to update
+	def do_renaming( self, pos, old_name, rep_name ) :
+		assert pos >= 0
 		# rename in the file system.
-		assert self.old_name
-		# self.old_name is already with full path.
-		if not os.path.isfile( self.old_name ) :
+		assert old_name
+		# self.custom_old_name is already with full path.
+		if not os.path.isfile( old_name ) :
 			# for some reason the old one may not exist.
 			# perhaps due to not refreshed list.
 			msg = "Replay does not exists! Please rescan the folder!"
@@ -223,55 +237,11 @@ class ReplayViewer( wx.Frame ) :
 			return
 
 		fname = os.path.join( self.path, rep_name )
-		os.rename( self.old_name, fname )
+		os.rename( old_name, fname )
 
 		# rename in the viewer
-		pos = self.rep_list.GetFocusedItem()
-		if pos < 0 :
-			return
-		# get the selected item and fill desc_text.
 		self.rep_list.SetItem( pos, 0, rep_name ) # replay name
 	
-	def custom_rename( self, event ) :
-		event.Veto() # undos all edits from the user, for now.
-
-		pos = self.rep_list.GetFocusedItem()
-		if pos < 0 :
-			return
-
-		if pos != event.GetIndex() :
-			# User invoked renaming but clicked on another replay
-			# In this case, silently quit edit.
-			return
-
-		old_stem = self.rep_list.GetItem( pos, 0 ).GetText()
-		# if valid, the edit is accepted and updated by some update function.
-
-		stem = event.GetText() # newly edited text
-		if old_stem == stem :
-			# user pressed esc or something
-			return
-
-		if not stem.lower().endswith( ".kwreplay" ) :
-			stem += ".KWReplay"
-
-		# Check for invalid char
-		for char in [ "<", ">", ":", "\"", "/", "\\", "|", "?", "*" ] :
-			if char in stem :
-				msg = "File name must not contain the following:\n"
-				msg += "<>:\"/\\|?*"
-				diag = wx.MessageDialog( self, msg, "Error", wx.OK|wx.ICON_ERROR )
-				diag.ShowModal()
-				diag.Destroy()
-				return
-
-		# Accepted.
-		self.rename_with_stem( stem )
-
-		# You can keep renaming without generating right click or left click events.
-		# Update old_name to compensate for this.
-		self.old_name = os.path.join( self.path, stem )
-
 
 
 	def do_layout( self ) :
@@ -356,20 +326,60 @@ class ReplayViewer( wx.Frame ) :
 
 		# remember the old name
 		rep = self.rep_list.GetItem( pos, 0 ).GetText()
-		self.old_name = os.path.join( self.path, rep )
+		self.ctx_old_name = os.path.join( self.path, rep )
 
 		# fill faction info
 		self.populate_faction_info( pos )
 	
 	def on_rep_list_end_label_edit( self, event ) :
-		self.custom_rename( event )
+		event.Veto() # undos all edits from the user, for now.
+
+		#pos = self.rep_list.GetFocusedItem()
+		#if pos < 0 :
+		#	return
+
+		#if pos != event.GetIndex() :
+		#	# User invoked renaming but clicked on another replay
+		#	# In this case, silently quit edit.
+		#	return
+
+		pos = event.GetIndex() # maybe this is a more correct
+		old_stem = self.rep_list.GetItem( pos, 0 ).GetText()
+		# if valid, the edit is accepted and updated by some update function.
+
+		stem = event.GetText() # newly edited text
+		if old_stem == stem :
+			# user pressed esc or something
+			return
+
+		if not stem.lower().endswith( ".kwreplay" ) :
+			stem += ".KWReplay"
+
+		# Check for invalid char
+		for char in [ "<", ">", ":", "\"", "/", "\\", "|", "?", "*" ] :
+			if char in stem :
+				msg = "File name must not contain the following:\n"
+				msg += "<>:\"/\\|?*"
+				diag = wx.MessageDialog( self, msg, "Error", wx.OK|wx.ICON_ERROR )
+				diag.ShowModal()
+				diag.Destroy()
+				return
+
+		# Accepted.
+		self.rename_with_stem( pos, self.custom_old_name, stem )
+
+	def on_rep_list_begin_label_edit( self, event ) :
+		pos = event.GetIndex() # maybe this is a more correct
+		stem = self.rep_list.GetItem( pos, 0 ).GetText()
+		self.custom_old_name = os.path.join( self.path, stem )
+		# remember the old name from custom renaming
 	
 	def on_modify_btnClick( self, event ) :
-		if not self.old_name : 
+		if not self.ctx_old_name : 
 			# pressed modify! button without selecting anything.
 			return
 
-		# I think I could use self.old_name but...
+		# I think I could use self.ctx_old_name but...
 		pos = self.rep_list.GetFocusedItem()
 		if pos < 0 :
 			return
@@ -395,6 +405,7 @@ class ReplayViewer( wx.Frame ) :
 		self.rep_list.Bind( wx.EVT_LIST_ITEM_SELECTED, self.on_rep_listClick )
 		self.rep_list.Bind( wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_rep_listRightClick )
 		self.rep_list.Bind( wx.EVT_LIST_END_LABEL_EDIT, self.on_rep_list_end_label_edit )
+		self.rep_list.Bind( wx.EVT_LIST_BEGIN_LABEL_EDIT, self.on_rep_list_begin_label_edit )
 
 
 
