@@ -114,7 +114,7 @@ class AutoSaverApp( wx.adv.TaskBarIcon ) :
 
 def main() :
 	ICONF = 'KW.ico'
-	app = wx.App( False )
+	app = wx.App()
 	ico = AutoSaverApp( ICONF )
 	app.MainLoop()
 
