@@ -55,31 +55,67 @@ class ReplayViewer( wx.Frame ) :
 			fs.append( f )
 		return fs
 
-	def add_replay( self, path, rep ) :
+	# determine if filter hit -> show in rep_list.
+	def filter_hit( self, filter, kwr, fname ) :
+		if not filter :
+			# either filter == None or empty string!
+			return True
+
+		# lower case everything
+		fname = fname.lower()
+		map_name = kwr.map_name.lower()
+		words = filter.lower().split()
+		players = []
+		desc = kwr.desc.lower()
+		for player in kwr.players :
+			players.append( player.name.lower() )
+
+		for word in words :
+			# matches filename
+			if word in fname :
+				return True
+			
+			# matches map name
+			if word in map_name :
+				return True
+
+			# matches description
+			if word in desc :
+				return True
+
+			# matches player name
+			for player in players :
+				if word in player :
+					return True
+
+		return False
+
+	def add_replay( self, path, rep, filter=None ) :
 		fname = os.path.join( path, rep )
 		kwr = KWReplay( fname=fname )
 
-		# we need map, name, game desc, time and date.
-		# Fortunately, only time and date need computation.
-		t = datetime.datetime.fromtimestamp( kwr.timestamp )
-		time = t.strftime("%X")
-		date = t.strftime("%x")
+		if self.filter_hit( filter, kwr, fname ) :
+			# we need map, name, game desc, time and date.
+			# Fortunately, only time and date need computation.
+			t = datetime.datetime.fromtimestamp( kwr.timestamp )
+			time = t.strftime("%X")
+			date = t.strftime("%x")
 
-		index = self.rep_list.GetItemCount()
-		pos = self.rep_list.InsertItem( index, rep ) # replay name
-		self.rep_list.SetItem( pos, 1, kwr.map_name ) # replay name
-		self.rep_list.SetItem( pos, 2, kwr.desc ) # desc
-		self.rep_list.SetItem( pos, 3, time ) # time
-		self.rep_list.SetItem( pos, 4, date ) # date
+			index = self.rep_list.GetItemCount()
+			pos = self.rep_list.InsertItem( index, rep ) # replay name
+			self.rep_list.SetItem( pos, 1, kwr.map_name ) # replay name
+			self.rep_list.SetItem( pos, 2, kwr.desc ) # desc
+			self.rep_list.SetItem( pos, 3, time ) # time
+			self.rep_list.SetItem( pos, 4, date ) # date
 	
-	def populate_replay_list( self, path ) :
+	def populate_replay_list( self, path, filter=None ) :
 		# destroy all existing items
 		self.rep_list.DeleteAllItems()
 
 		# now read freshly.
 		reps = self.scan_replay_files( path )
 		for rep in reps :
-			self.add_replay( path, rep )
+			self.add_replay( path, rep, filter=filter )
 
 	def populate_faction_info( self, pos ) :
 		assert pos >= 0
@@ -285,7 +321,7 @@ class ReplayViewer( wx.Frame ) :
 	def do_layout( self ) :
 		self.SetMinSize( (1024, 800) )
 		box1 = wx.BoxSizer(wx.VERTICAL)
-		hbox = wx.BoxSizer(wx.HORIZONTAL)
+		hbox1 = wx.BoxSizer(wx.HORIZONTAL)
 
 		# player list
 		self.player_list = wx.ListCtrl( self, size=(-1,200), style=wx.LC_REPORT )
@@ -308,21 +344,34 @@ class ReplayViewer( wx.Frame ) :
 		self.rep_list.SetColumnWidth( 3, 100 )
 		self.rep_list.SetColumnWidth( 4, 100 )
 
-		# refresh, description editing
+		# , description editing
 		desc_panel = wx.Panel( self, -1 ) #, style=wx.SUNKEN_BORDER )
+		game_desc = wx.StaticText( desc_panel, label="Game Description:", pos=(5,5) )
+		self.desc_text = wx.TextCtrl( desc_panel, size=(400,-1),
+				pos=(115,2), style=wx.TE_PROCESS_ENTER )
+		self.modify_btn = wx.Button( desc_panel, label="Modify!", pos=(525,0) )
+
+		# replay filtering
+		filter_panel = wx.Panel( self, -1 )
+		filter_st = wx.StaticText( filter_panel, label="Filter", pos=(5,5) )
+		self.filter_text = wx.TextCtrl( filter_panel, size=(400,-1),
+				pos=(115,2), style=wx.TE_PROCESS_ENTER )
+		self.apply_btn = wx.Button( filter_panel, label="Apply", pos=(525,0) )
+		self.nofilter_btn = wx.Button( filter_panel, label="X",
+				pos=(610,0), size=(50,wx.DefaultSize.y) )
+
+		# change folder and rescan folder buttons
 		ref_panel = wx.Panel( self, -1 ) #, style=wx.SUNKEN_BORDER )
 		#panel.SetBackgroundColour("GREEN")
 		self.opendir_btn = wx.Button( ref_panel, label="Change Folder", pos=(0,0) )
 		self.refresh_btn = wx.Button( ref_panel, label="Rescan Folder", pos=(100,0) )
-		game_desc = wx.StaticText( desc_panel, label="Game Description:", pos=(5,5) )
-		self.desc_text = wx.TextCtrl( desc_panel, size=(400,-1), pos=(115,2) )
-		self.modify_btn = wx.Button( desc_panel, label="Modify!", pos=(525,0) )
-		hbox.Add( desc_panel, 1, wx.EXPAND )
-		hbox.Add( ref_panel, 0 )
+		hbox1.Add( filter_panel, 1, wx.EXPAND )
+		hbox1.Add( ref_panel, 0 )
 
 		# hierarchy
 		box1.Add( self.player_list, 1, wx.EXPAND )
-		box1.Add( hbox, 0, wx.EXPAND)
+		box1.Add( hbox1, 0, wx.EXPAND)
+		box1.Add( desc_panel, 0, wx.EXPAND)
 		box1.Add( self.rep_list, 1, wx.EXPAND)
 
 		self.SetAutoLayout(True)
@@ -346,6 +395,7 @@ class ReplayViewer( wx.Frame ) :
 
 
 	def on_refresh_btnClick( self, event ) :
+		self.filter_text.SetValue( "" ) # removes filter.
 		self.populate_replay_list( self.path )
 
 	def on_opendir_btnClick( self, event ) :
@@ -445,12 +495,21 @@ class ReplayViewer( wx.Frame ) :
 		# now lets do the sorting
 		self.sort_rep_list( event.GetColumn(), self.ascending )
 	
+	def on_filter_applyClick( self, event ) :
+		fil = self.filter_text.GetValue()
+		self.populate_replay_list( self.path, filter=fil )
+
 	def event_bindings( self ) :
 		self.refresh_btn.Bind( wx.EVT_BUTTON, self.on_refresh_btnClick )
 
 		self.modify_btn.Bind( wx.EVT_BUTTON, self.on_modify_btnClick )
+		self.desc_text.Bind( wx.EVT_TEXT_ENTER, self.on_modify_btnClick )
 
-		self.opendir_btn.Bind( wx.EVT_BUTTON, self.on_opendir_btnClick)
+		self.opendir_btn.Bind( wx.EVT_BUTTON, self.on_opendir_btnClick )
+
+		self.apply_btn.Bind( wx.EVT_BUTTON, self.on_filter_applyClick )
+		self.nofilter_btn.Bind( wx.EVT_BUTTON, self.on_refresh_btnClick )
+		self.filter_text.Bind( wx.EVT_TEXT_ENTER, self.on_filter_applyClick )
 
 		self.rep_list.Bind( wx.EVT_LIST_ITEM_SELECTED, self.on_rep_listClick )
 		self.rep_list.Bind( wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_rep_listRightClick )
