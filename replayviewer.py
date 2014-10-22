@@ -233,11 +233,18 @@ class ReplayViewer( wx.Frame ) :
 		self.rep_list.SetItem( pos, 0, rep_name ) # replay name
 	
 	def custom_rename( self, event ) :
+		event.Veto() # undos all edits from the user, for now.
+
 		pos = self.rep_list.GetFocusedItem()
 		if pos < 0 :
 			return
+
+		if pos != event.GetIndex() :
+			# User invoked renaming but clicked on another replay
+			# In this case, silently quit edit.
+			return
+
 		old_stem = self.rep_list.GetItem( pos, 0 ).GetText()
-		event.Veto() # undos all edits from the user, for now.
 		# if valid, the edit is accepted and updated by some update function.
 
 		stem = event.GetText() # newly edited text
