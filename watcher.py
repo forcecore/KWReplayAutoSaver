@@ -81,7 +81,7 @@ class Watcher :
 
 		# analyze the replay and deduce its name
 		r = KWReplay( fname=tmpf )
-		newf = r.decode_timestamp( r.timestamp )
+		newf = '[' + r.decode_timestamp( r.timestamp ) + ']'
 
 		if add_username :
 			newf += " " + Watcher.player_list( r )
