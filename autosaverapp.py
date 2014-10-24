@@ -115,6 +115,7 @@ class AutoSaverAppFrame( wx.adv.TaskBarIcon ) :
 
 ###
 ### For single instance running.
+### http://wiki.wxpython.org/OneInstanceRunning
 ###
 class AutoSaverApp( wx.App ) :
 	def OnInit( self ) :
