@@ -104,18 +104,13 @@ class Watcher :
 	# r: da replay class
 	def player_list( r ) :
 		# count AI players.
+		humans = Watcher.find_human_players( r )
+		saver = Watcher.get_replay_saver( r )
+		h = len( humans )
 		ai = 0
-		h = 0
 		for p in r.players :
 			if p.is_ai :
 				ai += 1
-			else :
-				# don't count post commentator!
-				if p.name == "post Commentator" :
-					continue
-				if p.is_observer() : # don't count observer
-					continue
-				h += 1
 
 		if h == 0 :
 			# this can happen, when you observe and watch AIs fight each other, theoretically.
@@ -126,22 +121,31 @@ class Watcher :
 			else :
 				return "vs AI"
 		elif h == 2 :
-			return "vs " + Watcher.find_a_nonsaver( r ).name
+			return "vs " + Watcher.find_a_nonsaver_player( r ).name
 		else :
-			return str( h ) + "p game with " + Watcher.find_a_nonsaver( r ).name
+			return str( h ) + "p game with " + Watcher.find_a_nonsaver_player( r ).name
 
 
 
-	# find any human player who is not the saver.
+	# find all human players who is not the saver. (and not an observer)
 	# r: da replay class
-	def find_a_nonsaver( r ) :
+	def find_human_players( r ) :
+		ps = []
 		for i, p in enumerate( r.players ) :
 			# if non ai non saver non observer...
-			if (not p.is_ai) and (i != r.replay_saver) and (not p.is_observer()) :
-				return p
-		return None
+			if p.is_ai :
+				continue
+			if i == r.replay_saver :
+				continue
+			if p.is_observer() :
+				continue
+			if p.name == "post Commentator" :
+				continue
+			ps.append( p )
+		return ps
 
-
+	def get_replay_saver( r ) :
+		return r.players[ r.replay_saver ]
 
 	###
 	### Determine if the latest replay is occupied by the game.
