@@ -22,7 +22,7 @@ from replayviewer import ReplayViewer
 
 
 
-class AutoSaverApp( wx.adv.TaskBarIcon ) :
+class AutoSaverAppFrame( wx.adv.TaskBarIcon ) :
 	def __init__( self, iconf ) :
 		#super(AutoSaverApp, self).__init__()
 		super().__init__()
@@ -110,12 +110,25 @@ class AutoSaverApp( wx.adv.TaskBarIcon ) :
 	def on_exit(self, event):
 		self.args.save_to_file( self.CONFIGF )
 		wx.CallAfter( self.Destroy )
-	
+
+
+
+###
+### For single instance running.
+###
+class AutoSaverApp( wx.App ) :
+	def OnInit( self ) :
+		self.name = "KWRAS-" + wx.GetUserId()
+		self.instance = wx.SingleInstanceChecker( self.name )
+		if self.instance.IsAnotherRunning() :
+			wx.MessageBox( "An instance of KWRAS is already running", "ERROR" )
+			return False
+		return True
 
 def main() :
 	ICONF = 'KW.ico'
-	app = wx.App()
-	ico = AutoSaverApp( ICONF )
+	app = AutoSaverApp()
+	ico = AutoSaverAppFrame( ICONF )
 	app.MainLoop()
 
 ###
