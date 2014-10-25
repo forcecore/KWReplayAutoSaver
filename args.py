@@ -16,8 +16,8 @@ import io
 ###
 class Args :
 	def __init__( self, fname ) :
-		self.dirty = False # Has non-saved + changed options?
-		self.cfg_fname = fname # for saving to disk on exit.
+		#self.dirty = False # Has non-saved + changed options?
+		#self.cfg_fname = fname # for saving to disk on exit.
 
 		self.last_replay = None
 		self.add_username = True
@@ -37,7 +37,7 @@ class Args :
 	def set_var( self, key, val ) :
 		self.cfg[ 'options' ][ key ] = str( val ) # set it in cfg.
 		self.__dict__[ key ] = val # set self var.
-		self.dirty = True
+		#self.dirty = True
 	
 	# get variable.
 	# returns default if not in cfg.
