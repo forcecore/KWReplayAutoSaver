@@ -152,17 +152,24 @@ class Watcher :
 			teams[0] = Watcher.saver_first( teams[0], saver )
 
 			# * Join the names in each team with " & ".
-			team_strs = Watcher.teams_to_strs( teams )
+			team_strs = Watcher.teams_to_strs( teams, add_faction )
 
 			# * Join teams with " vs ".
 			return " vs ".join( team_strs )
 		else :
-			return str( h ) + "p game with " + Watcher.find_a_nonsaver_player( humans, saver ).name
+			return str( h ) + "p game with " + \
+				Watcher.player_to_str( Watcher.find_a_nonsaver_player( humans, saver ), add_faction )
 	
-	def teams_to_strs( teams ) :
+	def player_to_str( p, add_faction ) :
+		if not add_faction :
+			return p.name
+		else :
+			return p.name + " (" + Player.decode_faction( p.faction ) + ")"
+	
+	def teams_to_strs( teams, add_faction ) :
 		result = []
 		for t in teams :
-			names = [ p.name for p in t ]
+			names = [ Watcher.player_to_str( p, add_faction ) for p in t ]
 			result.append( " & ".join( names ) )
 		return result
 	
