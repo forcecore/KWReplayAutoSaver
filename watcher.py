@@ -183,7 +183,7 @@ def main() :
 	while True :
 		time.sleep (2)
 		if watcher.poll() :
-			newf = watcher.do_renaming( watcher.last_replay, True )
+			newf = watcher.do_renaming( watcher.last_replay, add_username=True )
 			print( watcher.sig )
 			print( "Copied to", newf )
 

@@ -51,7 +51,10 @@ class AutoSaverAppFrame( wx.adv.TaskBarIcon ) :
 	
 	def on_timer( self, event ) :
 		if self.watcher.poll() :
-			newf = self.watcher.do_renaming( self.watcher.last_replay, self.args.add_username )
+			newf = self.watcher.do_renaming( self.watcher.last_replay,
+					add_username=self.args.add_username,
+					add_faction=self.args.add_faction,
+					custom_date_format=self.args.custom_date_format )
 			print( "Copied to", newf ) # shown on console!
 
 	def create_menu_item( self, menu, label, func ) :
