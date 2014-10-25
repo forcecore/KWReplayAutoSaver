@@ -3,82 +3,100 @@
 import os, time, shutil
 import configparser
 import wx
+import io
 
 
 ###
 ### Configuration
 ###
 
+###
+### This class holds config vars of the program + keeps them synced on disk.
+### (config written back when program exits)
+###
 class Args :
 	def __init__( self, fname ) :
+		self.dirty = False # Has non-saved + changed options?
+		self.cfg_fname = fname # for saving to disk on exit.
+
 		self.last_replay = None
+		self.add_username = True
 		self.cfg = self.load_from_file( fname )
 	
 	def __str__( self ) :
-		lines = []
-		if self.last_replay :
-			lines.append( "last_replay: " + self.last_replay )
-		else :
-			lines.append( "last_replay: None" )
-		return '\n'.join( lines )
+		s = io.StringIO()
+		print( "last_replay:", self.last_replay, file=s )
+		print( "add_username:", self.add_username, file=s )
+		return s.getvalue()
 
+	def set_var( self, key, val ) :
+		self.cfg[ 'options' ][ key ] = str( val ) # set it in cfg.
+		self.__dict__[ key ] = val # set self var.
+		self.dirty = True
+	
+	# get variable.
+	# returns default if not in cfg.
+	def get_var( self, key, default=None ) :
+		if not self.cfg.has_section( 'options' ) :
+			self.cfg.add_section( 'options' )
+			return default
+
+		if not key in self.cfg[ 'options' ] :
+			return default
+
+		return self.cfg[ 'options' ][ key ]
+
+	# Same as get var (actually uses get_var) but converts them to bool
+	def get_bool( self, key, default=None ) :
+		# awwwwwwww this is so confusing.
+		# So, if I invoke get_var with no default value, then I should get
+		# 'None' when section or key doesn't exist.
+		# Then I shall return default val.
+		# Otherwise it means some bool value exists to parse.
+		# I may use getboolean function safely,
+		# which will do 'on/off', 'true/false', 'yes/no' parsing burden.
+		val = self.get_var( key )
+
+		if val == None :
+			return default
+		else :
+			return self.cfg.getboolean( 'options', key )
+
+	# Make user to choose the last replay file.
 	def set_last_replay( self ) :
+		# Well, I'll turn to wxPython for dialogs.
+		# It is asserted that some kind of wx.App() instance is initialized by
+		# the user of this class.
 		diag = wx.FileDialog( None, "Open the last replay file", "", "",
 			"Kane's Wrath Replays (*.KWReplay)|*.KWReplay",
 			wx.FD_OPEN | wx.FD_FILE_MUST_EXIST )
 		
 		if diag.ShowModal() == wx.ID_OK :
-			self.last_replay = diag.GetPath()
+			# if dialog set properly, set it.
+			self.set_var( 'last_replay', diag.GetPath() )
 		else :
+			# if not set properly and if we have a proper value of last_replay
+			# somehow, we may continue.
 			if not self.last_replay :
+				# if we may not continue... we quit the app.
 				wx.MessageBox( "You must select the last replay file!, exiting." )
 				exit( 1 )
 
-		# Well, I'll turn to wxPython
-		self.cfg.set( 'options', 'last_replay', self.last_replay )
-
 		diag.Destroy()
 	
-	def set_add_username( self, tf ) :
-		if tf == True :
-			tfstr = 'true'
-		else :
-			tfstr = 'false'
-		self.cfg[ 'options' ][ 'add_username' ] = tfstr
-		self.add_username = tf
-
 	def load_from_file( self, fname ) :
 		self.cfg = configparser.ConfigParser()
 		self.cfg.read( fname )
 
-		written = False
-
-		if not self.cfg.has_section( 'options' ) :
-			self.cfg.add_section( 'options' )
-			written = True
-
-		# read last replay fname
-		if not self.cfg.has_option( 'options', 'last_replay' ) :
+		self.last_replay = self.get_var( 'last_replay' )
+		if not self.last_replay :
 			wx.MessageBox( "Please select the last replay file!" )
-			self.set_last_replay()
-			written = True
-		else :
-			self.last_replay = self.cfg[ 'options' ][ 'last_replay' ]
+			self.set_last_replay() # ask the user for it. it is a critical var!
 
-		# get add_username option
-		if not self.cfg.has_option( 'options', 'add_username' ) :
-			written = True
-			self.set_add_username( True )
-		else :
-			self.add_username = self.cfg.getboolean( 'options', 'add_username' )
-			#print( self.add_username )
-
-		# if newly written, save.
-		if written :
-			self.save_to_file( fname )
+		self.add_username = self.get_bool( 'add_username', True )
 
 		return self.cfg
-	
+
 	def save_to_file( self, fname ) :
 		f = open( fname, 'w' )
 		self.cfg.write( f )

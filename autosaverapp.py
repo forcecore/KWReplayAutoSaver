@@ -63,7 +63,7 @@ class AutoSaverAppFrame( wx.adv.TaskBarIcon ) :
 	def on_add_username( self, event ) :
 		# toggle configuration status
 		# has hidden cfg inside, must use the set function.
-		self.args.set_add_username( not self.args.add_username )
+		self.args.set_var( 'add_username', not self.args.add_username )
 
 	def CreatePopupMenu( self ) :
 		menu = wx.Menu()
