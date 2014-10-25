@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf8 -*-
-import os, time, shutil
+import os, time, shutil, datetime
 from kwreplay import KWReplay, Player
 
 
@@ -97,10 +97,14 @@ class Watcher :
 
 	# analyze the replay and deduce its name
 	def calc_name( r, add_username=True, add_faction=False, custom_date_format=None ) :
-		newf = '[' + r.decode_timestamp( r.timestamp ) + ']'
+		if custom_date_format == None :
+			newf = '[' + r.decode_timestamp( r.timestamp ) + ']'
+		else :
+			# In this case, the user is responsible for adding [], if they want them.
+			newf = r.decode_timestamp( r.timestamp, date_format=custom_date_format )
 
 		if add_username :
-			newf += " " + Watcher.player_list( r )
+			newf += " " + Watcher.player_list( r, add_faction=add_faction )
 
 		newf += ".KWReplay" # don't forget the extension!
 
@@ -112,7 +116,7 @@ class Watcher :
 	# returns a nice readable list of players.
 	# Actually only returns count and one player's name but anyway :S
 	# r: da replay class
-	def player_list( r ) :
+	def player_list( r, add_faction=False ) :
 		# count AI players.
 		humans = Watcher.find_human_players( r )
 		saver = Watcher.get_replay_saver( r )

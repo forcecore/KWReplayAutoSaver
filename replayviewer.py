@@ -160,8 +160,10 @@ class ReplayViewer( wx.Frame ) :
 		# generate some predefined replay renamings
 		kwr = KWReplay( fname=self.ctx_old_name )
 		self.names = []
-		self.names.append( Watcher.calc_name( kwr, add_username=False ) )
-		self.names.append( Watcher.calc_name( kwr, add_username=True ) )
+		self.names.append( Watcher.calc_name( kwr,
+				add_username=False, custom_date_format=self.args.custom_date_format ) )
+		self.names.append( Watcher.calc_name( kwr,
+				add_username=True, custom_date_format=self.args.custom_date_format ) )
 
 		# make context menu
 		menu = wx.Menu()

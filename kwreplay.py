@@ -17,7 +17,7 @@ import datetime
 
 class Player :
 	faction_tab = [
-		'Rnd_faction', 'Obs', 'PostCommentator',
+		'Rnd', 'Obs', 'PostCommentator',
 		'f3', 'f4', 'GDI',
 		'ST', 'ZCM', 'Nod',
 		'BH', 'MoK', 'Sc',
@@ -211,9 +211,12 @@ class KWReplay :
 		buf = f.read()
 		g.write( buf )
 
-	def decode_timestamp( self, stamp ) :
+	def decode_timestamp( self, stamp, date_format=None ) :
 		t = datetime.datetime.fromtimestamp( stamp )
-		stamp = t.strftime("%Y-%m-%dT%H%M")
+		if date_format == None :
+			stamp = t.strftime("%Y-%m-%dT%H%M")
+		else :
+			stamp = t.strftime( date_format )
 		return stamp
 	
 
