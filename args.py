@@ -21,12 +21,17 @@ class Args :
 
 		self.last_replay = None
 		self.add_username = True
+		self.add_faction = False
+		self.custom_date_format = None
+
 		self.cfg = self.load_from_file( fname )
 	
 	def __str__( self ) :
 		s = io.StringIO()
 		print( "last_replay:", self.last_replay, file=s )
 		print( "add_username:", self.add_username, file=s )
+		print( "add_faction:", self.add_faction, file=s )
+		print( "custom_date_format:", self.custom_date_format, file=s )
 		return s.getvalue()
 
 	def set_var( self, key, val ) :
@@ -94,6 +99,8 @@ class Args :
 			self.set_last_replay() # ask the user for it. it is a critical var!
 
 		self.add_username = self.get_bool( 'add_username', True )
+		self.add_faction = self.get_bool( 'add_faction', False )
+		self.custom_date_format = self.get_var( 'custom_date_format' )
 
 		return self.cfg
 
