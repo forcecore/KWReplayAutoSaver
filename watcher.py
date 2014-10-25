@@ -127,13 +127,22 @@ class Watcher :
 			else :
 				return "vs AI"
 		elif h == 2 :
-			return "vs " + Watcher.find_a_nonsaver_player( r ).name
+			a = humans[ 0 ]
+			b = humans[ 1 ]
+			if a == saver :
+				return a.name + " vs " + b.name
+			else :
+				return b.name + " vs " + a.name
+		elif h <= 4 :
+			# generate "ab vs cd" like style string
+			return "xxxxxxxxxx"
 		else :
 			return str( h ) + "p game with " + Watcher.find_a_nonsaver_player( r ).name
 
 
 
-	# find all human players who is not the saver. (and not an observer)
+	# find all human "players".
+	# If observer, they are not "playing" the game!, though they are human.
 	# r: da replay class
 	def find_human_players( r ) :
 		ps = []
@@ -141,8 +150,8 @@ class Watcher :
 			# if non ai non saver non observer...
 			if p.is_ai :
 				continue
-			if i == r.replay_saver :
-				continue
+			#if i == r.replay_saver :
+			#	continue
 			if p.is_observer() :
 				continue
 			if p.name == "post Commentator" :
