@@ -79,8 +79,20 @@ class Watcher :
 		tmpf = "tmp.kwr"
 		shutil.copyfile( self.last_replay, tmpf )
 
-		# analyze the replay and deduce its name
 		r = KWReplay( fname=tmpf )
+		newf = r.calc_name( add_username ) # analyze the replay and deduce its name
+		newf = os.path.join( path, newf )
+
+		os.replace( tmpf, newf ) # rename, silently overwrite if needed.
+		return newf
+
+	def sanitize_name( newf ) :
+		for char in [ "<", ">", ":", "\"", "/", "\\", "|", "?", "*" ] :
+			newf = newf.replace( char, "_" )
+		return newf
+
+	# analyze the replay and deduce its name
+	def calc_name( self, add_username ) :
 		newf = '[' + r.decode_timestamp( r.timestamp ) + ']'
 
 		if add_username :
@@ -89,15 +101,9 @@ class Watcher :
 		newf += ".KWReplay" # don't forget the extension!
 
 		# sanitize the names.
-		for char in [ "<", ">", ":", "\"", "/", "\\", "|", "?", "*" ] :
-			newf = newf.replace( char, "_" )
+		newf = Watcher.sanitize_name( newf )
 
-		newf = os.path.join( path, newf )
-
-		os.replace( tmpf, newf )
 		return newf
-	
-
 
 	# returns a nice readable list of players.
 	# Actually only returns count and one player's name but anyway :S

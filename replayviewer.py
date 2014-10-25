@@ -243,8 +243,7 @@ class ReplayViewer( wx.Frame ) :
 			rep_name += ".KWReplay"
 
 		# sanitize invalid char
-		for char in [ "<", ">", ":", "\"", "/", "\\", "|", "?", "*" ] :
-			rep_name = rep_name.replace( char, "_" )
+		rep_name = Watcher.sanitize_name( rep_name )
 
 		# this is the full name.
 		fname = os.path.join( self.path, rep_name )
@@ -444,14 +443,14 @@ class ReplayViewer( wx.Frame ) :
 			stem += ".KWReplay"
 
 		# Check for invalid char
-		for char in [ "<", ">", ":", "\"", "/", "\\", "|", "?", "*" ] :
-			if char in stem :
-				msg = "File name must not contain the following:\n"
-				msg += "<>:\"/\\|?*"
-				diag = wx.MessageDialog( self, msg, "Error", wx.OK|wx.ICON_ERROR )
-				diag.ShowModal()
-				diag.Destroy()
-				return
+		sanitized = Watcher.sanitize_name( stem )
+		if sanitized != stem :
+			msg = "File name must not contain the following:\n"
+			msg += "<>:\"/\\|?*"
+			diag = wx.MessageDialog( self, msg, "Error", wx.OK|wx.ICON_ERROR )
+			diag.ShowModal()
+			diag.Destroy()
+			return
 
 		# Accepted.
 		self.rename_with_stem( pos, self.custom_old_name, stem )
