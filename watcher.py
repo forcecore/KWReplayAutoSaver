@@ -71,7 +71,9 @@ class Watcher :
 	### then use the replay's time stamp to give the tmp replay a proper name.
 	### Setting add_username to True will append user name to the replay name.
 	###
-	def do_renaming( self, fname, add_username ) :
+	### Decided to be independent form the Args class, that's why we have so many params here.
+	###
+	def do_renaming( self, fname, add_username=True, add_faction=False, custom_date_format=None ) :
 		# where the replay dir is.
 		path = os.path.dirname( fname )
 
@@ -80,7 +82,9 @@ class Watcher :
 		shutil.copyfile( self.last_replay, tmpf )
 
 		r = KWReplay( fname=tmpf )
-		newf = r.calc_name( add_username ) # analyze the replay and deduce its name
+		# analyze the replay and deduce its name
+		newf = Watcher.calc_name( r, add_username=add_username,
+				add_faction=add_faction, custom_date_format=custom_date_format )
 		newf = os.path.join( path, newf )
 
 		os.replace( tmpf, newf ) # rename, silently overwrite if needed.
@@ -92,7 +96,7 @@ class Watcher :
 		return newf
 
 	# analyze the replay and deduce its name
-	def calc_name( self, add_username ) :
+	def calc_name( r, add_username=True, add_faction=False, custom_date_format=None ) :
 		newf = '[' + r.decode_timestamp( r.timestamp ) + ']'
 
 		if add_username :

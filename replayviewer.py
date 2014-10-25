@@ -9,14 +9,15 @@ import subprocess
 import wx
 
 class ReplayViewer( wx.Frame ) :
-	def __init__( self, parent, path ) :
+	def __init__( self, parent, args ) :
 		super().__init__( parent, title='Replay Info Viewer', size=(1024,800) )
 		self.do_layout()
 		self.event_bindings()
 		self.create_accel_tab()
 
-		self.path = path
-		self.populate_replay_list( path )
+		self.args = args
+		self.path = os.path.dirname( args.last_replay )
+		self.populate_replay_list( self.path )
 
 		self.names = None # scratch memory for replay renaming presets (for context menu)
 		self.ctx_old_name = "" # lets have a space for the old replay name too.
@@ -159,8 +160,8 @@ class ReplayViewer( wx.Frame ) :
 		# generate some predefined replay renamings
 		kwr = KWReplay( fname=self.ctx_old_name )
 		self.names = []
-		self.names.append( kwr.decode_timestamp( kwr.timestamp ) )
-		self.names.append( self.names[0] + " " + Watcher.player_list( kwr ) )
+		self.names.append( Watcher.calc_name( kwr, add_username=False ) )
+		self.names.append( Watcher.calc_name( kwr, add_username=True ) )
 
 		# make context menu
 		menu = wx.Menu()
@@ -524,9 +525,8 @@ def main() :
 	# debug settings
 	CONFIGF = 'config.ini'
 	args = Args( CONFIGF )
-	path = os.path.dirname( args.last_replay )
 
-	frame = ReplayViewer( None, path )
+	frame = ReplayViewer( None, args )
 	frame.Show( True )
 	app.MainLoop()
 
