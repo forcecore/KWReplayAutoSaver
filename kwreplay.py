@@ -81,6 +81,24 @@ class Player :
 	
 	def is_observer( self ) :
 		return self.faction == 2
+
+	# An AI is a player.
+	def is_player( self ) :
+		if self.is_ai :
+			return True
+		else :
+			return self.is_human_player()
+
+	# By 'player', observer is not a player.
+	# Nobody needs to consider post Commentator.
+	def is_human_player( self ) :
+		if self.is_ai :
+			return False
+		if self.name == "post Commentator" :
+			return False
+		if self.is_observer() :
+			return False
+		return True
 	
 	def decode_ai( self, data ) :
 		# 0  1 2  3  4   5 6

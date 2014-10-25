@@ -169,6 +169,10 @@ class ReplayViewer( wx.Frame ) :
 		menu = wx.Menu()
 		# context menu using self.names :
 		for i, txt in enumerate( self.names ) :
+			# variable txt is a copy of the variable. I may modify it safely without
+			# affecting self.names!
+			txt = txt.replace( "&", "&&" ) # Gotcha, in wx.
+			# & indicates a shortcut key. I must say && to actually display & in the menu.
 			item = wx.MenuItem( menu, i, "Rename as " + txt )
 			menu.Bind( wx.EVT_MENU, self.replay_context_menu_presetClicked, id=item.GetId() )
 			menu.Append( item )

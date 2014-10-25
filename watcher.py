@@ -115,7 +115,7 @@ class Watcher :
 
 	# returns a nice readable list of players.
 	# Actually only returns count and one player's name but anyway :S
-	# r: da replay class
+	# r: da replay class instance.
 	def player_list( r, add_faction=False ) :
 		# count AI players.
 		humans = Watcher.find_human_players( r )
@@ -134,18 +134,86 @@ class Watcher :
 				return "Sandbox"
 			else :
 				return "vs AI"
-		elif h == 2 :
-			a = humans[ 0 ]
-			b = humans[ 1 ]
-			if a == saver :
-				return a.name + " vs " + b.name
-			else :
-				return b.name + " vs " + a.name
 		elif h <= 4 :
 			# generate "ab vs cd" like style string
-			return "xxxxxxxxxx"
+			# by now, h >= 2.
+
+			teams = Watcher.group_players_by_team( r ) # including AI, but no observers.
+
+			# * 'Sort' teams to have the saver player first.
+			#   Well, the saver player could be an observer. should be careful of that.
+			#     Hmm... if observer it doesn't matter too much. We just have to list
+			#     the players in the game in that case, no sorting required.
+			teams = Watcher.saver_team_first( teams, saver )
+
+			# * Then, with the team with the player in, sort the players in the team
+			#   so that the saver player come first.
+			#   Even if the saver is an observer, it should be fine.
+			teams[0] = Watcher.saver_first( teams[0], saver )
+
+			# * Join the names in each team with " & ".
+			team_strs = Watcher.teams_to_strs( teams )
+
+			# * Join teams with " vs ".
+			return " vs ".join( team_strs )
 		else :
-			return str( h ) + "p game with " + Watcher.find_a_nonsaver_player( r ).name
+			return str( h ) + "p game with " + Watcher.find_a_nonsaver_player( humans, saver ).name
+	
+	def teams_to_strs( teams ) :
+		result = []
+		for t in teams :
+			names = [ p.name for p in t ]
+			result.append( " & ".join( names ) )
+		return result
+	
+	def saver_first( team, saver ) :
+		if not saver in team :
+			return team
+		# if in team, move the saver to the first place.
+		team.remove( saver )
+		team.insert( 0, saver )
+		return team
+
+	# r: replay
+	# Well, by players, that is AI included.
+	# Ofcourse, observers are not players.
+	def group_players_by_team( r ) :
+		# prepare teams 0, 1, ..., 4
+		teams = [ [] for i in range( 5 ) ]
+		for p in r.players :
+			# filter out non participants.
+			# (obs, post commentators)
+			if not p.is_player() :
+				continue
+
+			if p.team == 0 :
+				teams.append( [p] ) # player is in no team!
+			else :
+				teams[ p.team ].append( p )
+
+		# remove empty teams
+		result = []
+		for t in teams :
+			if len( t ) > 0 :
+				result.append( t )
+
+		return result
+	
+	def saver_team_first( teams, saver ) :
+		result = []
+		for t in teams :
+			# if saver is in the team, put the team as the first element of resul.
+			if saver in t :
+				result.insert( 0, t )
+			else :
+				result.append( t )
+		return result
+
+	# Find a player (that implies, not observer) who is not the replay saver.
+	def find_a_nonsaver_player( humans, saver ) :
+		for p in humans :
+			if p != saver :
+				return p
 
 
 
@@ -155,16 +223,8 @@ class Watcher :
 	def find_human_players( r ) :
 		ps = []
 		for i, p in enumerate( r.players ) :
-			# if non ai non saver non observer...
-			if p.is_ai :
-				continue
-			#if i == r.replay_saver :
-			#	continue
-			if p.is_observer() :
-				continue
-			if p.name == "post Commentator" :
-				continue
-			ps.append( p )
+			if p.is_human_player() :
+				ps.append( p )
 		return ps
 
 	def get_replay_saver( r ) :
