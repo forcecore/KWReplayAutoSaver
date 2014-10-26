@@ -147,6 +147,8 @@ class ReplayViewer( wx.Frame ) :
 
 	# Generate the context menu when rep_list is right clicked.
 	def replay_context_menu( self, event ) :
+		cnt = self.rep_list.GetSelectedItemCount()
+		print( cnt )
 		pos = event.GetIndex()
 		if pos < 0 :
 			return
@@ -229,14 +231,13 @@ class ReplayViewer( wx.Frame ) :
 		# at least, we have confirm
 		# Glitch that I will not bother to fix.
 
-		diag = wx.MessageDialog( self,
-				"Really delete " + rep_name + "?",
+		# ICON_QUESTION will not show up...  It is intended by the library.
+		# Read http://wxpython.org/Phoenix/docs/html/MessageDialog.html for more info.
+		result = wx.MessageBox( "Really delete " + rep_name + "?",
 				"Confirm Deletion",
-				wx.YES_NO|wx.YES_DEFAULT|wx.ICON_QUESTION )
-		result = diag.ShowModal()
-		diag.Destroy()
+				wx.ICON_QUESTION|wx.OK|wx.OK_DEFAULT|wx.CANCEL )
 
-		if result == wx.ID_YES :
+		if result == wx.OK :
 			# delete the file
 			# the context menu should have old_name correct by now.
 			assert self.ctx_old_name
@@ -267,10 +268,8 @@ class ReplayViewer( wx.Frame ) :
 
 		# see if it already exits.
 		if os.path.isfile( fname ) :
-			diag = wx.MessageDialog( self, fname + "\nalready exists! Not renaming.", "Error",
+			diag = wx.MessageBox( fname + "\nalready exists! Not renaming.", "Error",
 					wx.OK|wx.ICON_ERROR )
-			diag.ShowModal()
-			diag.Destroy()
 		else :
 			# rename the file
 			self.do_renaming( pos, old_name, rep_name )
@@ -288,9 +287,7 @@ class ReplayViewer( wx.Frame ) :
 			# for some reason the old one may not exist.
 			# perhaps due to not refreshed list.
 			msg = "Replay does not exists! Please rescan the folder!"
-			diag = wx.MessageDialog( self, msg, "Error", wx.OK|wx.ICON_ERROR )
-			diag.ShowModal()
-			diag.Destroy()
+			wx.MessageBox( msg, "Error", wx.OK|wx.ICON_ERROR )
 			return
 
 		fname = os.path.join( self.path, rep_name )
@@ -469,9 +466,7 @@ class ReplayViewer( wx.Frame ) :
 		if sanitized != stem :
 			msg = "File name must not contain the following:\n"
 			msg += "<>:\"/\\|?*"
-			diag = wx.MessageDialog( self, msg, "Error", wx.OK|wx.ICON_ERROR )
-			diag.ShowModal()
-			diag.Destroy()
+			wx.MessageBox( msg, "Error", wx.OK|wx.ICON_ERROR )
 			return
 
 		# Accepted.
