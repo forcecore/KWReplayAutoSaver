@@ -8,6 +8,22 @@ https://github.com/forcecore/KWReplayAutoSaver
 Begin from autosaver.py, it uses other class to accomplish the job.
 
 -------------------------------------------------------------------
+Environmental setup, quick guide
+
+* Checkout the project with git.
+* Install Python 3. As of now, I've installed it using python-3.4.2.msi.
+  Check add python to path option during the install to use PIP.
+* Launch command shell and run the following command to install
+  wxPython_Phoenix :
+  pip install -U --pre -f http://wxpython.org/Phoenix/snapshot-builds/ wxPython_Phoenix
+* Install py2exe with the following command:
+  pip install py2exe
+* After done developing, run dist.bat to compile Python scripts into exe
+  files.
+
+
+
+-------------------------------------------------------------------
 
 Python 3 has its own py2exe functionality, yay!
 Read about it here:
@@ -42,7 +58,7 @@ C:\Users\Mark\AppData\Local\Temp\pip-404ydr4s-build
 Storing debug log for failure in C:\Users\Mark\pip\pip.log 
 ----------------------------------------------------------------
 
-At the moment, I'm using Python 3.4.1 (on windows).
+At the moment, I'm using Python 3.4.2 (on windows).
 python-3.4.2.msi
 
 all with default installation options.

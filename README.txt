@@ -1,7 +1,7 @@
 Kane's Wrath Replay Auto Saver
 by BoolBada, ssanzing@gmail.com
 
-There's a very good tool at http://airlea.nl/kwrt/, which allow players to save
+There's a very good tool at http://airlea.nl/kwrt/, which allows players to save
 their replays semi-automatically. However, I've decided to write my own tool
 since even the semi-automatic feature doesn't work for me.
 
