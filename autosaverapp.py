@@ -19,6 +19,7 @@ import wx.adv
 from args import Args
 from watcher import Watcher
 from replayviewer import ReplayViewer
+from dateformatcustomizer import DateFormatCustomizer
 
 
 
@@ -93,6 +94,9 @@ class AutoSaverAppFrame( wx.adv.TaskBarIcon ) :
 		menu.Bind( wx.EVT_MENU, self.on_add_username, id=self.add_username.GetId() )
 		menu.Bind( wx.EVT_MENU, self.on_add_faction, id=self.add_faction.GetId() )
 
+		# custom date format
+		self.create_menu_item( menu, 'Customize date time format', self.on_customize_date_format )
+
 		# change last replay file
 		self.create_menu_item( menu, 'Change last replay file', self.on_set_last_replay )
 
@@ -110,6 +114,15 @@ class AutoSaverAppFrame( wx.adv.TaskBarIcon ) :
 		#icon = wx.IconFromBitmap( wx.Bitmap( iconf ) )
 		icon = wx.Icon( iconf, wx.BITMAP_TYPE_ICO )
 		self.SetIcon( icon, "Kane's Wrath replay auto saver" )
+	
+	def on_customize_date_format( self, event ) :
+		# parent pointer looks wonky but it works!
+		dfc = DateFormatCustomizer( wx.GetApp().TopWindow, self.args )
+		result = dfc.ShowModal()
+		if result == wx.ID_OK :
+			fmt = dfc.text_ctrl_format.GetValue()
+			self.args.set_var( 'custom_date_format', fmt )
+		dfc.Destroy()
 	
 	def open_replay_viewer( self ) :
 		# parent pointer looks wonky but it works!

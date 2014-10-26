@@ -35,9 +35,11 @@ class Args :
 		return s.getvalue()
 
 	def set_var( self, key, val ) :
-		self.cfg[ 'options' ][ key ] = str( val ) # set it in cfg.
 		self.__dict__[ key ] = val # set self var.
-		#self.dirty = True
+		if key == 'custom_date_format' :
+			val = val.replace( "%", "%%" )
+			# The % symbols all mess up setting this variable. :(
+		self.cfg[ 'options' ][ key ] = str( val ) # set it in cfg.
 	
 	# get variable.
 	# returns default if not in cfg.
