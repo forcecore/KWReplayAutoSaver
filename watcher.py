@@ -134,7 +134,10 @@ class Watcher :
 				return "Sandbox"
 			else :
 				return "vs AI"
-		elif h <= 4 :
+		elif h+ai <= 4 :
+			# why h+ai?
+			# Otherwise I may get really long 8 player list, including the AI.
+
 			# generate "ab vs cd" like style string
 			# by now, h >= 2.
 
