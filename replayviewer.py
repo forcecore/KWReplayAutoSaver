@@ -8,12 +8,15 @@ import datetime
 import subprocess
 import wx
 
+KWICO='KW.ico'
+
 class ReplayViewer( wx.Frame ) :
 	def __init__( self, parent, args ) :
 		super().__init__( parent, title='Replay Info Viewer', size=(1024,800) )
 		self.do_layout()
 		self.event_bindings()
 		self.create_accel_tab()
+		self.set_icon()
 
 		self.args = args
 		self.path = os.path.dirname( args.last_replay )
@@ -404,6 +407,11 @@ class ReplayViewer( wx.Frame ) :
 				( wx.ACCEL_NORMAL, wx.WXK_DELETE, self.id_del )
 			])
 		self.SetAcceleratorTable( accel_tab )
+	
+	def set_icon( self ) :
+		if os.path.isfile( KWICO ) :
+			icon = wx.Icon( KWICO, wx.BITMAP_TYPE_ICO )
+			self.SetIcon( icon )
 
 
 
