@@ -38,6 +38,7 @@ class AutoSaverAppFrame( wx.adv.TaskBarIcon ) :
 
 		self.set_icon( iconf )
 		self.add_username = None # pointer to add_username check menu, for ease of access.
+		self.add_faction = None # pointer to add_faction check menu, for ease of access.
 
 		# timer for polling for replay change
 		self.timer = wx.Timer( self )
@@ -68,16 +69,29 @@ class AutoSaverAppFrame( wx.adv.TaskBarIcon ) :
 		# has hidden cfg inside, must use the set function.
 		self.args.set_var( 'add_username', not self.args.add_username )
 
+	def on_add_faction( self, event ) :
+		# toggle configuration status
+		# has hidden cfg inside, must use the set function.
+		self.args.set_var( 'add_faction', not self.args.add_faction )
+
 	def CreatePopupMenu( self ) :
 		menu = wx.Menu()
 
 		# checkable thingy
 		self.add_username = menu.AppendCheckItem( wx.ID_ANY, 'Add user name',
 				'Append player names to the replay name' )
-		self.add_username.Check( self.args.add_username ) # check status should follow the config.
+		self.add_faction = menu.AppendCheckItem( wx.ID_ANY, 'Add factions',
+				'Append faction information to each player' )
+
+		# check status should follow the config.
 		# context menu check items DO NOT have internal state!!
 		# we must set checkedness here
+		self.add_username.Check( self.args.add_username )
+		self.add_faction.Check( self.args.add_faction )
+
+		# event binding
 		menu.Bind( wx.EVT_MENU, self.on_add_username, id=self.add_username.GetId() )
+		menu.Bind( wx.EVT_MENU, self.on_add_faction, id=self.add_faction.GetId() )
 
 		# change last replay file
 		self.create_menu_item( menu, 'Change last replay file', self.on_set_last_replay )
