@@ -2,6 +2,8 @@
 # -*- coding: utf8 -*-
 
 from args import Args
+from watcher import Watcher
+import datetime
 import wx
 import wx.adv
 
@@ -18,13 +20,42 @@ class DateFormatCustomizer( wx.Dialog ) :
 
 		# show preview!
 	
-	def on_close( self, event ) :
-		self.Destroy()
+	def on_preview( self, event ) :
+		txt = self.check_format()
+		if txt :
+			self.text_ctrl_preview.SetValue( txt )
+
+	# returns None on error.
+	# returns a formatted string of time now on success.
+	def check_format( self ) :
+		fmt = self.text_ctrl_format.GetValue()
+		t = datetime.datetime.now()
+		try :
+			txt = t.strftime( fmt )
+		except ValueError :
+			wx.MessageBox( "Invalid date time format!", "Error", style=wx.ICON_ERROR )
+			return None
+
+		if txt != Watcher.sanitize_name( txt ) :
+			msg = "File name must not contain the following:\n"
+			msg += "<>:\"/\\|?*"
+			wx.MessageBox( msg, "Error", style=wx.ICON_ERROR )
+			return None
 	
+		return txt
+
+	def on_apply( self, event ) :
+		txt = self.check_format()
+		if txt :
+			# Proceed to OnClose, only when format is fine.
+			event.Skip()
+
 	def event_binding( self ) :
-		self.button_apply.Bind( wx.EVT_BUTTON, self.on_close )
-		self.button_cancel.Bind( wx.EVT_BUTTON, self.on_close )
-		self.Bind( wx.EVT_CLOSE, self.on_close ) # intercept close command
+		self.button_apply.Bind( wx.EVT_BUTTON, self.on_apply )
+
+		# preview button/enter key event
+		self.text_ctrl_format.Bind( wx.EVT_TEXT_ENTER, self.on_preview )
+		self.button_preview.Bind( wx.EVT_BUTTON, self.on_preview )
 	
 	def do_layout( self ) :
 		hyperlink_format = wx.adv.HyperlinkCtrl(self, wx.ID_ANY,
@@ -35,7 +66,7 @@ class DateFormatCustomizer( wx.Dialog ) :
 			)
 
 		# Buttons
-		self.button_apply = wx.Button( self, label="Apply" )
+		self.button_apply = wx.Button( self, id=wx.ID_OK, label="Apply" )
 		self.button_cancel = wx.Button( self, id=wx.ID_CANCEL, label="Cancel" )
 
 		sizer_buttons = wx.BoxSizer( wx.HORIZONTAL )
@@ -50,7 +81,7 @@ class DateFormatCustomizer( wx.Dialog ) :
 
 		# preview text ctrl
 		panel2 = wx.Panel( self )
-		self.text_preview = wx.TextCtrl( panel2, size=(200,-1), pos=(105,2), style=wx.TE_READONLY )
+		self.text_ctrl_preview = wx.TextCtrl( panel2, size=(200,-1), pos=(105,2), style=wx.TE_READONLY )
 		label_preview = wx.StaticText( panel2, label="Preview:", pos=(0,4) )
 
 		# Now add to VertSizer.
@@ -76,6 +107,7 @@ if __name__ == "__main__" :
 	args = Args( CONFIGF )
 
 	diag = DateFormatCustomizer( None, args )
-	diag.ShowModal()
+	result = diag.ShowModal()
+	diag.Destroy()
 
 	app.MainLoop()
