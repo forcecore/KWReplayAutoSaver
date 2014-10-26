@@ -56,6 +56,10 @@ class DateFormatCustomizer( wx.Dialog ) :
 		# preview button/enter key event
 		self.text_ctrl_format.Bind( wx.EVT_TEXT_ENTER, self.on_preview )
 		self.button_preview.Bind( wx.EVT_BUTTON, self.on_preview )
+		self.button_default.Bind( wx.EVT_BUTTON, self.on_default )
+	
+	def on_default( self, event ) :
+		self.text_ctrl_format.SetValue( "[%Y-%m-%dT%H%M]" )
 	
 	def do_layout( self ) :
 		hyperlink_format = wx.adv.HyperlinkCtrl(self, wx.ID_ANY,
@@ -77,6 +81,7 @@ class DateFormatCustomizer( wx.Dialog ) :
 		panel1 = wx.Panel( self )
 		self.text_ctrl_format = wx.TextCtrl( panel1, size=(200,-1), pos=(105,2), style=wx.TE_PROCESS_ENTER )
 		self.button_preview = wx.Button( panel1, label="Preview", pos=(310,0) )
+		self.button_default = wx.Button( panel1, label="Revert to Default", pos=(400,0) )
 		label_format = wx.StaticText( panel1, label="Date Time Format:", pos=(0,4) )
 
 		# preview text ctrl
