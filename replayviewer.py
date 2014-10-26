@@ -148,7 +148,6 @@ class ReplayViewer( wx.Frame ) :
 	# Generate the context menu when rep_list is right clicked.
 	def replay_context_menu( self, event ) :
 		cnt = self.rep_list.GetSelectedItemCount()
-		print( cnt )
 		pos = event.GetIndex()
 		if pos < 0 :
 			return
@@ -185,14 +184,19 @@ class ReplayViewer( wx.Frame ) :
 			# affecting self.names!
 			txt = txt.replace( "&", "&&" ) # Gotcha, in wx.
 			# & indicates a shortcut key. I must say && to actually display & in the menu.
-			item = wx.MenuItem( menu, i, "Rename as " + txt )
+			if cnt > 1 :
+				prefix = "Rename like "
+			else :
+				prefix = "Rename as "
+			item = wx.MenuItem( menu, i, prefix + txt )
 			menu.Bind( wx.EVT_MENU, self.replay_context_menu_presetClicked, id=item.GetId() )
 			menu.Append( item )
 
 		# custom rename menu
-		item = wx.MenuItem( menu, -1, "&Rename (F2)" )
-		menu.Bind( wx.EVT_MENU, self.replay_context_menu_rename, id=item.GetId() )
-		menu.Append( item )
+		if cnt == 1 :
+			item = wx.MenuItem( menu, -1, "&Rename (F2)" )
+			menu.Bind( wx.EVT_MENU, self.replay_context_menu_rename, id=item.GetId() )
+			menu.Append( item )
 
 		# delete replay menu
 		item = wx.MenuItem( menu, -1, "&Delete (Del)" )
@@ -200,9 +204,10 @@ class ReplayViewer( wx.Frame ) :
 		menu.Append( item )
 
 		# open contaning folder
-		item = wx.MenuItem( menu, -1, "&Open containing folder" )
-		menu.Bind( wx.EVT_MENU, self.open_containing_folder, id=item.GetId() )
-		menu.Append( item )
+		if cnt == 1 :
+			item = wx.MenuItem( menu, -1, "&Open containing folder" )
+			menu.Bind( wx.EVT_MENU, self.open_containing_folder, id=item.GetId() )
+			menu.Append( item )
 		
 		self.rep_list.PopupMenu( menu, event.GetPoint() ) # popup the context menu.
 		menu.Destroy() # prevents memory leaks haha
@@ -247,10 +252,52 @@ class ReplayViewer( wx.Frame ) :
 
 	def replay_context_menu_presetClicked( self, event ) :
 		assert self.names
-		pos = self.rep_list.GetFocusedItem()
+		cnt = self.rep_list.GetSelectedItemCount()
 		index = event.GetId() # menu index
-		rep_name = self.names[ index ]
-		self.rename_with_stem( pos, self.ctx_old_name, rep_name )
+
+		if cnt == 1 :
+			pos = self.rep_list.GetFocusedItem()
+			# Keeping self.names, for reading less from the disk.
+			# I do think that it will be a neater code to remove this cnt==1 special case
+			# but for the sake of performance, I'm keeping it.
+			rep_name = self.names[ index ]
+			self.rename_with_stem( pos, self.ctx_old_name, rep_name )
+			return
+
+		#
+		# mass renaming case!
+		#
+
+		# compute parameter for calc_name.
+		if index == 0 :
+			au = False
+			af = False
+		elif index == 1 :
+			au = True
+			af = False
+		elif index == 2 :
+			au = True
+			af = True
+		else :
+			assert index <= 2
+
+		# iterate list.
+		index = -1
+		while True :
+			index = self.rep_list.GetNextSelected( index )
+			if index == -1 :
+				break
+
+			# old full name
+			old_name = self.rep_list.GetItem( index, 0 ).GetText()
+			old_name = os.path.join( self.path, old_name )
+
+			kwr = KWReplay( fname=old_name )
+
+			rep_name = Watcher.calc_name( kwr, add_username=au, add_faction=af,
+					custom_date_format=self.args.custom_date_format )
+
+			self.rename_with_stem( index, old_name, rep_name )
 
 	# given some user friendly name "rep_name" as stem,
 	# canonicalize it.
