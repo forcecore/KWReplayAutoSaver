@@ -101,6 +101,8 @@ class Args :
 		self.add_username = self.get_bool( 'add_username', True )
 		self.add_faction = self.get_bool( 'add_faction', False )
 		self.custom_date_format = self.get_var( 'custom_date_format' )
+		if self.custom_date_format == None :
+			self.custom_date_format = "[%Y-%m-%dT%H%M]"
 
 		return self.cfg
 
