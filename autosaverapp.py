@@ -24,11 +24,12 @@ from dateformatcustomizer import DateFormatCustomizer
 
 
 class AutoSaverAppIcon( wx.adv.TaskBarIcon ) :
-	def __init__( self, iconf ) :
+	def __init__( self, frame, iconf ) :
 		super().__init__()
 
 		self.POLL_INTERVAL = 2000 # in msec
 		self.CONFIGF = 'config.ini'
+		self.frame = frame
 		self.args = Args( self.CONFIGF )
 		self.watcher = Watcher( self.args.last_replay )
 
@@ -138,7 +139,9 @@ class AutoSaverAppIcon( wx.adv.TaskBarIcon ) :
 
 	def on_exit(self, event):
 		self.args.save()
-		wx.CallAfter( self.Destroy )
+		self.Destroy() # self kill
+		self.frame.Destroy() # parent kill
+		# These two kills will kill all frames of the app, exiting the app!
 
 
 
@@ -157,22 +160,26 @@ class AutoSaverApp( wx.App ) :
 
 ###
 ### It seems, on Linux, tray apps need a dummy form at least.
+### "A wxPython application automatically exits when the last top level window
+### ( Frame or Dialog), is destroyed. Put any application-wide cleanup code in
+### AppConsole.OnExit (this is a method, not an event handler)."
+### It says on the docs.
 ###
 class AutoSaverForm( wx.Frame ) :
 	def __init__( self, iconf ) :
 		super().__init__( None )
-		self.tray_icon = AutoSaverAppIcon( iconf )
-		self.Bind( wx.EVT_CLOSE, self.on_close )
+		self.tray_icon = AutoSaverAppIcon( self, iconf )
+		#self.Bind( wx.EVT_CLOSE, self.on_close )
 	
-	def on_close( self, event ) :
-		#self.tray_icon.Destroy() causes segfault
-		event.skip() # proceed to close.
+	#def on_close( self, event ) :
+	#	self.tray_icon.Destroy() #causes segfault. Don't need this!
+	#	event.skip() # proceed to close.
 
 def main() :
 	ICONF = 'KW.ico'
 	app = AutoSaverApp()
 	frame = AutoSaverForm( ICONF )
-	#ico = AutoSaverAppIcon( ICONF )
+	#frame.Show( show=False ) dont need this
 	app.MainLoop()
 
 ###
