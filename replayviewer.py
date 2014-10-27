@@ -433,6 +433,7 @@ class ReplayViewer( wx.Frame ) :
 		self.SetMinSize( (1024, 800) )
 		main_sizer = wx.BoxSizer( wx.VERTICAL )
 		splitter = wx.SplitterWindow( self ) # must go into a sizer :S
+		splitter.SetMinimumPaneSize( 20 )
 		main_sizer.Add( splitter, 1, wx.EXPAND )
 
 		# top part of the splitter
