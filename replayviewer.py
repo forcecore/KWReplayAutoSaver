@@ -401,6 +401,7 @@ class ReplayViewer( wx.Frame ) :
 		rep_list.SetColumnWidth( 2, 200 )
 		rep_list.SetColumnWidth( 3, 100 )
 		rep_list.SetColumnWidth( 4, 100 )
+		#rep_list.SetMinSize( (600, 200) )
 		return rep_list
 	
 	def create_desc_panel( self, parent ) :
@@ -422,7 +423,7 @@ class ReplayViewer( wx.Frame ) :
 		return filter_panel
 	
 	def create_ref_panel( self, parent ) :
-		ref_panel = wx.Panel( self, -1 ) #, style=wx.SUNKEN_BORDER )
+		ref_panel = wx.Panel( parent, -1 ) #, style=wx.SUNKEN_BORDER )
 		#panel.SetBackgroundColour("GREEN")
 		self.opendir_btn = wx.Button( ref_panel, label="Change Folder", pos=(0,0) )
 		self.refresh_btn = wx.Button( ref_panel, label="Rescan Folder", pos=(100,0) )
@@ -430,41 +431,53 @@ class ReplayViewer( wx.Frame ) :
 
 	def do_layout( self ) :
 		self.SetMinSize( (1024, 800) )
-		splitter = wx.SplitterWindow( self )
-		box1 = wx.BoxSizer( wx.VERTICAL )
-		hbox1 = wx.BoxSizer( wx.HORIZONTAL )
+		main_sizer = wx.BoxSizer( wx.VERTICAL )
+		splitter = wx.SplitterWindow( self ) # must go into a sizer :S
+		main_sizer.Add( splitter, 1, wx.EXPAND )
 
-		self.player_list = self.create_player_list( self ) # player list
-		self.rep_list = self.create_rep_list( self ) # replay list
+		# top part of the splitter
+		self.player_list = self.create_player_list( splitter ) # player list
+
+		#
+		# bottom part of the splitter
+		#
+		# for splitter box resizing...
+		bottom_panel = wx.Panel( splitter, size=(500,500) )
+
+		self.rep_list = self.create_rep_list( bottom_panel ) # replay list
 
 		# description editing
 		# creates self.desc_text, self.modify_btn also.
-		desc_panel = self.create_desc_panel( self )
+		desc_panel = self.create_desc_panel( bottom_panel )
+
 		# replay filtering
 		# creates self.{filter_text, apply_btn, nofilter_btn} also.
-		filter_panel = self.create_filter_panel( self )
+		filter_panel = self.create_filter_panel( bottom_panel )
 
 		# change folder and rescan folder buttons
 		# creates self.{opendir_btn, refresh_btn}
-		ref_panel = self.create_ref_panel( self )
+		ref_panel = self.create_ref_panel( bottom_panel )
 
+		# filter and ref panel are actually small enough to be merged
+		# into a single bar.
+		hbox1 = wx.BoxSizer( wx.HORIZONTAL )
 		hbox1.Add( filter_panel, 1, wx.EXPAND )
 		hbox1.Add( ref_panel, 0 )
 
-		# hierarchy
-		box1.Add( self.player_list, 0, wx.EXPAND )
-		box1.Add( hbox1, 0, wx.EXPAND)
-		box1.Add( desc_panel, 0, wx.EXPAND)
-		box1.Add( self.rep_list, 1, wx.EXPAND)
+		# tie bottom elements into a sizer.
+		bottom_box = wx.BoxSizer( wx.VERTICAL )
+		bottom_box.Add( hbox1, 0, wx.EXPAND)
+		bottom_box.Add( desc_panel, 0, wx.EXPAND)
+		bottom_box.Add( self.rep_list, 1, wx.EXPAND)
+		bottom_panel.SetSizer( bottom_box )
+		#bottom_box.SetMinSize( (600, 400 ) )
 
-		# splitter window for resizing...
-		bottom_panel = wx.Panel( splitter )
-		bottom_panel.SetSizer( box1 )
-		#splitter.SplitHorizontally( self.player_list, bottom_panel )
+		splitter.SplitHorizontally( self.player_list, bottom_panel )
+		#splitter.SetSashGravity( 0.5 )
 
 		self.SetAutoLayout(True)
-		self.SetSizer(box1)
-		#box1.Fit( bottom_panel )
+		self.SetSizer( main_sizer )
+		bottom_box.Fit( bottom_panel )
 		self.Layout()
 
 	def create_accel_tab( self ) :
