@@ -10,6 +10,42 @@ import wx
 
 KWICO='KW.ico'
 
+# Not just the replay class, this class is for ease of management in rep_list.
+class ReplayItem() :
+	def __init__( self ) :
+		self.fname = None # without path!!! = not full path!
+		self.kwr = None
+
+class ReplayItems() :
+	def __init__( self ) :
+		self.items = []
+
+	def append( self, it ) :
+		self.items.append( it )
+
+	# delete the replay with fname from items
+	def find( self, fname ) :
+		fname = os.path.basename( fname ) # incase...
+		for it in self.items :
+			if it.fname == fname :
+				return it
+		raise KeyError
+
+	def remove( self, fname ) :
+		it = self.find( fname )
+		self.items.remove( it )
+
+	# rename it.fname
+	def rename( self, src, dest ) :
+		it = self.find( src ) # find does basename for me.
+		dest = os.path.basename( dest )
+		it.fname = dest
+
+	# finds the item with fname and replace it
+	def replace( self, fname, new_kwr ) :
+		it = find( fname )
+		it.kwr = new_kwr
+
 class ReplayViewer( wx.Frame ) :
 	def __init__( self, parent, args ) :
 		super().__init__( parent, title='Replay Info Viewer', size=(1024,800) )
@@ -20,7 +56,8 @@ class ReplayViewer( wx.Frame ) :
 
 		self.args = args
 		self.path = os.path.dirname( args.last_replay )
-		self.populate_replay_list( self.path )
+		self.replay_items = self.scan_replay_files( self.path )
+		self.populate_replay_list( self.replay_items )
 
 		self.names = None # scratch memory for replay renaming presets (for context menu)
 		self.ctx_old_name = "" # lets have a space for the old replay name too.
@@ -42,10 +79,11 @@ class ReplayViewer( wx.Frame ) :
 		
 		if diag.ShowModal() == wx.ID_OK :
 			self.path = os.path.dirname( diag.GetPath() )
-			self.populate_replay_list( self.path ) # refresh list
+			self.refresh_path()
 
 		diag.Destroy()
 
+	# scan a folder and return the replays as ReplayItem.
 	def scan_replay_files( self, path ) :
 		fs = []
 		for f in os.listdir( path ) :
@@ -57,7 +95,15 @@ class ReplayViewer( wx.Frame ) :
 				continue
 
 			fs.append( f )
-		return fs
+
+		replays = ReplayItems()
+		for f in fs :
+			i = ReplayItem()
+			i.fname = f
+			full_name = os.path.join( self.path, f )
+			i.kwr = KWReplay( fname=full_name )
+			replays.append( i )
+		return replays
 
 	# determine if filter hit -> show in rep_list.
 	def filter_hit( self, filter, kwr, fname ) :
@@ -94,9 +140,9 @@ class ReplayViewer( wx.Frame ) :
 
 		return False
 
-	def add_replay( self, path, rep, filter=None ) :
-		fname = os.path.join( path, rep )
-		kwr = KWReplay( fname=fname )
+	def add_replay( self, rep, filter=None ) :
+		fname = rep.fname
+		kwr = rep.kwr
 
 		if self.filter_hit( filter, kwr, fname ) :
 			# we need map, name, game desc, time and date.
@@ -106,20 +152,21 @@ class ReplayViewer( wx.Frame ) :
 			date = t.strftime("%x")
 
 			index = self.rep_list.GetItemCount()
-			pos = self.rep_list.InsertItem( index, rep ) # replay name
+			pos = self.rep_list.InsertItem( index, fname ) # replay name
 			self.rep_list.SetItem( pos, 1, kwr.map_name ) # replay name
 			self.rep_list.SetItem( pos, 2, kwr.desc ) # desc
 			self.rep_list.SetItem( pos, 3, time ) # time
 			self.rep_list.SetItem( pos, 4, date ) # date
-	
-	def populate_replay_list( self, path, filter=None ) :
+
+	# reps: list of replay_item to populate.
+	# filter to filter out some of them and not show on the GUI.
+	def populate_replay_list( self, reps, filter=None ) :
 		# destroy all existing items
 		self.rep_list.DeleteAllItems()
 
 		# now read freshly.
-		reps = self.scan_replay_files( path )
-		for rep in reps :
-			self.add_replay( path, rep, filter=filter )
+		for rep in reps.items :
+			self.add_replay( rep, filter=filter )
 
 	def populate_faction_info( self, pos ) :
 		assert pos >= 0
@@ -233,7 +280,7 @@ class ReplayViewer( wx.Frame ) :
 			return
 		item = self.rep_list.GetFocusedItem()
 		self.rep_list.EditLabel( item )
-
+	
 	# Delete this replay?
 	def replay_context_menu_delete( self, event ) :
 		pos = self.rep_list.GetFocusedItem()
@@ -258,6 +305,7 @@ class ReplayViewer( wx.Frame ) :
 			os.remove( self.ctx_old_name )
 			# delete the list.
 			self.rep_list.DeleteItem( pos )
+			self.replay_items.remove( rep_name )
 
 	def replay_context_menu_presetClicked( self, event ) :
 		assert self.names
@@ -312,9 +360,9 @@ class ReplayViewer( wx.Frame ) :
 			old_name = self.rep_list.GetItem( index, 0 ).GetText()
 			old_name = os.path.join( self.path, old_name )
 
-			kwr = KWReplay( fname=old_name )
+			it = self.replay_items.find( old_name )
 
-			rep_name = Watcher.calc_name( kwr, add_username=au, add_faction=af,
+			rep_name = Watcher.calc_name( it.kwr, add_username=au, add_faction=af,
 					add_vs_info=av,
 					custom_date_format=self.args.custom_date_format )
 
@@ -363,6 +411,8 @@ class ReplayViewer( wx.Frame ) :
 
 		# rename in the viewer
 		self.rep_list.SetItem( pos, 0, rep_name ) # replay name
+		# rename in the replay_items
+		self.replay_items.rename( old_name, fname )
 	
 	def key_func( self, item, col ) :
 		if col == 4 :
@@ -524,8 +574,17 @@ class ReplayViewer( wx.Frame ) :
 
 
 	def on_refresh_btnClick( self, event ) :
+		self.refresh_path()
+
+	# removing filter is the same as refresh_path but doesn't rescan path's files.
+	def on_nofilter_btnClick( self, event ) :
 		self.filter_text.SetValue( "" ) # removes filter.
-		self.populate_replay_list( self.path )
+		self.populate_replay_list( self.replay_items )
+	
+	def refresh_path( self ) :
+		self.filter_text.SetValue( "" ) # removes filter.
+		self.replay_items = self.scan_replay_files( self.path )
+		self.populate_replay_list( self.replay_items )
 
 	def on_opendir_btnClick( self, event ) :
 		self.change_dir()
@@ -609,6 +668,8 @@ class ReplayViewer( wx.Frame ) :
 
 		# update it in the interface.
 		self.rep_list.SetItem( pos, 2, desc ) # desc
+		kwr = KWReplay( fname ) # reload it.
+		self.replay_items.replace( fname, kwr )
 
 	# sort by clicked column
 	def on_rep_list_col_click( self, event ) :
@@ -624,7 +685,7 @@ class ReplayViewer( wx.Frame ) :
 	
 	def on_filter_applyClick( self, event ) :
 		fil = self.filter_text.GetValue()
-		self.populate_replay_list( self.path, filter=fil )
+		self.populate_replay_list( self.replay_items, filter=fil )
 
 	def event_bindings( self ) :
 		self.refresh_btn.Bind( wx.EVT_BUTTON, self.on_refresh_btnClick )
@@ -635,7 +696,7 @@ class ReplayViewer( wx.Frame ) :
 		self.opendir_btn.Bind( wx.EVT_BUTTON, self.on_opendir_btnClick )
 
 		self.apply_btn.Bind( wx.EVT_BUTTON, self.on_filter_applyClick )
-		self.nofilter_btn.Bind( wx.EVT_BUTTON, self.on_refresh_btnClick )
+		self.nofilter_btn.Bind( wx.EVT_BUTTON, self.on_nofilter_btnClick )
 		self.filter_text.Bind( wx.EVT_TEXT_ENTER, self.on_filter_applyClick )
 
 		self.rep_list.Bind( wx.EVT_LIST_ITEM_SELECTED, self.on_rep_listClick )
