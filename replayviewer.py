@@ -46,6 +46,27 @@ class ReplayItems() :
 		it = find( fname )
 		it.kwr = new_kwr
 
+	# from rep_list, retrieve selected items' indices.
+
+# "selected" iterator for listctrls!
+class selected( object ) :
+	def __init__( self, list_ctrl ) :
+		self.index = -1
+		self.list_ctrl = list_ctrl
+
+	def __iter__( self ) :
+		return self
+
+	def __next__( self ) :
+		return self.next()
+
+	def next( self ) :
+		self.index = self.list_ctrl.GetNextSelected( self.index )
+		if self.index == -1 :
+			raise StopIteration()
+		else :
+			return self.index
+
 class ReplayViewer( wx.Frame ) :
 	def __init__( self, parent, args ) :
 		super().__init__( parent, title='Replay Info Viewer', size=(1024,800) )
@@ -283,29 +304,37 @@ class ReplayViewer( wx.Frame ) :
 	
 	# Delete this replay?
 	def replay_context_menu_delete( self, event ) :
-		pos = self.rep_list.GetFocusedItem()
-		if pos < 0 :
+		cnt = self.rep_list.GetSelectedItemCount()
+		if cnt == 0 :
 			return
+
+		pos = self.rep_list.GetNextSelected( -1 ) # get first selected index
 		rep_name = self.rep_list.GetItem( pos, 0 ).GetText()
 
-		# delete with DEL key, without focusing any item works but
-		# at least, we have confirm
-		# Glitch that I will not bother to fix.
+		# confirmation message
+		msg = "Really delete " + rep_name
+		if cnt == 1 :
+			msg += "?"
+		else :
+			msg += " and " + str( cnt ) + " others?"
 
 		# ICON_QUESTION will not show up...  It is intended by the library.
 		# Read http://wxpython.org/Phoenix/docs/html/MessageDialog.html for more info.
-		result = wx.MessageBox( "Really delete " + rep_name + "?",
-				"Confirm Deletion",
+		result = wx.MessageBox( msg, "Confirm Deletion",
 				wx.ICON_QUESTION|wx.OK|wx.OK_DEFAULT|wx.CANCEL )
+		if result != wx.OK :
+			return
 
-		if result == wx.OK :
-			# delete the file
-			# the context menu should have old_name correct by now.
-			assert self.ctx_old_name
-			os.remove( self.ctx_old_name )
-			# delete the list.
-			self.rep_list.DeleteItem( pos )
-			self.replay_items.remove( rep_name )
+		for pos in reversed( list( selected( self.rep_list ) ) ) :
+			rep_name = self.rep_list.GetItem( pos, 0 ).GetText()
+			fname = os.path.join( self.path, rep_name )
+
+			self.rep_list.DeleteItem( pos ) # delete from list
+			self.replay_items.remove( rep_name ) # delete from mem
+			os.remove( fname ) # delete the file
+			self.ctx_old_name = None
+
+
 
 	def replay_context_menu_presetClicked( self, event ) :
 		assert self.names
@@ -350,12 +379,7 @@ class ReplayViewer( wx.Frame ) :
 			assert index <= 2
 
 		# iterate list.
-		index = -1
-		while True :
-			index = self.rep_list.GetNextSelected( index )
-			if index == -1 :
-				break
-
+		for index in selected( self.rep_list ) :
 			# old full name
 			old_name = self.rep_list.GetItem( index, 0 ).GetText()
 			old_name = os.path.join( self.path, old_name )
