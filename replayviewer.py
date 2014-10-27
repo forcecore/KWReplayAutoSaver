@@ -316,7 +316,7 @@ class ReplayViewer( wx.Frame ) :
 		if cnt == 1 :
 			msg += "?"
 		else :
-			msg += " and " + str( cnt ) + " others?"
+			msg += " and " + str( cnt-1 ) + " others?"
 
 		# ICON_QUESTION will not show up...  It is intended by the library.
 		# Read http://wxpython.org/Phoenix/docs/html/MessageDialog.html for more info.
