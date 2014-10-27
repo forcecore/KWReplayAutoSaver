@@ -23,9 +23,8 @@ from dateformatcustomizer import DateFormatCustomizer
 
 
 
-class AutoSaverAppFrame( wx.adv.TaskBarIcon ) :
+class AutoSaverAppIcon( wx.adv.TaskBarIcon ) :
 	def __init__( self, iconf ) :
-		#super(AutoSaverApp, self).__init__()
 		super().__init__()
 
 		self.POLL_INTERVAL = 2000 # in msec
@@ -36,8 +35,8 @@ class AutoSaverAppFrame( wx.adv.TaskBarIcon ) :
 		#
 		# now wx stuff
 		#
-
 		self.set_icon( iconf )
+
 		self.add_username = None # pointer to add_username check menu, for ease of access.
 		self.add_faction = None # pointer to add_faction check menu, for ease of access.
 
@@ -75,6 +74,7 @@ class AutoSaverAppFrame( wx.adv.TaskBarIcon ) :
 		# has hidden cfg inside, must use the set function.
 		self.args.set_var( 'add_faction', not self.args.add_faction )
 
+	# Overridden function
 	def CreatePopupMenu( self ) :
 		menu = wx.Menu()
 
@@ -137,7 +137,7 @@ class AutoSaverAppFrame( wx.adv.TaskBarIcon ) :
 		self.watcher.last_replay = self.args.last_replay # and pass the information to watcher.
 
 	def on_exit(self, event):
-		self.args.save_to_file( self.CONFIGF )
+		self.args.save( self.CONFIGF )
 		wx.CallAfter( self.Destroy )
 
 
@@ -158,7 +158,7 @@ class AutoSaverApp( wx.App ) :
 def main() :
 	ICONF = 'KW.ico'
 	app = AutoSaverApp()
-	ico = AutoSaverAppFrame( ICONF )
+	ico = AutoSaverAppIcon( ICONF )
 	app.MainLoop()
 
 ###
