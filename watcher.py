@@ -80,7 +80,7 @@ class Watcher :
 		path = os.path.dirname( fname )
 
 		# Latch the replay file to a tmp file.
-		tmpf = "tmp.kwr"
+		tmpf = os.path.join( path, "tmp.kwr" ) # using folder where the replay is better
 		shutil.copyfile( self.last_replay, tmpf )
 
 		r = KWReplay( fname=tmpf )
