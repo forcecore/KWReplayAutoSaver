@@ -137,7 +137,7 @@ class AutoSaverAppIcon( wx.adv.TaskBarIcon ) :
 		self.watcher.last_replay = self.args.last_replay # and pass the information to watcher.
 
 	def on_exit(self, event):
-		self.args.save( self.CONFIGF )
+		self.args.save()
 		wx.CallAfter( self.Destroy )
 
 
@@ -155,10 +155,24 @@ class AutoSaverApp( wx.App ) :
 			return False
 		return True
 
+###
+### It seems, on Linux, tray apps need a dummy form at least.
+###
+class AutoSaverForm( wx.Frame ) :
+	def __init__( self, iconf ) :
+		super().__init__( None )
+		self.tray_icon = AutoSaverAppIcon( iconf )
+		self.Bind( wx.EVT_CLOSE, self.on_close )
+	
+	def on_close( self, event ) :
+		#self.tray_icon.Destroy() causes segfault
+		event.skip() # proceed to close.
+
 def main() :
 	ICONF = 'KW.ico'
 	app = AutoSaverApp()
-	ico = AutoSaverAppIcon( ICONF )
+	frame = AutoSaverForm( ICONF )
+	#ico = AutoSaverAppIcon( ICONF )
 	app.MainLoop()
 
 ###
