@@ -378,64 +378,93 @@ class ReplayViewer( wx.Frame ) :
 	
 
 
-	def do_layout( self ) :
-		self.SetMinSize( (1024, 800) )
-		box1 = wx.BoxSizer(wx.VERTICAL)
-		hbox1 = wx.BoxSizer(wx.HORIZONTAL)
-
-		# player list
-		self.player_list = wx.ListCtrl( self, size=(-1,200), style=wx.LC_REPORT )
-		self.player_list.InsertColumn( 0, 'Team' )
-		self.player_list.InsertColumn( 1, 'Name' )
-		self.player_list.InsertColumn( 2, 'Faction' )
-		self.player_list.InsertColumn( 3, 'Color' )
-		self.player_list.SetColumnWidth( 1, 400 )
-
-		# replay list
-		self.rep_list = wx.ListCtrl( self, size=(-1,200), style=wx.LC_REPORT|wx.LC_EDIT_LABELS )
-		self.rep_list.InsertColumn( 0, 'Name' )
-		self.rep_list.InsertColumn( 1, 'Map' )
-		self.rep_list.InsertColumn( 2, 'Description' )
-		self.rep_list.InsertColumn( 3, 'Time' )
-		self.rep_list.InsertColumn( 4, 'Date' )
-		self.rep_list.SetColumnWidth( 0, 400 )
-		self.rep_list.SetColumnWidth( 1, 180 )
-		self.rep_list.SetColumnWidth( 2, 200 )
-		self.rep_list.SetColumnWidth( 3, 100 )
-		self.rep_list.SetColumnWidth( 4, 100 )
-
-		# , description editing
-		desc_panel = wx.Panel( self, -1 ) #, style=wx.SUNKEN_BORDER )
+	def create_player_list( self, parent ) :
+		player_list = wx.ListCtrl( parent, size=(-1,200), style=wx.LC_REPORT )
+		player_list.InsertColumn( 0, 'Team' )
+		player_list.InsertColumn( 1, 'Name' )
+		player_list.InsertColumn( 2, 'Faction' )
+		player_list.InsertColumn( 3, 'Color' )
+		player_list.SetColumnWidth( 1, 400 )
+		player_list.SetMinSize( (600, 200) )
+		return player_list
+	
+	def create_rep_list( self, parent ) :
+		rep_list = wx.ListCtrl( parent, size=(-1,200),
+				style=wx.LC_REPORT|wx.LC_EDIT_LABELS )
+		rep_list.InsertColumn( 0, 'Name' )
+		rep_list.InsertColumn( 1, 'Map' )
+		rep_list.InsertColumn( 2, 'Description' )
+		rep_list.InsertColumn( 3, 'Time' )
+		rep_list.InsertColumn( 4, 'Date' )
+		rep_list.SetColumnWidth( 0, 400 )
+		rep_list.SetColumnWidth( 1, 180 )
+		rep_list.SetColumnWidth( 2, 200 )
+		rep_list.SetColumnWidth( 3, 100 )
+		rep_list.SetColumnWidth( 4, 100 )
+		return rep_list
+	
+	def create_desc_panel( self, parent ) :
+		desc_panel = wx.Panel( parent, -1 ) #, style=wx.SUNKEN_BORDER )
 		game_desc = wx.StaticText( desc_panel, label="Game Description:", pos=(5,5) )
 		self.desc_text = wx.TextCtrl( desc_panel, size=(400,-1),
 				pos=(115,2), style=wx.TE_PROCESS_ENTER )
 		self.modify_btn = wx.Button( desc_panel, label="Modify!", pos=(525,0) )
-
-		# replay filtering
-		filter_panel = wx.Panel( self, -1 )
+		return desc_panel
+	
+	def create_filter_panel( self, parent ) :
+		filter_panel = wx.Panel( parent, -1 )
 		filter_st = wx.StaticText( filter_panel, label="Filter", pos=(5,5) )
 		self.filter_text = wx.TextCtrl( filter_panel, size=(400,-1),
 				pos=(115,2), style=wx.TE_PROCESS_ENTER )
 		self.apply_btn = wx.Button( filter_panel, label="Apply", pos=(525,0) )
 		self.nofilter_btn = wx.Button( filter_panel, label="X",
 				pos=(610,0), size=(50,wx.DefaultSize.y) )
-
-		# change folder and rescan folder buttons
+		return filter_panel
+	
+	def create_ref_panel( self, parent ) :
 		ref_panel = wx.Panel( self, -1 ) #, style=wx.SUNKEN_BORDER )
 		#panel.SetBackgroundColour("GREEN")
 		self.opendir_btn = wx.Button( ref_panel, label="Change Folder", pos=(0,0) )
 		self.refresh_btn = wx.Button( ref_panel, label="Rescan Folder", pos=(100,0) )
+		return ref_panel
+
+	def do_layout( self ) :
+		self.SetMinSize( (1024, 800) )
+		splitter = wx.SplitterWindow( self )
+		box1 = wx.BoxSizer( wx.VERTICAL )
+		hbox1 = wx.BoxSizer( wx.HORIZONTAL )
+
+		self.player_list = self.create_player_list( self ) # player list
+		self.rep_list = self.create_rep_list( self ) # replay list
+
+		# description editing
+		# creates self.desc_text, self.modify_btn also.
+		desc_panel = self.create_desc_panel( self )
+		# replay filtering
+		# creates self.{filter_text, apply_btn, nofilter_btn} also.
+		filter_panel = self.create_filter_panel( self )
+
+		# change folder and rescan folder buttons
+		# creates self.{opendir_btn, refresh_btn}
+		ref_panel = self.create_ref_panel( self )
+
 		hbox1.Add( filter_panel, 1, wx.EXPAND )
 		hbox1.Add( ref_panel, 0 )
 
 		# hierarchy
-		box1.Add( self.player_list, 1, wx.EXPAND )
+		box1.Add( self.player_list, 0, wx.EXPAND )
 		box1.Add( hbox1, 0, wx.EXPAND)
 		box1.Add( desc_panel, 0, wx.EXPAND)
 		box1.Add( self.rep_list, 1, wx.EXPAND)
 
+		# splitter window for resizing...
+		bottom_panel = wx.Panel( splitter )
+		bottom_panel.SetSizer( box1 )
+		#splitter.SplitHorizontally( self.player_list, bottom_panel )
+
 		self.SetAutoLayout(True)
 		self.SetSizer(box1)
+		#box1.Fit( bottom_panel )
 		self.Layout()
 
 	def create_accel_tab( self ) :
