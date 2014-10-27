@@ -40,6 +40,7 @@ class AutoSaverAppIcon( wx.adv.TaskBarIcon ) :
 
 		self.add_username = None # pointer to add_username check menu, for ease of access.
 		self.add_faction = None # pointer to add_faction check menu, for ease of access.
+		self.add_vs_info = None # pointer to add_vs_info check menu, for ease of access.
 
 		# timer for polling for replay change
 		self.timer = wx.Timer( self )
@@ -56,6 +57,7 @@ class AutoSaverAppIcon( wx.adv.TaskBarIcon ) :
 			newf = self.watcher.do_renaming( self.watcher.last_replay,
 					add_username=self.args.add_username,
 					add_faction=self.args.add_faction,
+					add_vs_info=self.args.add_vs_info,
 					custom_date_format=self.args.custom_date_format )
 			print( "Copied to", newf ) # shown on console!
 
@@ -75,6 +77,11 @@ class AutoSaverAppIcon( wx.adv.TaskBarIcon ) :
 		# has hidden cfg inside, must use the set function.
 		self.args.set_var( 'add_faction', not self.args.add_faction )
 
+	def on_add_vs_info( self, event ) :
+		# toggle configuration status
+		# has hidden cfg inside, must use the set function.
+		self.args.set_var( 'add_vs_info', not self.args.add_vs_info )
+
 	# Overridden function
 	def CreatePopupMenu( self ) :
 		menu = wx.Menu()
@@ -84,16 +91,20 @@ class AutoSaverAppIcon( wx.adv.TaskBarIcon ) :
 				'Append player names to the replay name' )
 		self.add_faction = menu.AppendCheckItem( wx.ID_ANY, 'Add factions',
 				'Append faction information to each player' )
+		self.add_vs_info = menu.AppendCheckItem( wx.ID_ANY, 'Add [1v1], [2v2] [FFA]',
+				'Append game type information.' )
 
 		# check status should follow the config.
 		# context menu check items DO NOT have internal state!!
 		# we must set checkedness here
 		self.add_username.Check( self.args.add_username )
 		self.add_faction.Check( self.args.add_faction )
+		self.add_vs_info.Check( self.args.add_vs_info )
 
 		# event binding
 		menu.Bind( wx.EVT_MENU, self.on_add_username, id=self.add_username.GetId() )
 		menu.Bind( wx.EVT_MENU, self.on_add_faction, id=self.add_faction.GetId() )
+		menu.Bind( wx.EVT_MENU, self.on_add_vs_info, id=self.add_vs_info.GetId() )
 
 		# custom date format
 		self.create_menu_item( menu, 'Customize date time format', self.on_customize_date_format )

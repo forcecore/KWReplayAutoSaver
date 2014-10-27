@@ -20,6 +20,7 @@ class Args :
 		self.cfg_fname = fname # for saving to disk on exit.
 
 		self.last_replay = None
+		self.add_vs_info = False
 		self.add_username = True
 		self.add_faction = False
 		self.custom_date_format = None
@@ -29,6 +30,7 @@ class Args :
 	def __str__( self ) :
 		s = io.StringIO()
 		print( "last_replay:", self.last_replay, file=s )
+		print( "add_vs_info:", self.add_vs_info, file=s )
 		print( "add_username:", self.add_username, file=s )
 		print( "add_faction:", self.add_faction, file=s )
 		print( "custom_date_format:", self.custom_date_format, file=s )
@@ -102,6 +104,7 @@ class Args :
 
 		self.add_username = self.get_bool( 'add_username', True )
 		self.add_faction = self.get_bool( 'add_faction', False )
+		self.add_vs_info = self.get_bool( 'add_vs_info', False )
 		self.custom_date_format = self.get_var( 'custom_date_format' )
 		if self.custom_date_format == None :
 			self.custom_date_format = "[%Y-%m-%dT%H%M]"

@@ -73,7 +73,9 @@ class Watcher :
 	###
 	### Decided to be independent form the Args class, that's why we have so many params here.
 	###
-	def do_renaming( self, fname, add_username=True, add_faction=False, custom_date_format=None ) :
+	def do_renaming( self, fname, add_username=True,
+			add_faction=False, add_vs_info=False,
+			custom_date_format=None ) :
 		# where the replay dir is.
 		path = os.path.dirname( fname )
 
