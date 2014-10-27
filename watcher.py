@@ -86,7 +86,8 @@ class Watcher :
 		r = KWReplay( fname=tmpf )
 		# analyze the replay and deduce its name
 		newf = Watcher.calc_name( r, add_username=add_username,
-				add_faction=add_faction, custom_date_format=custom_date_format )
+				add_faction=add_faction, add_vs_info=add_vs_info,
+				custom_date_format=custom_date_format )
 		newf = os.path.join( path, newf )
 
 		os.replace( tmpf, newf ) # rename, silently overwrite if needed.
@@ -98,12 +99,19 @@ class Watcher :
 		return newf
 
 	# analyze the replay and deduce its name
-	def calc_name( r, add_username=True, add_faction=False, custom_date_format=None ) :
+	def calc_name( r, add_username=True,
+			add_faction=False, add_vs_info=False,
+			custom_date_format=None ) :
 		if custom_date_format == None :
 			newf = '[' + r.decode_timestamp( r.timestamp ) + ']'
 		else :
 			# In this case, the user is responsible for adding [], if they want them.
 			newf = r.decode_timestamp( r.timestamp, date_format=custom_date_format )
+
+		if add_vs_info :
+			vstag =  Watcher.vs_tag( r )
+			if vstag : # could return None when no tag applicable!
+				newf += " " + vstag
 
 		if add_username :
 			newf += " " + Watcher.player_list( r, add_faction=add_faction )
@@ -114,6 +122,25 @@ class Watcher :
 		newf = Watcher.sanitize_name( newf )
 
 		return newf
+
+	# return [x vs y] or FFA.
+	# The rest, we return None.
+	def vs_tag( r ) :
+		saver = Watcher.get_replay_saver( r )
+		teams = Watcher.group_players_by_team( r ) # including AI, but no observers.
+		teams = Watcher.saver_team_first( teams, saver )
+
+		# neat x vs y case
+		if len( teams ) == 2 :
+			a = len( teams[0] )
+			b = len( teams[1] )
+			return "[%dv%d]" % (a, b)
+
+		# check if FFA
+		for t in teams :
+			if len( t ) != 1 :
+				return None
+		return "[FFA]"
 
 	# returns a nice readable list of players.
 	# Actually only returns count and one player's name but anyway :S

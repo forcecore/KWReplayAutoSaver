@@ -167,14 +167,23 @@ class ReplayViewer( wx.Frame ) :
 		# having only date seems silly but for people with custom date format, it may be useful.
 		# I'm keeping it.
 		self.names.append( Watcher.calc_name( kwr,
-				add_username=False, add_faction=False, custom_date_format=self.args.custom_date_format ) )
+				add_username=False, add_faction=False, add_vs_info=False,
+				custom_date_format=self.args.custom_date_format ) )
 		#self.names.append( Watcher.calc_name( kwr,
 		#		add_username=False, add_faction=True, custom_date_format=self.args.custom_date_format ) )
 		# add_faction is meaningless without add_username, duh!
 		self.names.append( Watcher.calc_name( kwr,
-				add_username=True, add_faction=False, custom_date_format=self.args.custom_date_format ) )
+				add_username=True, add_faction=False, add_vs_info=False,
+				custom_date_format=self.args.custom_date_format ) )
 		self.names.append( Watcher.calc_name( kwr,
-				add_username=True, add_faction=True, custom_date_format=self.args.custom_date_format ) )
+				add_username=True, add_faction=True, add_vs_info=False,
+				custom_date_format=self.args.custom_date_format ) )
+		self.names.append( Watcher.calc_name( kwr,
+				add_username=True, add_faction=False, add_vs_info=True,
+				custom_date_format=self.args.custom_date_format ) )
+		self.names.append( Watcher.calc_name( kwr,
+				add_username=True, add_faction=True, add_vs_info=True,
+				custom_date_format=self.args.custom_date_format ) )
 
 		# make context menu
 		menu = wx.Menu()
@@ -270,14 +279,25 @@ class ReplayViewer( wx.Frame ) :
 
 		# compute parameter for calc_name.
 		if index == 0 :
-			au = False
-			af = False
+			au = False # add user info
+			af = False # add faction info
+			av = False # add vs info
 		elif index == 1 :
 			au = True
 			af = False
+			av = False
 		elif index == 2 :
 			au = True
 			af = True
+			av = False
+		elif index == 3 :
+			au = True
+			af = False
+			av = True
+		elif index == 4 :
+			au = True
+			af = True
+			av = True
 		else :
 			assert index <= 2
 
@@ -295,6 +315,7 @@ class ReplayViewer( wx.Frame ) :
 			kwr = KWReplay( fname=old_name )
 
 			rep_name = Watcher.calc_name( kwr, add_username=au, add_faction=af,
+					add_vs_info=av,
 					custom_date_format=self.args.custom_date_format )
 
 			self.rename_with_stem( index, old_name, rep_name )
