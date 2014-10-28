@@ -70,6 +70,7 @@ class selected( object ) :
 class ReplayViewer( wx.Frame ) :
 	def __init__( self, parent, args ) :
 		super().__init__( parent, title='Replay Info Viewer', size=(1024,800) )
+
 		self.do_layout()
 		self.event_bindings()
 		self.create_accel_tab()
@@ -78,6 +79,13 @@ class ReplayViewer( wx.Frame ) :
 		self.args = args
 		self.path = os.path.dirname( args.last_replay )
 		self.replay_items = self.scan_replay_files( self.path )
+		self.map_previews = {} # Like self.replay_items, load map images into memory and keep them
+			# it doesn't load everything from the beginning. it is loaded on request in
+			# set_map_preview().
+
+		# don't need DB. we just set the image name right.
+		#self.map_db = self.load_map_db( 'MapDB.txt' )
+
 		self.populate_replay_list( self.replay_items )
 
 		self.names = None # scratch memory for replay renaming presets (for context menu)
@@ -90,6 +98,21 @@ class ReplayViewer( wx.Frame ) :
 		# managing sort state XD
 		self.last_clicked_col = -1 # last clicked column number
 		self.ascending = True # sort by ascending order?
+	
+	def load_map_db( self, fname ) :
+		f = open( fname )
+		txt = f.read()
+		f.close()
+		#print( txt )
+		# variable db is defined in txt!;;;;
+
+		# looks funny that I can't use locals() as globals() in the parameter directly.
+		# See this for details:
+		# http://stackoverflow.com/questions/1463306/how-does-exec-work-with-locals
+		ldict = locals()
+		exec( txt, globals(), ldict )
+		db = ldict[ 'db' ] # must pull it out from ldict explicitly!!;;;
+		return db
 	
 	def change_dir( self ) :
 		anyf = "Select_Any_File"
@@ -464,6 +487,89 @@ class ReplayViewer( wx.Frame ) :
 				item.append( self.rep_list.GetItem( i, j ).GetText() )
 			items.append( item )
 		return items
+
+
+
+	# show map preview
+	def show_map_preview( self, kwr ) :
+		# Examine the replay, determine what map it is.
+		#print( kwr.map_id ) always says fake map id, useless.
+		#print( kwr.map_name ) depends on language, not good.
+		fname = kwr.map_path # this is one is the best shot.
+		fname = os.path.basename( fname )
+		fname += ".png"
+		fname = os.path.join( "maps", fname )
+		#print( fname )
+
+		# file doesn't exist...
+		if not os.path.isfile( fname ) :
+			# well, try jpg.
+			fname = fname.replace( ".png", ".jpg" )
+
+		# file really doesn't exist...
+		if not os.path.isfile( fname ) :
+			fname = None
+			# copy the name to clipboard so we can actually insert item to DB!
+			data = wx.TextDataObject( kwr.map_path )
+			wx.TheClipboard.Open()
+			wx.TheClipboard.SetData( data )
+			wx.TheClipboard.Close()
+
+		# Load it and show it on the interface.
+		self.set_map_preview( fname )
+
+	# ui: statisbitmap to fit in.
+	# img: img that will go into ui.
+	def calc_best_wh( self, img, ui ) :
+		(w, h) = self.map_view.GetSize()
+		(x, y) = img.GetSize()
+
+		# lets try fitting ...
+		#x1 = w # x/x*w
+		y1 = int( y*w/x )
+
+		x2 = int( x*h/y )
+		#y2 = h # y/y*h
+
+		if y1 < h and x2 < x :
+			# if both sizes fit, go for larger area.
+			area1 = w*y1
+			area2 = x2*h
+			if area1 > area2 :
+				return (w, y1)
+			else :
+				return (x2, h)
+		elif y1 <= h :
+			return (w, y1)
+		elif x2 <= w :
+			return (x2, h)
+		else :
+			assert 0 # one of them should fit!!
+
+	def set_map_preview( self, fname ) :
+		# clear the image area first.
+		# w, h may change. we generate it on every map change for sure.
+		# Well, I can do that on size change but can't be bothered to do that...
+		(w, h) = self.map_view.GetSize()
+		black = wx.Image( w, h, clear=True )
+		self.map_view.SetBitmap( wx.Bitmap( black ) )
+		if not fname :
+			return
+
+		# now we show proper image.
+		# I get "iCCP: known incorrect sRGB profile" for some PNG files.
+		# Lets silence this with log null object.
+		if fname in self.map_previews :
+			img = self.map_previews[ fname ]
+		else :
+			no_log = wx.LogNull()
+			img = wx.Image( fname )
+			del no_log # restore
+			self.map_previews[ fname ] = img # keep it in memory
+
+		(w, h) = self.calc_best_wh( img, self.map_view )
+		resized = img.Scale( w, h)
+		self.map_view.SetBitmap( wx.Bitmap( resized ) )
 	
 
 
@@ -528,7 +634,7 @@ class ReplayViewer( wx.Frame ) :
 		# sizer code
 		sizer = wx.BoxSizer( wx.HORIZONTAL )
 		sizer.Add( self.player_list, 1, wx.EXPAND)
-		sizer.Add( self.map_view, 0 )
+		sizer.Add( self.map_view, 0, wx.ALIGN_CENTER )
 
 		panel.SetSizer( sizer )
 		panel.SetMinSize( (600, 200) )
@@ -647,7 +753,7 @@ class ReplayViewer( wx.Frame ) :
 		self.populate_faction_info( r.kwr )
 
 		# load map preview
-		#self.
+		self.show_map_preview( r.kwr )
 	
 	def on_rep_list_end_label_edit( self, event ) :
 		event.Veto() # undos all edits from the user, for now.

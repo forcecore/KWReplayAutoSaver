@@ -152,11 +152,15 @@ py2exe_options = dict(
 
 
 # Some options can be overridden by command line options...
+extra_files = [
+		( '.', ['README.txt', 'LICENSE.txt', 'KW.ico'] )
+	]
 
 setup(name="name",
       # console based executables
       #console=[autosaver],
       windows = [autosaver],
+	  data_files = extra_files,
 
       # windows subsystem executables (no console)
       #windows=[autosaver],

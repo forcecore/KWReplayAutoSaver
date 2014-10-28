@@ -172,6 +172,7 @@ class KWReplay :
 		self.desc = ""
 		self.map_name = ""
 		self.map_id = ""
+		self.map_path = ""
 
 		self.replay_saver = 0
 		self.player_cnt = 0
@@ -405,7 +406,9 @@ class KWReplay :
 		rhs = pair[ 1 ]
 
 		if lhs == "M" :
+			# full map path!!!
 			lhs = "Map"
+			self.map_path = rhs
 		elif lhs == "MC" :
 			lhs = "Map CRC"
 		elif lhs == "MS" :
