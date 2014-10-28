@@ -3,8 +3,10 @@ from args import Args
 from kwreplay import Player, KWReplay
 from watcher import Watcher
 import os
+import io
 import time
 import datetime
+import zipfile
 import subprocess
 import wx
 
@@ -46,7 +48,124 @@ class ReplayItems() :
 		it = find( fname )
 		it.kwr = new_kwr
 
+class MapZip() :
+	def __init__( self, fname ) :
+		self.fname = fname
+		self.zipf = zipfile.ZipFile( fname, 'r' )
+		self.namelist = self.zipf.namelist()
+	
+	def hasfile( self, fname ) :
+		return fname in self.namelist
+
+	# load fname and return as wx.Image
+	def load( self, fname ) :
+		assert self.hasfile( fname )
+		zs = self.zipf.open( fname ) # open stream
+
+		# but zs doesn't support seek() operation.
+		# read onto a buffer to support seek().
+		s = io.BytesIO( zs.read() )
+
+		img = wx.Image()
+		img.LoadFile( s )
+		s.close()
+		zs.close()
+		return img
+
 	# from rep_list, retrieve selected items' indices.
+
+class MapView( wx.StaticBitmap ) :
+	def __init__( self, parent, maps, size=(200,200) ) :
+		super().__init__( parent, size=size )
+
+		# Like self.replay_items, load map images into memory and keep them
+		# it doesn't load everything from the beginning. it is loaded on request in
+		# set_map_preview().
+		self.map_previews = {} # holder!
+		self.mapzip = MapZip( maps )
+
+	# ui: statisbitmap to fit in.
+	# img: img that will go into ui.
+	def calc_best_wh( self, img ) :
+		(w, h) = self.GetSize()
+		(x, y) = img.GetSize()
+
+		# lets try fitting ...
+		#x1 = w # x/x*w
+		y1 = int( y*w/x )
+
+		x2 = int( x*h/y )
+		#y2 = h # y/y*h
+
+		if y1 < h and x2 < x :
+			# if both sizes fit, go for larger area.
+			area1 = w*y1
+			area2 = x2*h
+			if area1 > area2 :
+				return (w, y1)
+			else :
+				return (x2, h)
+		elif y1 <= h :
+			return (w, y1)
+		elif x2 <= w :
+			return (x2, h)
+		else :
+			assert 0 # one of them should fit!!
+
+	def set_map_preview( self, fname ) :
+		# clear the image area first.
+		# w, h may change. we generate it on every map change for sure.
+		# Well, I can do that on size change but can't be bothered to do that...
+		(w, h) = self.GetSize()
+		black = wx.Image( w, h, clear=True )
+		self.SetBitmap( wx.Bitmap( black ) )
+		if not fname :
+			return
+
+		if fname in self.map_previews :
+			# use previously loaded image
+			img = self.map_previews[ fname ]
+		else :
+			# now we show proper image.
+			# I get "iCCP: known incorrect sRGB profile" for some PNG files.
+			# Lets silence this with log null object.
+			no_log = wx.LogNull()
+			img = self.mapzip.load( fname )
+			del no_log # restore
+			self.map_previews[ fname ] = img # keep it in memory
+
+		(w, h) = self.calc_best_wh( img )
+		resized = img.Scale( w, h)
+		self.SetBitmap( wx.Bitmap( resized ) )
+	
+	# show map preview
+	def show( self, kwr ) :
+		# Examine the replay, determine what map it is.
+		#print( kwr.map_id ) always says fake map id, useless.
+		#print( kwr.map_name ) depends on language, not good.
+		fname = kwr.map_path # this is one is the best shot.
+		fname = os.path.basename( fname )
+		fname += ".png"
+		#print( fname )
+
+		# file doesn't exist...
+		if not self.mapzip.hasfile( fname ) :
+			# well, try jpg.
+			fname = fname.replace( ".png", ".jpg" )
+
+		# file really doesn't exist...
+		if not self.mapzip.hasfile( fname ) :
+			fname = None
+			# copy the name to clipboard so we can actually insert item to DB!
+			data = wx.TextDataObject( kwr.map_path )
+			wx.TheClipboard.Open()
+			wx.TheClipboard.SetData( data )
+			wx.TheClipboard.Close()
+
+		# Load it and show it on the interface.
+		self.set_map_preview( fname )
+
+
 
 # "selected" iterator for listctrls!
 class selected( object ) :
@@ -71,6 +190,7 @@ class ReplayViewer( wx.Frame ) :
 	def __init__( self, parent, args ) :
 		super().__init__( parent, title='Replay Info Viewer', size=(1024,800) )
 
+		self.MAPS_ZIP = 'maps.zip' # the name of the zip file that has map previews
 		self.do_layout()
 		self.event_bindings()
 		self.create_accel_tab()
@@ -79,9 +199,6 @@ class ReplayViewer( wx.Frame ) :
 		self.args = args
 		self.path = os.path.dirname( args.last_replay )
 		self.replay_items = self.scan_replay_files( self.path )
-		self.map_previews = {} # Like self.replay_items, load map images into memory and keep them
-			# it doesn't load everything from the beginning. it is loaded on request in
-			# set_map_preview().
 
 		# don't need DB. we just set the image name right.
 		#self.map_db = self.load_map_db( 'MapDB.txt' )
@@ -490,89 +607,6 @@ class ReplayViewer( wx.Frame ) :
 
 
 
-	# show map preview
-	def show_map_preview( self, kwr ) :
-		# Examine the replay, determine what map it is.
-		#print( kwr.map_id ) always says fake map id, useless.
-		#print( kwr.map_name ) depends on language, not good.
-		fname = kwr.map_path # this is one is the best shot.
-		fname = os.path.basename( fname )
-		fname += ".png"
-		fname = os.path.join( "maps", fname )
-		#print( fname )
-
-		# file doesn't exist...
-		if not os.path.isfile( fname ) :
-			# well, try jpg.
-			fname = fname.replace( ".png", ".jpg" )
-
-		# file really doesn't exist...
-		if not os.path.isfile( fname ) :
-			fname = None
-			# copy the name to clipboard so we can actually insert item to DB!
-			data = wx.TextDataObject( kwr.map_path )
-			wx.TheClipboard.Open()
-			wx.TheClipboard.SetData( data )
-			wx.TheClipboard.Close()
-
-		# Load it and show it on the interface.
-		self.set_map_preview( fname )
-
-	# ui: statisbitmap to fit in.
-	# img: img that will go into ui.
-	def calc_best_wh( self, img, ui ) :
-		(w, h) = self.map_view.GetSize()
-		(x, y) = img.GetSize()
-
-		# lets try fitting ...
-		#x1 = w # x/x*w
-		y1 = int( y*w/x )
-
-		x2 = int( x*h/y )
-		#y2 = h # y/y*h
-
-		if y1 < h and x2 < x :
-			# if both sizes fit, go for larger area.
-			area1 = w*y1
-			area2 = x2*h
-			if area1 > area2 :
-				return (w, y1)
-			else :
-				return (x2, h)
-		elif y1 <= h :
-			return (w, y1)
-		elif x2 <= w :
-			return (x2, h)
-		else :
-			assert 0 # one of them should fit!!
-
-	def set_map_preview( self, fname ) :
-		# clear the image area first.
-		# w, h may change. we generate it on every map change for sure.
-		# Well, I can do that on size change but can't be bothered to do that...
-		(w, h) = self.map_view.GetSize()
-		black = wx.Image( w, h, clear=True )
-		self.map_view.SetBitmap( wx.Bitmap( black ) )
-		if not fname :
-			return
-
-		# now we show proper image.
-		# I get "iCCP: known incorrect sRGB profile" for some PNG files.
-		# Lets silence this with log null object.
-		if fname in self.map_previews :
-			img = self.map_previews[ fname ]
-		else :
-			no_log = wx.LogNull()
-			img = wx.Image( fname )
-			del no_log # restore
-			self.map_previews[ fname ] = img # keep it in memory
-
-		(w, h) = self.calc_best_wh( img, self.map_view )
-		resized = img.Scale( w, h)
-		self.map_view.SetBitmap( wx.Bitmap( resized ) )
-	
-
-
 	def create_player_list( self, parent ) :
 		player_list = wx.ListCtrl( parent, size=(600,200), style=wx.LC_REPORT )
 		player_list.InsertColumn( 0, 'Team' )
@@ -628,7 +662,7 @@ class ReplayViewer( wx.Frame ) :
 		panel = wx.Panel( parent )
 
 		self.player_list = self.create_player_list( panel ) # player list
-		self.map_view = wx.StaticBitmap( panel, size=(200,200) )
+		self.map_view = MapView( panel, self.MAPS_ZIP, size=(200,200) )
 		self.map_view.SetMinSize( (200, 200) )
 
 		# sizer code
@@ -753,7 +787,7 @@ class ReplayViewer( wx.Frame ) :
 		self.populate_faction_info( r.kwr )
 
 		# load map preview
-		self.show_map_preview( r.kwr )
+		self.map_view.show( r.kwr )
 	
 	def on_rep_list_end_label_edit( self, event ) :
 		event.Veto() # undos all edits from the user, for now.

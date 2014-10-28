@@ -153,7 +153,7 @@ py2exe_options = dict(
 
 # Some options can be overridden by command line options...
 extra_files = [
-		( '.', ['README.txt', 'LICENSE.txt', 'KW.ico'] )
+		( '.', ['README.txt', 'LICENSE.txt', 'KW.ico', 'maps.zip'] )
 	]
 
 setup(name="name",
