@@ -189,14 +189,8 @@ class ReplayViewer( wx.Frame ) :
 		for rep in reps.items :
 			self.add_replay( rep, filter=filter )
 
-	def populate_faction_info( self, pos ) :
-		assert pos >= 0
-		assert self.path
+	def populate_faction_info( self, kwr ) :
 		self.player_list.DeleteAllItems()
-		rep = self.rep_list.GetItem( pos, 0 ).GetText() # the replay fname
-		fname = os.path.join( self.path, rep )
-		kwr = KWReplay( fname=fname )
-
 		for p in kwr.players :
 			# p is the Player class. You are quite free to do anything!
 			if p.name == "post Commentator" :
@@ -474,13 +468,13 @@ class ReplayViewer( wx.Frame ) :
 
 
 	def create_player_list( self, parent ) :
-		player_list = wx.ListCtrl( parent, size=(-1,200), style=wx.LC_REPORT )
+		player_list = wx.ListCtrl( parent, size=(600,200), style=wx.LC_REPORT )
 		player_list.InsertColumn( 0, 'Team' )
 		player_list.InsertColumn( 1, 'Name' )
 		player_list.InsertColumn( 2, 'Faction' )
 		player_list.InsertColumn( 3, 'Color' )
 		player_list.SetColumnWidth( 1, 400 )
-		player_list.SetMinSize( (600, 200) )
+		#player_list.SetMinSize( (600, 200) )
 		return player_list
 	
 	def create_rep_list( self, parent ) :
@@ -524,15 +518,32 @@ class ReplayViewer( wx.Frame ) :
 		self.refresh_btn = wx.Button( ref_panel, label="Rescan Folder", pos=(100,0) )
 		return ref_panel
 
+	def create_top_panel( self, parent ) :
+		panel = wx.Panel( parent )
+
+		self.player_list = self.create_player_list( panel ) # player list
+		self.map_view = wx.StaticBitmap( panel, size=(200,200) )
+		self.map_view.SetMinSize( (200, 200) )
+
+		# sizer code
+		sizer = wx.BoxSizer( wx.HORIZONTAL )
+		sizer.Add( self.player_list, 1, wx.EXPAND)
+		sizer.Add( self.map_view, 0 )
+
+		panel.SetSizer( sizer )
+		panel.SetMinSize( (600, 200) )
+		return panel
+
 	def do_layout( self ) :
-		self.SetMinSize( (1024, 800) )
+		self.SetMinSize( (900, 700) )
 		main_sizer = wx.BoxSizer( wx.VERTICAL )
 		splitter = wx.SplitterWindow( self ) # must go into a sizer :S
 		splitter.SetMinimumPaneSize( 20 )
 		main_sizer.Add( splitter, 1, wx.EXPAND )
 
-		# top part of the splitter
-		self.player_list = self.create_player_list( splitter ) # player list
+		# top part of the splitter.
+		# creates self.player_list, self.map_view
+		top_panel = self.create_top_panel( splitter )
 
 		#
 		# bottom part of the splitter
@@ -568,7 +579,7 @@ class ReplayViewer( wx.Frame ) :
 		bottom_panel.SetSizer( bottom_box )
 		#bottom_box.SetMinSize( (600, 400 ) )
 
-		splitter.SplitHorizontally( self.player_list, bottom_panel )
+		splitter.SplitHorizontally( top_panel, bottom_panel )
 		#splitter.SetSashGravity( 0.5 )
 
 		self.SetAutoLayout(True)
@@ -620,16 +631,23 @@ class ReplayViewer( wx.Frame ) :
 		pos = event.GetIndex()
 		if pos < 0 :
 			return
-		# get the selected item and fill desc_text.
+
+		# get the selected item and fill desc_text for editing.
 		txt = self.rep_list.GetItem( pos, 2 ).GetText()
 		self.desc_text.SetValue( txt )
 
-		# remember the old name
+		# remember the old name (for other renaming routines)
 		rep = self.rep_list.GetItem( pos, 0 ).GetText()
 		self.ctx_old_name = os.path.join( self.path, rep )
 
+		# get related replay.
+		r = self.replay_items.find( rep )
+
 		# fill faction info
-		self.populate_faction_info( pos )
+		self.populate_faction_info( r.kwr )
+
+		# load map preview
+		#self.
 	
 	def on_rep_list_end_label_edit( self, event ) :
 		event.Veto() # undos all edits from the user, for now.
