@@ -16,7 +16,7 @@ import wx
 import wx.adv
 
 # my own classes
-import download
+#import download
 from args import Args
 from watcher import Watcher
 from replayviewer import ReplayViewer
@@ -187,30 +187,30 @@ class AutoSaverForm( wx.Frame ) :
 	#	self.tray_icon.Destroy() #causes segfault. Don't need this!
 	#	event.skip() # proceed to close.
 
-def download_maps( mapf ) :
-	url = 'http://github.com/forcecore/KWReplayAutoSaver/'
-	url += 'releases/download/map_v1.0.0/maps.zip'
-	msg = 'Map preview data is downloading, please wait'
-	result = download.download( url, mapf, msg )
-	if not result :
-		# clear partially downloaded zip file
-		if os.path.isfile( mapf ) :
-			os.remove( mapf )
-		wx.MessageBox( "Map preview data must be downloaded!", "Error",
-			wx.OK|wx.ICON_ERROR )
-	return result
+#def download_maps( mapf ) :
+#	url = 'http://github.com/forcecore/KWReplayAutoSaver/'
+#	url += 'releases/download/map_v1.0.0/maps.zip'
+#	msg = 'Map preview data is downloading, please wait'
+#	result = download.download( url, mapf, msg )
+#	if not result :
+#		# clear partially downloaded zip file
+#		if os.path.isfile( mapf ) :
+#			os.remove( mapf )
+#		wx.MessageBox( "Map preview data must be downloaded!", "Error",
+#			wx.OK|wx.ICON_ERROR )
+#	return result
 
 def main() :
 	ICONF = 'KW.ico'
-	MAPF = 'maps.zip'
+	#MAPF = 'maps.zip'
 	app = AutoSaverApp()
 	
-	if not os.path.isfile( MAPF ) :
-		msg = "Download map preview data?"
-		result = wx.MessageBox( msg, "Confirm",
-				wx.ICON_QUESTION|wx.YES_NO|wx.YES_DEFAULT )
-		if result == wx.YES :
-			download_maps( MAPF )
+	#if not os.path.isfile( MAPF ) :
+	#	msg = "Download map preview data?"
+	#	result = wx.MessageBox( msg, "Confirm",
+	#			wx.ICON_QUESTION|wx.YES_NO|wx.YES_DEFAULT )
+	#	if result == wx.YES :
+	#		download_maps( MAPF )
 
 	frame = AutoSaverForm( ICONF )
 
