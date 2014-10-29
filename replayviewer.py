@@ -229,16 +229,25 @@ class selected( object ) :
 			return self.index
 
 class PlayerList( wx.ListCtrl ) :
-	def __init__( self, parent ) :
-		super().__init__( parent, size=(600,200), style=wx.LC_REPORT )
+	def __init__( self, parent, frame=None ) :
+		super().__init__( parent, size=(600,200),
+				style=wx.LC_REPORT|wx.LC_SINGLE_SEL )
+
+		# parent frame to invoke event processing from upper level
+		self.frame = frame
+		self.kwr = None # remember the related replay.
+
 		self.InsertColumn( 0, 'Team' )
 		self.InsertColumn( 1, 'Name' )
 		self.InsertColumn( 2, 'Faction' )
 		self.InsertColumn( 3, 'Color' )
 		self.SetColumnWidth( 1, 400 )
 		#self.SetMinSize( (600, 200) )
+
+		self.event_bindings()
 	
 	def populate( self, kwr ) :
+		self.kwr = kwr # remember the replated replay
 		self.DeleteAllItems()
 		for p in kwr.players :
 			# p is the Player class. You are quite free to do anything!
@@ -256,6 +265,41 @@ class PlayerList( wx.ListCtrl ) :
 			self.SetItem( pos, 2, Player.decode_faction( p.faction ) )
 			self.SetItem( pos, 3, Player.decode_color( p.color ) )
 
+	# find replays involving a player, by context menu.
+	def find_player( self, event ) :
+		# retrieve name then pass them to frame to do the
+		# rest of the job. ('cos player list knows not much)
+		if self.GetSelectedItemCount() == 0 :
+			return
+		pos = self.GetFocusedItem()
+		name = self.GetItem( pos, 1 ).GetText()
+
+		# from the replay, find the player to retrieve uid (=ip)
+		uid = None
+		for player in self.kwr.players :
+			if player.name == name :
+				uid = player.ip
+				break
+		assert uid
+
+		self.frame.find_player( name, uid ) # the frame will do the rest.
+
+	# create context menu
+	def on_item_righ_click( self, event ) :
+		# right clickable on empty space. prevent that.
+		if self.GetSelectedItemCount() == 0 :
+			return
+
+		menu = wx.Menu()
+		item = wx.MenuItem( menu, wx.ID_ANY, "Find replays involving this player" )
+		menu.Bind( wx.EVT_MENU, self.find_player, id=item.GetId() )
+		menu.Append( item )
+		self.PopupMenu( menu, event.GetPoint() )
+		menu.Destroy() # prevent memory leak
+	
+	def event_bindings( self ) :
+		self.Bind( wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_item_righ_click )
+	
 
 
 class ReplayList( wx.ListCtrl ) :
@@ -441,6 +485,13 @@ class ReplayViewer( wx.Frame ) :
 
 		diag.Destroy()
 
+	# handles the request from PlayerList class and
+	# tell filter object to find name and uid. (=ip)
+	def find_player( self, name, uid ) :
+		fil = name + " " + uid
+		self.filter_text.SetValue( fil )
+		self.rep_list.populate( self.replay_items, filter=fil )
+		
 	# Generate the context menu when rep_list is right clicked.
 	def replay_context_menu( self, event ) :
 		cnt = self.rep_list.GetSelectedItemCount()
@@ -694,7 +745,7 @@ class ReplayViewer( wx.Frame ) :
 	def create_top_panel( self, parent ) :
 		panel = wx.Panel( parent )
 
-		self.player_list = PlayerList( panel )
+		self.player_list = PlayerList( panel, frame=self )
 		self.map_view = MapView( panel, self.MAPS_ZIP, size=(200,200) )
 		self.map_view.SetMinSize( (200, 200) )
 
