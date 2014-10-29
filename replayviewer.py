@@ -358,10 +358,11 @@ class ReplayList( wx.ListCtrl ) :
 		fname = fname.lower()
 		map_name = kwr.map_name.lower()
 		words = filter.lower().split()
-		players = []
+		player_props = []
 		desc = kwr.desc.lower()
 		for player in kwr.players :
-			players.append( player.name.lower() )
+			player_props.append( player.name.lower() )
+			player_props.append( player.ip )
 
 		for word in words :
 			# matches filename
@@ -376,9 +377,11 @@ class ReplayList( wx.ListCtrl ) :
 			if word in desc :
 				return True
 
-			# matches player name
-			for player in players :
-				if word in player :
+			# matches player name/ip
+			# Don't use word in player_props, it will not allow
+			# substring match!
+			for prop in player_props :
+				if word in prop :
 					return True
 
 		return False
