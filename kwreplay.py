@@ -82,6 +82,13 @@ class Player :
 	def is_observer( self ) :
 		return self.faction == 2
 
+	def is_commentator( self ) :
+		if self.name == "post Commentator" :
+			return True
+		if self.faction == 3 :
+			return True
+		return False
+
 	# An AI is a player.
 	def is_player( self ) :
 		if self.is_ai :
@@ -94,7 +101,7 @@ class Player :
 	def is_human_player( self ) :
 		if self.is_ai :
 			return False
-		if self.name == "post Commentator" :
+		if self.is_commentator() :
 			return False
 		if self.is_observer() :
 			return False
