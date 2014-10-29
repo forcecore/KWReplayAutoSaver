@@ -48,6 +48,29 @@ class ReplayItems() :
 		it = self.find( fname )
 		it.kwr = new_kwr
 
+	# scan a folder and return the replays as ReplayItem.
+	def scan_path( self, path ) :
+		fs = []
+		for f in os.listdir( path ) :
+			if not os.path.isfile( os.path.join( path, f ) ) :
+				continue
+
+			# must be a kwreplay file.
+			if not f.lower().endswith( ".kwreplay" ) :
+				continue
+
+			fs.append( f )
+
+		self.items = []
+		for f in fs :
+			i = ReplayItem()
+			i.fname = f
+			full_name = os.path.join( path, f )
+			i.kwr = KWReplay( fname=full_name )
+			self.items.append( i )
+
+
+
 class MapZip() :
 	def __init__( self, fname ) :
 		self.fname = fname
@@ -356,7 +379,8 @@ class ReplayViewer( wx.Frame ) :
 
 		self.args = args
 		self.path = os.path.dirname( args.last_replay )
-		self.replay_items = self.scan_replay_files( self.path )
+		self.replay_items = ReplayItems()
+		self.replay_items.scan_path( self.path )
 
 		# don't need DB. we just set the image name right.
 		#self.map_db = self.load_map_db( 'MapDB.txt' )
@@ -397,28 +421,6 @@ class ReplayViewer( wx.Frame ) :
 			self.refresh_path()
 
 		diag.Destroy()
-
-	# scan a folder and return the replays as ReplayItem.
-	def scan_replay_files( self, path ) :
-		fs = []
-		for f in os.listdir( path ) :
-			if not os.path.isfile( os.path.join( path, f ) ) :
-				continue
-
-			# must be a kwreplay file.
-			if not f.lower().endswith( ".kwreplay" ) :
-				continue
-
-			fs.append( f )
-
-		replays = ReplayItems()
-		for f in fs :
-			i = ReplayItem()
-			i.fname = f
-			full_name = os.path.join( self.path, f )
-			i.kwr = KWReplay( fname=full_name )
-			replays.append( i )
-		return replays
 
 	# Generate the context menu when rep_list is right clicked.
 	def replay_context_menu( self, event ) :
@@ -770,7 +772,7 @@ class ReplayViewer( wx.Frame ) :
 	
 	def refresh_path( self ) :
 		self.filter_text.SetValue( "" ) # removes filter.
-		self.replay_items = self.scan_replay_files( self.path )
+		self.replay_items.scan_path( self.path )
 		self.rep_list.populate( self.replay_items )
 
 	def on_opendir_btnClick( self, event ) :
