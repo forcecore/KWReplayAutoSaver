@@ -186,6 +186,164 @@ class selected( object ) :
 		else :
 			return self.index
 
+class PlayerList( wx.ListCtrl ) :
+	def __init__( self, parent ) :
+		super().__init__( parent, size=(600,200), style=wx.LC_REPORT )
+		self.InsertColumn( 0, 'Team' )
+		self.InsertColumn( 1, 'Name' )
+		self.InsertColumn( 2, 'Faction' )
+		self.InsertColumn( 3, 'Color' )
+		self.SetColumnWidth( 1, 400 )
+		#self.SetMinSize( (600, 200) )
+	
+	def populate( self, kwr ) :
+		self.DeleteAllItems()
+		for p in kwr.players :
+			# p is the Player class. You are quite free to do anything!
+			if p.name == "post Commentator" :
+				# don't need to see this guy
+				continue
+
+			index = self.GetItemCount()
+			if p.team == 0 :
+				team = "-"
+			else :
+				team = str( p.team )
+			pos = self.InsertItem( index, team )
+			self.SetItem( pos, 1, p.name )
+			self.SetItem( pos, 2, Player.decode_faction( p.faction ) )
+			self.SetItem( pos, 3, Player.decode_color( p.color ) )
+
+
+
+class ReplayList( wx.ListCtrl ) :
+	def __init__( self, parent ) :
+		super().__init__( parent, size=(-1,200),
+				style=wx.LC_REPORT|wx.LC_EDIT_LABELS )
+		self.InsertColumn( 0, 'Name' )
+		self.InsertColumn( 1, 'Map' )
+		self.InsertColumn( 2, 'Description' )
+		self.InsertColumn( 3, 'Time' )
+		self.InsertColumn( 4, 'Date' )
+		self.SetColumnWidth( 0, 400 )
+		self.SetColumnWidth( 1, 180 )
+		self.SetColumnWidth( 2, 200 )
+		self.SetColumnWidth( 3, 100 )
+		self.SetColumnWidth( 4, 100 )
+		#self.SetMinSize( (600, 200) )
+	
+	def populate( self, reps, filter=None ) :
+		# destroy all existing items
+		self.DeleteAllItems()
+
+		# now read freshly.
+		for rep in reps.items :
+			self.add_replay( rep, filter=filter )
+
+		# managing sort state XD
+		self.last_clicked_col = -1 # last clicked column number
+		self.ascending = True # sort by ascending order?
+
+	def add_replay( self, rep, filter=None ) :
+		fname = rep.fname
+		kwr = rep.kwr
+
+		if self.filter_hit( filter, kwr, fname ) :
+			# we need map, name, game desc, time and date.
+			# Fortunately, only time and date need computation.
+			t = datetime.datetime.fromtimestamp( kwr.timestamp )
+			time = t.strftime("%X")
+			date = t.strftime("%x")
+
+			index = self.GetItemCount()
+			pos = self.InsertItem( index, fname ) # replay name
+			self.SetItem( pos, 1, kwr.map_name ) # replay name
+			self.SetItem( pos, 2, kwr.desc ) # desc
+			self.SetItem( pos, 3, time ) # time
+			self.SetItem( pos, 4, date ) # date
+
+	# determine if filter hit -> show in rep_list.
+	def filter_hit( self, filter, kwr, fname ) :
+		if not filter :
+			# either filter == None or empty string!
+			return True
+
+		# lower case everything
+		fname = fname.lower()
+		map_name = kwr.map_name.lower()
+		words = filter.lower().split()
+		players = []
+		desc = kwr.desc.lower()
+		for player in kwr.players :
+			players.append( player.name.lower() )
+
+		for word in words :
+			# matches filename
+			if word in fname :
+				return True
+			
+			# matches map name
+			if word in map_name :
+				return True
+
+			# matches description
+			if word in desc :
+				return True
+
+			# matches player name
+			for player in players :
+				if word in player :
+					return True
+
+		return False
+
+	def key_func( self, item, col ) :
+		if col == 4 :
+			# date!!!
+			return time.strptime( item[ col ], "%x" )
+		else :
+			return item[ col ]
+	
+	def sort( self, col, asc ) :
+		items = self.retrieve_rep_list_items()
+		items.sort( key=lambda item: self.key_func( item, col ) )
+		if not asc :
+			items.reverse()
+		self.DeleteAllItems()
+		self.insert_rep_list_items( items )
+
+	def insert_rep_list_items( self, items ) :
+		for item in items :
+			index = self.GetItemCount()
+			pos = self.InsertItem( index, item[0] ) # replay name
+			for i in range( 1, 5 ) :
+				# other items
+				self.SetItem( pos, i, item[i] )
+
+	def retrieve_rep_list_items( self ) :
+		# turn all items into a list.
+		items = []
+		for i in range( self.GetItemCount() ) :
+			item = []
+			for j in range( 5 ) : # there are 5 cols
+				item.append( self.GetItem( i, j ).GetText() )
+			items.append( item )
+		return items
+
+	# sort by clicked column
+	def on_col_click( self, event ) :
+		# determine ascending or descending.
+		if self.last_clicked_col == event.GetColumn() :
+			self.ascending = not self.ascending
+		else :
+			self.ascending = True
+		self.last_clicked_col = event.GetColumn()
+
+		# now lets do the sorting
+		self.sort( event.GetColumn(), self.ascending )
+
+
+
 class ReplayViewer( wx.Frame ) :
 	def __init__( self, parent, args ) :
 		super().__init__( parent, title='Replay Info Viewer', size=(1024,800) )
@@ -203,7 +361,7 @@ class ReplayViewer( wx.Frame ) :
 		# don't need DB. we just set the image name right.
 		#self.map_db = self.load_map_db( 'MapDB.txt' )
 
-		self.populate_replay_list( self.replay_items )
+		self.rep_list.populate( self.replay_items )
 
 		self.names = None # scratch memory for replay renaming presets (for context menu)
 		self.ctx_old_name = "" # lets have a space for the old replay name too.
@@ -211,10 +369,6 @@ class ReplayViewer( wx.Frame ) :
 			# i.e, context menus.
 		self.custom_old_name = ""
 			# this one, is for remembering the old fname for custom renames.
-
-		# managing sort state XD
-		self.last_clicked_col = -1 # last clicked column number
-		self.ascending = True # sort by ascending order?
 	
 	def load_map_db( self, fname ) :
 		f = open( fname )
@@ -265,87 +419,6 @@ class ReplayViewer( wx.Frame ) :
 			i.kwr = KWReplay( fname=full_name )
 			replays.append( i )
 		return replays
-
-	# determine if filter hit -> show in rep_list.
-	def filter_hit( self, filter, kwr, fname ) :
-		if not filter :
-			# either filter == None or empty string!
-			return True
-
-		# lower case everything
-		fname = fname.lower()
-		map_name = kwr.map_name.lower()
-		words = filter.lower().split()
-		players = []
-		desc = kwr.desc.lower()
-		for player in kwr.players :
-			players.append( player.name.lower() )
-
-		for word in words :
-			# matches filename
-			if word in fname :
-				return True
-			
-			# matches map name
-			if word in map_name :
-				return True
-
-			# matches description
-			if word in desc :
-				return True
-
-			# matches player name
-			for player in players :
-				if word in player :
-					return True
-
-		return False
-
-	def add_replay( self, rep, filter=None ) :
-		fname = rep.fname
-		kwr = rep.kwr
-
-		if self.filter_hit( filter, kwr, fname ) :
-			# we need map, name, game desc, time and date.
-			# Fortunately, only time and date need computation.
-			t = datetime.datetime.fromtimestamp( kwr.timestamp )
-			time = t.strftime("%X")
-			date = t.strftime("%x")
-
-			index = self.rep_list.GetItemCount()
-			pos = self.rep_list.InsertItem( index, fname ) # replay name
-			self.rep_list.SetItem( pos, 1, kwr.map_name ) # replay name
-			self.rep_list.SetItem( pos, 2, kwr.desc ) # desc
-			self.rep_list.SetItem( pos, 3, time ) # time
-			self.rep_list.SetItem( pos, 4, date ) # date
-
-	# reps: list of replay_item to populate.
-	# filter to filter out some of them and not show on the GUI.
-	def populate_replay_list( self, reps, filter=None ) :
-		# destroy all existing items
-		self.rep_list.DeleteAllItems()
-
-		# now read freshly.
-		for rep in reps.items :
-			self.add_replay( rep, filter=filter )
-
-	def populate_faction_info( self, kwr ) :
-		self.player_list.DeleteAllItems()
-		for p in kwr.players :
-			# p is the Player class. You are quite free to do anything!
-			if p.name == "post Commentator" :
-				# don't need to see this guy
-				continue
-
-			index = self.player_list.GetItemCount()
-			if p.team == 0 :
-				team = "-"
-			else :
-				team = str( p.team )
-			pos = self.player_list.InsertItem( index, team )
-			self.player_list.SetItem( pos, 1, p.name )
-			self.player_list.SetItem( pos, 2, Player.decode_faction( p.faction ) )
-			self.player_list.SetItem( pos, 3, Player.decode_color( p.color ) )
 
 	# Generate the context menu when rep_list is right clicked.
 	def replay_context_menu( self, event ) :
@@ -571,68 +644,7 @@ class ReplayViewer( wx.Frame ) :
 		self.rep_list.SetItem( pos, 0, rep_name ) # replay name
 		# rename in the replay_items
 		self.replay_items.rename( old_name, fname )
-	
-	def key_func( self, item, col ) :
-		if col == 4 :
-			# date!!!
-			return time.strptime( item[ col ], "%x" )
-		else :
-			return item[ col ]
-	
-	def sort_rep_list( self, col, asc ) :
-		items = self.retrieve_rep_list_items()
-		items.sort( key=lambda item: self.key_func( item, col ) )
-		if not asc :
-			items.reverse()
-		self.rep_list.DeleteAllItems()
-		self.insert_rep_list_items( items )
-	
-	def insert_rep_list_items( self, items ) :
-		for item in items :
-			index = self.rep_list.GetItemCount()
-			pos = self.rep_list.InsertItem( index, item[0] ) # replay name
-			for i in range( 1, 5 ) :
-				# other items
-				self.rep_list.SetItem( pos, i, item[i] )
 
-	def retrieve_rep_list_items( self ) :
-		# turn all items into a list.
-		items = []
-		for i in range( self.rep_list.GetItemCount() ) :
-			item = []
-			for j in range( 5 ) : # there are 5 cols
-				item.append( self.rep_list.GetItem( i, j ).GetText() )
-			items.append( item )
-		return items
-
-
-
-	def create_player_list( self, parent ) :
-		player_list = wx.ListCtrl( parent, size=(600,200), style=wx.LC_REPORT )
-		player_list.InsertColumn( 0, 'Team' )
-		player_list.InsertColumn( 1, 'Name' )
-		player_list.InsertColumn( 2, 'Faction' )
-		player_list.InsertColumn( 3, 'Color' )
-		player_list.SetColumnWidth( 1, 400 )
-		#player_list.SetMinSize( (600, 200) )
-		return player_list
-	
-	def create_rep_list( self, parent ) :
-		rep_list = wx.ListCtrl( parent, size=(-1,200),
-				style=wx.LC_REPORT|wx.LC_EDIT_LABELS )
-		rep_list.InsertColumn( 0, 'Name' )
-		rep_list.InsertColumn( 1, 'Map' )
-		rep_list.InsertColumn( 2, 'Description' )
-		rep_list.InsertColumn( 3, 'Time' )
-		rep_list.InsertColumn( 4, 'Date' )
-		rep_list.SetColumnWidth( 0, 400 )
-		rep_list.SetColumnWidth( 1, 180 )
-		rep_list.SetColumnWidth( 2, 200 )
-		rep_list.SetColumnWidth( 3, 100 )
-		rep_list.SetColumnWidth( 4, 100 )
-		#rep_list.SetMinSize( (600, 200) )
-		return rep_list
-	
 	def create_desc_panel( self, parent ) :
 		desc_panel = wx.Panel( parent, -1 ) #, style=wx.SUNKEN_BORDER )
 		game_desc = wx.StaticText( desc_panel, label="Game Description:", pos=(5,5) )
@@ -661,7 +673,7 @@ class ReplayViewer( wx.Frame ) :
 	def create_top_panel( self, parent ) :
 		panel = wx.Panel( parent )
 
-		self.player_list = self.create_player_list( panel ) # player list
+		self.player_list = PlayerList( panel )
 		self.map_view = MapView( panel, self.MAPS_ZIP, size=(200,200) )
 		self.map_view.SetMinSize( (200, 200) )
 
@@ -691,7 +703,7 @@ class ReplayViewer( wx.Frame ) :
 		# for splitter box resizing...
 		bottom_panel = wx.Panel( splitter, size=(500,500) )
 
-		self.rep_list = self.create_rep_list( bottom_panel ) # replay list
+		self.rep_list = ReplayList( bottom_panel )
 
 		# description editing
 		# creates self.desc_text, self.modify_btn also.
@@ -754,12 +766,12 @@ class ReplayViewer( wx.Frame ) :
 	# removing filter is the same as refresh_path but doesn't rescan path's files.
 	def on_nofilter_btnClick( self, event ) :
 		self.filter_text.SetValue( "" ) # removes filter.
-		self.populate_replay_list( self.replay_items )
+		self.rep_list.populate( self.replay_items )
 	
 	def refresh_path( self ) :
 		self.filter_text.SetValue( "" ) # removes filter.
 		self.replay_items = self.scan_replay_files( self.path )
-		self.populate_replay_list( self.replay_items )
+		self.rep_list.populate( self.replay_items )
 
 	def on_opendir_btnClick( self, event ) :
 		self.change_dir()
@@ -784,7 +796,7 @@ class ReplayViewer( wx.Frame ) :
 		r = self.replay_items.find( rep )
 
 		# fill faction info
-		self.populate_faction_info( r.kwr )
+		self.player_list.populate( r.kwr )
 
 		# load map preview
 		self.map_view.show( r.kwr )
@@ -853,21 +865,10 @@ class ReplayViewer( wx.Frame ) :
 		kwr = KWReplay( fname ) # reload it.
 		self.replay_items.replace( fname, kwr )
 
-	# sort by clicked column
-	def on_rep_list_col_click( self, event ) :
-		# determine ascending or descending.
-		if self.last_clicked_col == event.GetColumn() :
-			self.ascending = not self.ascending
-		else :
-			self.ascending = True
-		self.last_clicked_col = event.GetColumn()
-
-		# now lets do the sorting
-		self.sort_rep_list( event.GetColumn(), self.ascending )
 	
 	def on_filter_applyClick( self, event ) :
 		fil = self.filter_text.GetValue()
-		self.populate_replay_list( self.replay_items, filter=fil )
+		self.rep_list.populate( self.replay_items, filter=fil )
 
 	def event_bindings( self ) :
 		self.refresh_btn.Bind( wx.EVT_BUTTON, self.on_refresh_btnClick )
@@ -885,7 +886,7 @@ class ReplayViewer( wx.Frame ) :
 		self.rep_list.Bind( wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_rep_listRightClick )
 		self.rep_list.Bind( wx.EVT_LIST_END_LABEL_EDIT, self.on_rep_list_end_label_edit )
 		self.rep_list.Bind( wx.EVT_LIST_BEGIN_LABEL_EDIT, self.on_rep_list_begin_label_edit )
-		self.rep_list.Bind( wx.EVT_LIST_COL_CLICK, self.on_rep_list_col_click )
+		self.rep_list.Bind( wx.EVT_LIST_COL_CLICK, self.rep_list.on_col_click )
 
 
 
