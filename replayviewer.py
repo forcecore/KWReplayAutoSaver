@@ -93,8 +93,12 @@ class ReplayItems() :
 class MapZip() :
 	def __init__( self, fname ) :
 		self.fname = fname
-		self.zipf = zipfile.ZipFile( fname, 'r' )
-		self.namelist = self.zipf.namelist()
+		if not os.path.isfile( fname ) :
+			self.zipf = None
+			self.namelist = []
+		else :
+			self.zipf = zipfile.ZipFile( fname, 'r' )
+			self.namelist = self.zipf.namelist()
 	
 	def hasfile( self, fname ) :
 		return fname in self.namelist
@@ -114,7 +118,7 @@ class MapZip() :
 		zs.close()
 		return img
 
-	# from rep_list, retrieve selected items' indices.
+
 
 class MapView( wx.StaticBitmap ) :
 	def __init__( self, parent, maps, size=(200,200) ) :
