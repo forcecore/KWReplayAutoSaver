@@ -45,7 +45,7 @@ class ReplayItems() :
 
 	# finds the item with fname and replace it
 	def replace( self, fname, new_kwr ) :
-		it = find( fname )
+		it = self.find( fname )
 		it.kwr = new_kwr
 
 class MapZip() :
@@ -864,7 +864,6 @@ class ReplayViewer( wx.Frame ) :
 		self.rep_list.SetItem( pos, 2, desc ) # desc
 		kwr = KWReplay( fname ) # reload it.
 		self.replay_items.replace( fname, kwr )
-
 	
 	def on_filter_applyClick( self, event ) :
 		fil = self.filter_text.GetValue()
