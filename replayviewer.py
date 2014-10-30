@@ -18,22 +18,44 @@ class ReplayItem() :
 	def __init__( self ) :
 		self.fname = None # without path!!! = not full path!
 		self.kwr = None
+		self.id = -1
 
 class ReplayItems() :
 	def __init__( self ) :
 		self.items = []
+		self.id = 0 # Keep available UID for newly appended replays.
 
 	def append( self, it ) :
 		self.items.append( it )
+		it.id = self.id
+		self.id += 1
 
 	# delete the replay with fname from items
-	def find( self, fname ) :
+	def find( self, fname=None, id=None ) :
+		assert fname != None or id != None
+		assert not ( fname != None and id != None )
+
+		if fname :
+			return self.find_fname( fname )
+		else :
+			return self.find_id( id )
+
+	# Since I'm only appending items (not not shuffling them)
+	# I should be able to do a binary search... but, nah, not now.
+	def find_id( self, id ) :
+		for it in self.items :
+			if it.id == id :
+				return it
+		raise KeyError
+	
+	def find_fname( self, fname ) :
 		fname = os.path.basename( fname ) # incase...
 		for it in self.items :
 			if it.fname == fname :
 				return it
 		raise KeyError
 
+	# Happens when u delete a repaly from replay view.
 	def remove( self, fname ) :
 		it = self.find( fname )
 		self.items.remove( it )
@@ -68,7 +90,7 @@ class ReplayItems() :
 			i.fname = f
 			full_name = os.path.join( path, f )
 			i.kwr = KWReplay( fname=full_name )
-			self.items.append( i )
+			self.append( i )
 
 		self.touchup_ips()
 
@@ -304,10 +326,17 @@ class PlayerList( wx.ListCtrl ) :
 	def event_bindings( self ) :
 		self.Bind( wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_item_righ_click )
 	
-
+# I guess I don't have to inherit this,
+# Python's dynamicness can handle this alright...
+# having just one extra var of replay_item...
+# Actually, this is done with SetItemData!!!
+#class ReplayListItem( wx.ListItem ) :
+#	def __init__( self ) :
+#		super().__init( self )
+#		self.replay_item = None
 
 class ReplayList( wx.ListCtrl ) :
-	def __init__( self, parent ) :
+	def __init__( self, parent, frame ) :
 		super().__init__( parent, size=(-1,200),
 				style=wx.LC_REPORT|wx.LC_EDIT_LABELS )
 		self.InsertColumn( 0, 'Name' )
@@ -321,8 +350,14 @@ class ReplayList( wx.ListCtrl ) :
 		self.SetColumnWidth( 3, 100 )
 		self.SetColumnWidth( 4, 100 )
 		#self.SetMinSize( (600, 200) )
-	
+
+		self.frame = frame
+		self.replay_items = None # This is shared with frame, beware!
+
+	# reps: repaly_items
 	def populate( self, reps, filter=None ) :
+		self.replay_items = reps
+
 		# destroy all existing items
 		self.DeleteAllItems()
 
@@ -346,11 +381,13 @@ class ReplayList( wx.ListCtrl ) :
 			date = t.strftime("%x")
 
 			index = self.GetItemCount()
+			item = wx.ListItem()
 			pos = self.InsertItem( index, fname ) # replay name
 			self.SetItem( pos, 1, kwr.map_name ) # replay name
 			self.SetItem( pos, 2, kwr.desc ) # desc
 			self.SetItem( pos, 3, time ) # time
 			self.SetItem( pos, 4, date ) # date
+			self.SetItemData( pos, rep.id ) # associate replay
 
 	# determine if filter hit -> show in rep_list.
 	def filter_hit( self, filter, kwr, fname ) :
@@ -390,38 +427,79 @@ class ReplayList( wx.ListCtrl ) :
 
 		return False
 
-	def key_func( self, item, col ) :
-		if col == 4 :
-			# date!!!
-			return time.strptime( item[ col ], "%x" )
+	def key_func( self, rep_id1, rep_id2 ) :
+		col = self.last_clicked_col
+		asc = self.ascending
+
+		# Since API's sorting function will sort by what I have
+		# SetItemData'ed, rep1 and rep2 are my replay items.
+		rep1 = self.replay_items.find( id=rep_id1 )
+		rep2 = self.replay_items.find( id=rep_id2 )
+		#print( rep1.fname )
+		#print( rep2.fname )
+
+		if col == 0 :
+			# name
+			data1 = rep1.fname
+			data2 = rep2.fname
+		elif col == 1 :
+			data1 = rep1.kwr.map_name
+			data2 = rep2.kwr.map_name
+		elif col == 2 :
+			data1 = rep1.kwr.desc
+			data2 = rep2.kwr.desc
+		elif col == 3 :
+			# time of the day...
+			# I'll just use timestamp, who cares?
+			data1 = rep1.kwr.timestamp
+			data2 = rep2.kwr.timestamp
+		elif col == 4 :
+			# date
+			data1 = rep1.kwr.timestamp
+			data2 = rep2.kwr.timestamp
 		else :
-			return item[ col ]
+			assert 0
+
+		if data1 == data2 :
+			result = 0
+		elif data1 < data2 :
+			result = -1
+		else :
+			result = 1
+
+		if not asc :
+			result *= -1
+
+		return result
 	
 	def sort( self, col, asc ) :
-		items = self.retrieve_rep_list_items()
-		items.sort( key=lambda item: self.key_func( item, col ) )
-		if not asc :
-			items.reverse()
-		self.DeleteAllItems()
-		self.insert_rep_list_items( items )
+		#items = self.retrieve_rep_list_items()
+		#items.sort( key=lambda item: self.key_func( item, col ) )
+		#if not asc :
+		#	items.reverse()
+		#self.DeleteAllItems()
+		#self.insert_rep_list_items( items )
 
-	def insert_rep_list_items( self, items ) :
-		for item in items :
-			index = self.GetItemCount()
-			pos = self.InsertItem( index, item[0] ) # replay name
-			for i in range( 1, 5 ) :
-				# other items
-				self.SetItem( pos, i, item[i] )
+		# Now using API's sort, not my crappy one!
+		self.SortItems( self.key_func )
 
-	def retrieve_rep_list_items( self ) :
-		# turn all items into a list.
-		items = []
-		for i in range( self.GetItemCount() ) :
-			item = []
-			for j in range( 5 ) : # there are 5 cols
-				item.append( self.GetItem( i, j ).GetText() )
-			items.append( item )
-		return items
+	#def insert_rep_list_items( self, items ) :
+	#	for item in items :
+	#		index = self.GetItemCount()
+	#		pos = self.InsertItem( index, item[0] ) # replay name
+	#		for i in range( 1, 5 ) :
+	#			# other items
+	#			self.SetItem( pos, i, item[i] )
+
+	#def retrieve_rep_list_items( self ) :
+	#	# turn all items into a list.
+	#	items = []
+	#	for i in range( self.GetItemCount() ) :
+	#		item = []
+	#		for j in range( 5 ) : # there are 5 cols
+	#			item.append( self.GetItem( i, j ).GetText() )
+	#		items.append( item )
+	#	return items
 
 	# sort by clicked column
 	def on_col_click( self, event ) :
@@ -782,7 +860,7 @@ class ReplayViewer( wx.Frame ) :
 		# for splitter box resizing...
 		bottom_panel = wx.Panel( splitter, size=(500,500) )
 
-		self.rep_list = ReplayList( bottom_panel )
+		self.rep_list = ReplayList( bottom_panel, self )
 
 		# description editing
 		# creates self.desc_text, self.modify_btn also.
