@@ -158,6 +158,32 @@ class MapView( wx.StaticBitmap ) :
 		else :
 			assert 0 # one of them should fit!!
 
+	def draw_102( self, img ) :
+		bmp = wx.Bitmap( img )
+		dc = wx.MemoryDC( bitmap=bmp )
+
+		# Set text props
+		dc.SetTextForeground( wx.Colour( 255, 0, 255 ) )
+		font = wx.Font( 40, wx.FONTFAMILY_SWISS,
+			wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD )
+		dc.SetFont( font )
+		txt = "1.02+"
+
+		(tw, th) = dc.GetTextExtent( txt )
+		# but our text is 45 deg rotated.
+		# we need to compute 45deg rotation!
+		# oh, I was being too smart. don't need to these.
+		#(tw, th) = ( tw/1.414, tw/1.424 + th/1.414 )
+
+		# draw text, centered.
+		(w, h) = dc.GetSize()
+		dc.DrawRotatedText( txt, int((w-tw)/2), int((h+th)/2), 45 )
+		#dc.DrawText( txt, int((w-tw)/2), int((h-th)/2) )
+
+		img = bmp.ConvertToImage()
+		del dc
+		return img
+
 	def set_map_preview( self, fname ) :
 		# clear the image area first.
 		# w, h may change. we generate it on every map change for sure.
@@ -178,6 +204,11 @@ class MapView( wx.StaticBitmap ) :
 			no_log = wx.LogNull()
 			img = self.mapzip.load( fname )
 			del no_log # restore
+
+			# if 1.02+, draw 1.02+ on the image
+			if fname.find( "1.02+" ) >= 0 :
+				img = self.draw_102( img )
+
 			self.map_previews[ fname ] = img # keep it in memory
 
 		(w, h) = self.calc_best_wh( img )
