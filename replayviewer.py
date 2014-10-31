@@ -457,6 +457,11 @@ class ReplayList( wx.ListCtrl ) :
 					return True
 
 		return False
+	
+	def get_related_replay( self, pos ) :
+		rep_id = self.GetItemData( pos )
+		rep_item = self.replay_items.find( id=rep_id )
+		return rep_item
 
 	def key_func( self, rep_id1, rep_id2 ) :
 		col = self.last_clicked_col
@@ -776,10 +781,9 @@ class ReplayViewer( wx.Frame ) :
 		# iterate list.
 		for index in selected( self.rep_list ) :
 			# old full name
-			old_name = self.rep_list.GetItem( index, 0 ).GetText()
+			it = self.rep_list.get_related_replay( index )
+			old_name = it.fname
 			old_name = os.path.join( self.path, old_name )
-
-			it = self.replay_items.find( old_name )
 
 			rep_name = Watcher.calc_name( it.kwr, add_username=au, add_faction=af,
 					add_vs_info=av,
@@ -976,18 +980,17 @@ class ReplayViewer( wx.Frame ) :
 		txt = self.rep_list.GetItem( pos, 2 ).GetText()
 		self.desc_text.SetValue( txt )
 
-		# remember the old name (for other renaming routines)
-		rep = self.rep_list.GetItem( pos, 0 ).GetText()
-		self.ctx_old_name = os.path.join( self.path, rep )
-
 		# get related replay.
-		r = self.replay_items.find( rep )
+		it = self.rep_list.get_related_replay( pos )
+
+		# remember the old name (for other renaming routines)
+		self.ctx_old_name = os.path.join( self.path, it.fname )
 
 		# fill faction info
-		self.player_list.populate( r.kwr )
+		self.player_list.populate( it.kwr )
 
 		# load map preview
-		self.map_view.show( r.kwr )
+		self.map_view.show( it.kwr )
 	
 	def on_rep_list_end_label_edit( self, event ) :
 		event.Veto() # undos all edits from the user, for now.
