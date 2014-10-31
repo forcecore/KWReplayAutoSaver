@@ -395,6 +395,9 @@ class ReplayList( wx.ListCtrl ) :
 		self.Bind( wx.EVT_LIST_END_LABEL_EDIT, self.on_end_label_edit )
 		self.Bind( wx.EVT_LIST_BEGIN_LABEL_EDIT, self.on_begin_label_edit )
 		self.Bind( wx.EVT_LIST_COL_CLICK, self.on_col_click )
+
+		# on key down doesn't work, for enter keys. :( :(
+		#self.Bind( wx.EVT_LIST_KEY_DOWN, self.on_key_down )
 	
 	def set_path( self, path ) :
 		self.path = path
@@ -685,9 +688,28 @@ class ReplayList( wx.ListCtrl ) :
 			item = wx.MenuItem( menu, -1, "&Open containing folder" )
 			menu.Bind( wx.EVT_MENU, self.open_containing_folder, id=item.GetId() )
 			menu.Append( item )
+
+			item = wx.MenuItem( menu, -1, "&Play (Enter)" )
+			menu.Bind( wx.EVT_MENU, self.play, id=item.GetId() )
+			menu.Append( item )
 		
 		self.PopupMenu( menu, event.GetPoint() ) # popup the context menu.
 		menu.Destroy() # prevents memory leaks haha
+	
+	def play( self, event ) :
+		# Play this replay
+		if self.GetSelectedItemCount() == 0 :
+			return
+		if self.GetSelectedItemCount() > 1 :
+			# probably pressed Enter key or something
+			msg = "Please select only one replay to play!"
+			wx.MessageBox( msg, "Error", wx.OK|wx.ICON_ERROR )
+			return
+
+		pos = self.GetFocusedItem()
+		rep_name = self.GetItem( pos, 0 ).GetText()
+		fname = os.path.join( self.path, rep_name )
+		os.startfile( fname ) # launch default app with file
 
 	# Given new rep_name
 	# do renaming in the file system and
