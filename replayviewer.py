@@ -66,11 +66,6 @@ class ReplayItems() :
 		dest = os.path.basename( dest )
 		it.fname = dest
 
-	# finds the item with fname and replace it
-	def replace( self, fname, new_kwr ) :
-		it = self.find( fname )
-		it.kwr = new_kwr
-
 	# scan a folder and return the replays as ReplayItem.
 	def scan_path( self, path ) :
 		fs = []
@@ -337,7 +332,11 @@ class PlayerList( wx.ListCtrl ) :
 			if player.name == name :
 				uid = player.ip
 				break
-		assert uid
+
+		if not uid :
+			msg = "Searching replays with AI is not supported!"
+			wx.MessageBox( msg, "Error", wx.OK|wx.ICON_ERROR )
+			return
 
 		self.frame.find_player( name, uid ) # the frame will do the rest.
 
@@ -442,6 +441,29 @@ class ReplayList( wx.ListCtrl ) :
 			self.SetItem( pos, 3, time ) # time
 			self.SetItem( pos, 4, date ) # date
 			self.SetItemData( pos, rep.id ) # associate replay
+
+	# Modify the description of the replay which is currently selected.
+	def modify_desc( self, desc ) :
+		if self.GetSelectedItemCount() == 0 :
+			# pressed modify! button without selecting anything.
+			return
+
+		# I think I could use self.ctx_old_name but...
+		pos = self.GetFocusedItem()
+		assert pos >= 0 # GetSelectedItemCount will assure it, but to be sure
+		id = self.GetItemData( pos )
+
+		rep = self.replay_items.find( id=id )
+		fname = os.path.join( self.path, rep.fname )
+
+		# so, old_name should be quite valid by now.
+		kwr = KWReplay()
+		kwr.modify_desc_inplace( fname, desc )
+
+		# update it in the interface.
+		self.SetItem( pos, 2, desc ) # desc
+		kwr = KWReplay( fname ) # reload it.
+		rep.kwr = kwr
 
 	# determine if filter hit -> show in rep_list.
 	def filter_hit( self, filter, kwr, fname ) :
@@ -884,7 +906,7 @@ class ReplayViewer( wx.Frame ) :
 	def find_player( self, name, uid ) :
 		fil = name + " " + uid
 		self.filter_text.SetValue( fil )
-		self.rep_list.populate( self.replay_items, filter=fil )
+		self.rep_list.populate( self.rep_list.replay_items, filter=fil )
 		
 	def create_desc_panel( self, parent ) :
 		desc_panel = wx.Panel( parent, -1 ) #, style=wx.SUNKEN_BORDER )
@@ -1006,34 +1028,15 @@ class ReplayViewer( wx.Frame ) :
 	# removing filter is the same as refresh_path but doesn't rescan path's files.
 	def on_nofilter_btnClick( self, event ) :
 		self.filter_text.SetValue( "" ) # removes filter.
-		self.rep_list.populate( self.replay_items )
+		self.rep_list.populate( self.rep_list.replay_items )
 	
 	def on_opendir_btnClick( self, event ) :
 		self.change_dir()
 	
 
 	def on_modify_btnClick( self, event ) :
-		if not self.ctx_old_name : 
-			# pressed modify! button without selecting anything.
-			return
-
-		# I think I could use self.ctx_old_name but...
-		pos = self.rep_list.GetFocusedItem()
-		if pos < 0 :
-			return
-		rep = self.rep_list.GetItem( pos, 0 ).GetText()
-		fname = os.path.join( self.path, rep )
-
 		desc = self.desc_text.GetValue()
-
-		# so, old_name should be quite valid by now.
-		kwr = KWReplay()
-		kwr.modify_desc_inplace( fname, desc )
-
-		# update it in the interface.
-		self.rep_list.SetItem( pos, 2, desc ) # desc
-		kwr = KWReplay( fname ) # reload it.
-		self.replay_items.replace( fname, kwr )
+		self.rep_list.modify_desc( desc )
 	
 	def on_filter_applyClick( self, event ) :
 		fil = self.filter_text.GetValue()
