@@ -40,11 +40,23 @@ In addition, it has many features such as:
 * Modify/EMBED description into the replay.
 * Search replays by player, map, description or replay file name.
 * Supports UTF-8. No more unreadable information!
+* Search replays involving a player by right clicking on a player in the
+  player list.
 
 
 
 The releases and the sourcodes are available at:
 https://github.com/forcecore/KWReplayAutoSaver
 
-The replay format is credited to R Schneider:
+
+
+CREDITS (Alphabetical order)
+
+Plokite_Wolf, for his work on minimap images
+
+Predatore, for minimaps of 1.02+ maps. (+his works on the creating the maps!)
+
+R Schneider, for his replay tools and replay formats.
 http://www.gamereplays.org/community/index.php?showtopic=706067&st=0&p=7863248&#entry7863248
+
+s2nZ0, for his valuable feedbacks
