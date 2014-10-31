@@ -13,6 +13,41 @@ import wx
 
 KWICO='KW.ico'
 
+def calc_props( kwr ) :
+	props = []
+	props.append( kwr.map_name.lower() ) # map name
+	props.append( kwr.desc.lower() ) # desc
+	for player in kwr.players :
+		props.append( player.name.lower() )
+		props.append( player.ip )
+	
+	# lowercase everything!
+	for (i, prop) in enumerate( props ) :
+		props[i] = prop.lower()
+
+	return props
+
+# Returns True on some condition hit.
+# Used for filtering replays.
+def filter_hit( filter, props ) :
+	if not filter :
+		# either filter == None or empty string!
+		return True
+
+	# lower case filter
+	words = filter.lower().split()
+
+	# This is incorrect!
+	#for word in words :
+	#	if word in props :
+	#		return True
+
+	for prop in props :
+		for word in words :
+			if word in prop :
+				return True
+	return False
+
 # Not just the replay class, this class is for ease of management in rep_list.
 class ReplayItem() :
 	def __init__( self ) :
@@ -301,6 +336,10 @@ class PlayerList( wx.ListCtrl ) :
 	def populate( self, kwr ) :
 		self.kwr = kwr # remember the replated replay
 		self.DeleteAllItems()
+
+		# Check if we have any filter.
+		fil = self.frame.filter_text.GetValue()
+
 		for p in kwr.players :
 			# p is the Player class. You are quite free to do anything!
 			if p.name == "post Commentator" :
@@ -316,6 +355,11 @@ class PlayerList( wx.ListCtrl ) :
 			self.SetItem( pos, 1, p.name )
 			self.SetItem( pos, 2, Player.decode_faction( p.faction ) )
 			self.SetItem( pos, 3, Player.decode_color( p.color ) )
+
+			# Lets see if this player is a hit.
+			props = [ p.name.lower(), p.ip ]
+			if fil and filter_hit( fil, props ) :
+				self.SetItemBackgroundColour( pos, wx.YELLOW )
 
 	# find replays involving a player, by context menu.
 	def find_player( self, event ) :
@@ -429,7 +473,9 @@ class ReplayList( wx.ListCtrl ) :
 		fname = rep.fname
 		kwr = rep.kwr
 
-		if self.filter_hit( filter, kwr, fname ) :
+		props = calc_props( kwr )
+		props.append( fname.lower() ) # fname is a prop, too
+		if filter_hit( filter, props ) :
 			# we need map, name, game desc, time and date.
 			# Fortunately, only time and date need computation.
 			t = datetime.datetime.fromtimestamp( kwr.timestamp )
@@ -437,7 +483,6 @@ class ReplayList( wx.ListCtrl ) :
 			date = t.strftime("%x")
 
 			index = self.GetItemCount()
-			item = wx.ListItem()
 			pos = self.InsertItem( index, fname ) # replay name
 			self.SetItem( pos, 1, kwr.map_name ) # replay name
 			self.SetItem( pos, 2, kwr.desc ) # desc
@@ -467,44 +512,6 @@ class ReplayList( wx.ListCtrl ) :
 		self.SetItem( pos, 2, desc ) # desc
 		kwr = KWReplay( fname ) # reload it.
 		rep.kwr = kwr
-
-	# determine if filter hit -> show in rep_list.
-	def filter_hit( self, filter, kwr, fname ) :
-		if not filter :
-			# either filter == None or empty string!
-			return True
-
-		# lower case everything
-		fname = fname.lower()
-		map_name = kwr.map_name.lower()
-		words = filter.lower().split()
-		player_props = []
-		desc = kwr.desc.lower()
-		for player in kwr.players :
-			player_props.append( player.name.lower() )
-			player_props.append( player.ip )
-
-		for word in words :
-			# matches filename
-			if word in fname :
-				return True
-			
-			# matches map name
-			if word in map_name :
-				return True
-
-			# matches description
-			if word in desc :
-				return True
-
-			# matches player name/ip
-			# Don't use word in player_props, it will not allow
-			# substring match!
-			for prop in player_props :
-				if word in prop :
-					return True
-
-		return False
 	
 	def get_related_replay( self, pos ) :
 		rep_id = self.GetItemData( pos )
@@ -689,7 +696,7 @@ class ReplayList( wx.ListCtrl ) :
 			menu.Bind( wx.EVT_MENU, self.open_containing_folder, id=item.GetId() )
 			menu.Append( item )
 
-			item = wx.MenuItem( menu, -1, "&Play (Enter)" )
+			item = wx.MenuItem( menu, -1, "&Play" )
 			menu.Bind( wx.EVT_MENU, self.play, id=item.GetId() )
 			menu.Append( item )
 		
