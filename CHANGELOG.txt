@@ -1,0 +1,31 @@
+1.3.1
+* Replay can be played directly. (Launches the game to play the replay)
+* Faster replay sorting (column click sorting)
+* 1.02+ watermark is drawn on the minimap for 1.02+ maps
+* Players who are searched are highlighted in the players list.
+* Bug fix in 1v1, 2v2 tag computation. (Commentator was counted as a player)
+
+1.3.0
+* By right clicking a player on the player list, you can search replays involving that player.
+* Selecting a replay now shows minimap for that game, if you have maps.zip with the replay saver, where library.zip and autosaver.exe are.
+  * Download maps.zip from here: https://github.com/forcecore/KWReplayAutoSaver/releases/tag/map_v1.0.0
+  * If a map preview is missing and in maps.zip, the missing file name will be copied to clipboard. (for maps.zip developers)
+* Batch deletion implemented.
+* Faster replay filtering
+* 1v1, 2v2 tag can be added, optionally.
+* Player list can be resized to occupy smaller space on screen
+
+1.2.0
+* Detects if the program is already running, allowing only one may run at a time
+* Time stamp is now surrounded by brackets ([]) by default
+* Time stamp format can now be customized
+* Better player information extraction:
+  * Faction information can be added
+  * Includes all player names in 1v1 and 2v2 games such as "[2014-06-02T1401] BoolBada (Nod) & spc (BH) vs MacroHard (GDI) & FallingBirdNoWings (R17)"
+* Selecting multiple replays allow batch renaming in the replay manager
+
+1.1.0
+Replay manager introduced.
+
+1.0.2
+Initial release, no replay manager, no configuration possible.
