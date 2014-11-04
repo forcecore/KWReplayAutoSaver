@@ -24,6 +24,7 @@ class Args :
 		self.add_username = True
 		self.add_faction = False
 		self.custom_date_format = None
+		self.mc = dict() # map crc to 1.02+R dict.
 
 		self.cfg = self.load_from_file( fname )
 	
@@ -34,6 +35,7 @@ class Args :
 		print( "add_username:", self.add_username, file=s )
 		print( "add_faction:", self.add_faction, file=s )
 		print( "custom_date_format:", self.custom_date_format, file=s )
+		print( "mc:", self.mc, file=s )
 		return s.getvalue()
 
 	def set_var( self, key, val ) :
@@ -95,6 +97,14 @@ class Args :
 	
 	def load_from_file( self, fname ) :
 		self.cfg = configparser.ConfigParser()
+		self.cfg.optionxform = str # make it case sensitive.
+
+		# List default options here.
+		# Currently, it only specifies map CRC settings.
+		# Note that, read_dict() must come before read()
+		defaults = { 'mc': { '11':'R9', 'F':'R8', 'D':'R7', 'B':'R6' } }
+		self.cfg.read_dict( defaults )
+
 		self.cfg.read( fname )
 
 		self.last_replay = self.get_var( 'last_replay' )
@@ -109,7 +119,17 @@ class Args :
 		if self.custom_date_format == None :
 			self.custom_date_format = "[%Y-%m-%dT%H%M]"
 
+		self.cfg = self.load_mc( self.cfg ) # please call this before cfg.read()!!
+
 		return self.cfg
+
+	# Loads CRC values for 1.02+ maps
+	def load_mc( self, cfg ) :
+		section = cfg[ 'mc' ]
+		for option in section :
+			self.mc[ option ] = section[ option ]
+			#print( option, section[ option ] )
+		return cfg
 	
 	def save( self ) :
 		self.save_to_file( self.cfg_fname )
