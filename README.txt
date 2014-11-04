@@ -52,9 +52,12 @@ https://github.com/forcecore/KWReplayAutoSaver
 
 CREDITS (Alphabetical order)
 
+cnc315d34d, for his help on discerning the relase of 1.02+ maps.
+  (AND 1.02+, 1.03 patches and patched maps!)
+
 Plokite_Wolf, for his work on minimap images
 
-Predatore, for minimaps of 1.02+ maps. (+his works on the creating the maps!)
+Predatore, for minimaps of 1.02+ maps. (+his works on the creating new maps!)
 
 R Schneider, for his replay tools and replay formats.
 http://www.gamereplays.org/community/index.php?showtopic=706067&st=0&p=7863248&#entry7863248
