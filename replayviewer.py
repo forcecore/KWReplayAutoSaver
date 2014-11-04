@@ -173,7 +173,9 @@ class MapZip() :
 
 
 class MapView( wx.StaticBitmap ) :
-	def __init__( self, parent, maps, size=(200,200) ) :
+	# maps: mapzip file name
+	# mcmap: map CRC mapping to discern which 1.02+ map it is.
+	def __init__( self, parent, maps, mcmap, size=(200,200) ) :
 		super().__init__( parent, size=size )
 
 		# Like self.replay_items, load map images into memory and keep them
@@ -181,6 +183,7 @@ class MapView( wx.StaticBitmap ) :
 		# set_map_preview().
 		self.map_previews = {} # holder!
 		self.mapzip = MapZip( maps )
+		self.mcmap = mcmap
 
 	# ui: statisbitmap to fit in.
 	# img: img that will go into ui.
@@ -210,16 +213,23 @@ class MapView( wx.StaticBitmap ) :
 		else :
 			assert 0 # one of them should fit!!
 
-	def draw_102( self, img ) :
+	def draw_102( self, img, mc ) :
 		bmp = wx.Bitmap( img )
 		dc = wx.MemoryDC( bitmap=bmp )
 
+		sz = 30
+		txt = "1.02+"
+		if mc in self.mcmap :
+			txt += self.mcmap[ mc ]
+		else :
+			txt += "MC=" + mc
+			sz = 20
+
 		# Set text props
 		dc.SetTextForeground( wx.Colour( 255, 0, 255 ) )
-		font = wx.Font( 40, wx.FONTFAMILY_SWISS,
+		font = wx.Font( sz, wx.FONTFAMILY_SWISS,
 			wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD )
 		dc.SetFont( font )
-		txt = "1.02+"
 
 		(tw, th) = dc.GetTextExtent( txt )
 		# but our text is 45 deg rotated.
@@ -236,7 +246,8 @@ class MapView( wx.StaticBitmap ) :
 		del dc
 		return img
 
-	def set_map_preview( self, fname ) :
+	# mc: mc of the replay to draw
+	def set_map_preview( self, fname, mc ) :
 		# clear the image area first.
 		# w, h may change. we generate it on every map change for sure.
 		# Well, I can do that on size change but can't be bothered to do that...
@@ -246,9 +257,11 @@ class MapView( wx.StaticBitmap ) :
 		if not fname :
 			return
 
-		if fname in self.map_previews :
+		# We append mc to fname so that
+		# when we draw 1.02+Rx, we draw again for different ver.
+		if mc+fname in self.map_previews :
 			# use previously loaded image
-			img = self.map_previews[ fname ]
+			img = self.map_previews[ mc+fname ]
 		else :
 			# now we show proper image.
 			# I get "iCCP: known incorrect sRGB profile" for some PNG files.
@@ -259,9 +272,9 @@ class MapView( wx.StaticBitmap ) :
 
 			# if 1.02+, draw 1.02+ on the image
 			if fname.find( "1.02+" ) >= 0 :
-				img = self.draw_102( img )
+				img = self.draw_102( img, mc )
 
-			self.map_previews[ fname ] = img # keep it in memory
+			self.map_previews[ mc+fname ] = img # keep it in memory
 
 		(w, h) = self.calc_best_wh( img )
 		resized = img.Scale( w, h)
@@ -292,7 +305,7 @@ class MapView( wx.StaticBitmap ) :
 			wx.TheClipboard.Close()
 
 		# Load it and show it on the interface.
-		self.set_map_preview( fname )
+		self.set_map_preview( fname, kwr.mc )
 
 
 
@@ -966,7 +979,7 @@ class ReplayViewer( wx.Frame ) :
 		panel = wx.Panel( parent )
 
 		self.player_list = PlayerList( panel, frame=self )
-		self.map_view = MapView( panel, self.MAPS_ZIP, size=(200,200) )
+		self.map_view = MapView( panel, self.MAPS_ZIP, self.args.mcmap, size=(200,200) )
 		self.map_view.SetMinSize( (200, 200) )
 
 		# sizer code
