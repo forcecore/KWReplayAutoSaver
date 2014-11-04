@@ -180,6 +180,7 @@ class KWReplay :
 		self.map_name = ""
 		self.map_id = ""
 		self.map_path = ""
+		self.mc = "" # map CRC
 
 		self.replay_saver = 0
 		self.player_cnt = 0
@@ -418,6 +419,7 @@ class KWReplay :
 			self.map_path = rhs
 		elif lhs == "MC" :
 			lhs = "Map CRC"
+			self.mc = rhs
 		elif lhs == "MS" :
 			lhs = "Map file size"
 		elif lhs == "SD" :
