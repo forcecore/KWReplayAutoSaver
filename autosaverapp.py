@@ -213,7 +213,7 @@ def main() :
 	#		download_maps( MAPF )
 
 	frame = AutoSaverForm( ICONF )
-
+	frame.tray_icon.open_replay_viewer()
 	#frame.Show( show=False ) dont need this, hidden app!
 	app.MainLoop()
 
