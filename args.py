@@ -24,7 +24,7 @@ class Args :
 		self.add_username = True
 		self.add_faction = False
 		self.custom_date_format = None
-		self.mc = dict() # map crc to 1.02+R dict.
+		self.mcmap = dict() # map crc to 1.02+R dict.
 
 		self.cfg = self.load_from_file( fname )
 	
@@ -35,7 +35,7 @@ class Args :
 		print( "add_username:", self.add_username, file=s )
 		print( "add_faction:", self.add_faction, file=s )
 		print( "custom_date_format:", self.custom_date_format, file=s )
-		print( "mc:", self.mc, file=s )
+		print( "mcmap:", self.mcmap, file=s )
 		return s.getvalue()
 
 	def set_var( self, key, val ) :
@@ -102,7 +102,7 @@ class Args :
 		# List default options here.
 		# Currently, it only specifies map CRC settings.
 		# Note that, read_dict() must come before read()
-		defaults = { 'mc': { '11':'R9', 'F':'R8', 'D':'R7', 'B':'R6' } }
+		defaults = { '102mc': { '11':'R9', 'F':'R8', 'D':'R7', 'B':'R6' } }
 		self.cfg.read_dict( defaults )
 
 		self.cfg.read( fname )
@@ -125,9 +125,9 @@ class Args :
 
 	# Loads CRC values for 1.02+ maps
 	def load_mc( self, cfg ) :
-		section = cfg[ 'mc' ]
+		section = cfg[ '102mc' ]
 		for option in section :
-			self.mc[ option ] = section[ option ]
+			self.mcmap[ option ] = section[ option ]
 			#print( option, section[ option ] )
 		return cfg
 	
