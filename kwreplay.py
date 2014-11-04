@@ -36,7 +36,10 @@ class Player :
 	]
 
 	def decode_color( color ) :
-		return Player.color_tab[ color + 1 ]
+		try :
+			return Player.color_tab[ color + 1 ]
+		except IndexError :
+			return "Unknown"
 
 	def decode_ai_personality( pers ) :
 		return Player.ai_personality_tab[ pers + 2 ]
