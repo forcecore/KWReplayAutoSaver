@@ -15,6 +15,20 @@ import datetime
 
 
 
+def read_byte( f ) :
+	data = f.read( 1 )
+	data = struct.unpack( 'b', data )[0]
+	return data
+
+
+
+def read_uint32( f ) :
+	tmp = f.read( 4 )
+	i = struct.unpack( 'I', tmp )[ 0 ]
+	return i
+
+
+
 class Player :
 	faction_tab = [
 		'Rnd', 'Obs', 'PostCommentator',
@@ -161,12 +175,60 @@ class Player :
 
 
 
+class Chunk :
+	def __init__( self ) :
+		self.time_code = 0
+		self.ty = 0
+		self.size = 0
+		self.data = None
+	
+	def print( self ) :
+		print( "time_code:", self.time_code )
+		print( "type:", self.ty )
+		print( "size:", self.size )
+		print( "data:", self.data )
+		print()
+	
+
+
+class ReplayBody :
+	def __init__( self, f ) :
+		self.chunks = []
+		self.loadFromStream( f )
+	
+	def read_chunk( self, f ) :
+		chunk = Chunk()
+		chunk.time_code = read_uint32( f )
+		#print( chunk.time_code )
+		if chunk.time_code == 0x7FFFFFFF :
+			return None
+
+		chunk.ty = read_byte( f )
+		chunk.size = read_uint32( f )
+		chunk.data = f.read( chunk.size )
+		zero = read_uint32( f )
+
+		#chunk.print()
+
+		assert zero == 0
+		return chunk
+	
+	def loadFromStream( self, f ) :
+		while True :
+			chunk = self.read_chunk( f )
+			if chunk == None :
+				break
+			self.chunks.append( chunk )
+
+
+
 class KWReplay :
 	def __init__( self, fname=None, verbose=False ) :
 		# These are Kane's Wrath constants
 		self.MAGIC_SIZE = 18
 		self.U1_SIZE = 33
 		self.U2_SIZE = 19
+		self.FOOTER_MAGIC_SIZE = 18 # for KW/CNC3
 
 		self.verbose = verbose
 
@@ -190,6 +252,13 @@ class KWReplay :
 		self.players = None
 
 		self.timestamp = 0
+
+		self.replay_body = None
+
+		# self.footer_str ... useless
+		self.final_time_code = 0
+		self.footer_data = None
+		self.footer_length = 0
 
 		if fname :
 			self.loadFromFile( fname )
@@ -294,7 +363,7 @@ class KWReplay :
 
 		# Players...
 		#print( "-- players:" )
-		self.player_cnt = self.read_byte( f )
+		self.player_cnt = read_byte( f )
 		#self.players = []
 		for i in range( self.player_cnt + 1 ) : # one extra dummy player exists!
 			# We don't have much info here.
@@ -302,8 +371,8 @@ class KWReplay :
 			self.read_player( f )
 		#print()
 
-		offset = self.read_uint32( f )
-		str_repl_length = self.read_uint32( f ) # always == 8
+		offset = read_uint32( f )
+		str_repl_length = read_uint32( f ) # always == 8
 		repl_magic = self.read_cstr( f, str_repl_length )
 
 		if self.verbose :
@@ -318,7 +387,7 @@ class KWReplay :
 		#print( mod_info )
 		#print()
 
-		self.timestamp = self.read_uint32( f )
+		self.timestamp = read_uint32( f )
 		if self.verbose :
 			print( "-- timestamp" )
 			print( self.decode_timestamp( self.timestamp ) )
@@ -330,7 +399,7 @@ class KWReplay :
 			print( data )
 			print()
 
-		header_len = self.read_uint32( f )
+		header_len = read_uint32( f )
 		header = self.read_cstr( f, header_len )
 		if self.verbose :
 			print( "-- header" )
@@ -338,16 +407,18 @@ class KWReplay :
 			print( header )
 			print()
 
-		self.replay_saver = self.read_byte( f )
+		self.replay_saver = read_byte( f )
 		if self.verbose :
 			print( "-- replay saver" )
 			print( self.replay_saver )
 			print()
 
-		zero3 = self.read_uint32( f )
-		zero4 = self.read_uint32( f )
+		zero3 = read_uint32( f )
+		zero4 = read_uint32( f )
+		#assert zero3 == 0
+		#assert zero4 == 0
 
-		filename_length = self.read_uint32( f )
+		filename_length = read_uint32( f )
 		filename = self.read_tb_str( f, length=filename_length )
 		if self.verbose :
 			print( "-- original replay file name: " )
@@ -363,9 +434,41 @@ class KWReplay :
 			# which is not impossible but a tedious work to fix.
 			print()
 
+
+
+		vermagic_len = read_uint32( f )
+		vermagic = self.read_cstr( f, vermagic_len )
+		if self.verbose :
+			print( "vermagic:", vermagic )
+
+		magic_hash = read_uint32( f )
+
+		zero5 = f.read( 1 ) # well, the second zero4, in eareplay.html
+
+		data = f.read( self.U2_SIZE*4 ) # uint32_t of length U2_SIZE
+
+		# Lets proceed to replay body.
+		self.replay_body = ReplayBody( f )
+
+		# Now at the footer!
+		self.read_footer( f )
+
+		# Now all contents are read, decode 'em.
 		self.decode_header_and_set( header )
 
 		f.close()
+	
+
+
+	def read_footer( self, f ) :
+		footer_str = self.read_cstr( f, self.FOOTER_MAGIC_SIZE )
+		self.final_time_code = read_uint32( f )
+		self.footer_data = f.read()
+		if self.verbose :
+			print( "footer_str:", footer_str )
+			print( "final_time_code:", self.final_time_code )
+			print( "footer_data:", self.footer_data )
+			print()
 	
 
 
@@ -453,11 +556,11 @@ class KWReplay :
 
 
 	def read_player( self, f ) :
-		player_id = self.read_uint32( f )
+		player_id = read_uint32( f )
 		player_name = self.read_tb_str( f )
 
 		if self.hnumber1 == 5 : # internet game has "team info".
-			team = self.read_byte( f )
+			team = read_byte( f )
 		else :
 			team = 0
 	
@@ -473,10 +576,10 @@ class KWReplay :
 		self.write_uint32( f, self.buildminor )
 
 	def set_ver_info( self, f ) :
-		self.vermajor = self.read_uint32( f )
-		self.verminor = self.read_uint32( f )
-		self.buildmajor = self.read_uint32( f )
-		self.buildminor = self.read_uint32( f )
+		self.vermajor = read_uint32( f )
+		self.verminor = read_uint32( f )
+		self.buildmajor = read_uint32( f )
+		self.buildminor = read_uint32( f )
 
 		if self.verbose :
 			print( "-- build info" )
@@ -487,11 +590,6 @@ class KWReplay :
 			print()
 
 
-
-	def read_uint32( self, f ) :
-		tmp = f.read( 4 )
-		i = struct.unpack( 'I', tmp )[ 0 ]
-		return i
 
 	def write_uint32( self, f, val ) :
 		data = struct.pack( 'I', val )
@@ -529,11 +627,6 @@ class KWReplay :
 
 
 
-	def read_byte( self, f ) :
-		data = f.read( 1 )
-		data = struct.unpack( 'b', data )[0]
-		return data
-
 	def write_byte( self, f, data ) :
 		data = struct.pack( 'b', data )
 		f.write( data )
@@ -541,7 +634,7 @@ class KWReplay :
 
 
 	def game_network_info( self, f ) :
-		data = self.read_byte( f )
+		data = read_byte( f )
 
 		if self.verbose :
 			print( "-- game network info" )
