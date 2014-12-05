@@ -213,15 +213,10 @@ class KWReplay :
 
 		self.timestamp = 0
 
-		self.replay_body = None
-
-		# self.footer_str ... useless
-		self.final_time_code = 0
-		self.footer_data = None # I have no idea what this is. I'll keep it as it is.
-		#self.footer_length = 0
-
 		if fname :
 			self.loadFromFile( fname )
+
+
 
 	# Opens a file fname and modifies the description part.
 	# No reading other info, but just does hex editing to desc part only.
@@ -282,7 +277,12 @@ class KWReplay :
 
 	def loadFromFile( self, fname ) :
 		f = open( fname, 'rb' )
+		self.loadFromStream( f )
+		f.close()
 
+
+
+	def loadFromStream( self, f ) :
 		self.magic = self.read_cstr( f, self.MAGIC_SIZE )
 		if self.verbose :
 			print( "-- header" )
@@ -408,20 +408,6 @@ class KWReplay :
 		data = f.read( self.U2_SIZE*4 ) # uint32_t of length U2_SIZE
 
 		self.decode_header_and_set( header )
-
-		f.close()
-	
-
-
-	def read_footer( self, f ) :
-		footer_str = self.read_cstr( f, self.FOOTER_MAGIC_SIZE )
-		self.final_time_code = read_uint32( f )
-		self.footer_data = f.read()
-		if self.verbose :
-			print( "footer_str:", footer_str )
-			print( "final_time_code:", self.final_time_code )
-			print( "footer_data:", self.footer_data )
-			print()
 	
 
 
