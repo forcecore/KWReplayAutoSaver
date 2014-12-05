@@ -94,7 +94,7 @@ CMDLENS = {
 
 CMDNAMES = {
 	0x2D: "not quit game... dunno",
-	0x31: "Place down building?",
+	0x31: "Place down building",
 	0x34: "sell?",
 	0x3D: "attack?",
 	0x61: "30s heartbeat",
@@ -102,6 +102,74 @@ CMDNAMES = {
 	0xF5: "drag selection box and/or select units/structures",
 	0xF8: "left click"
 }
+
+UNITNAMES = {
+	0xA333C6A8: "Nod power plant",
+	0x72407A4F: "Nod barracks",
+	0xB5D275B6: "Nod refinery",
+	0x22943F1D: "Nod factory",
+	0x4E57EF4B: "Nod shredder turret",
+	0xA46AA481: "Nod operations center",
+	0xD5C63044: "Nod air tower",
+	0x989B10EB: "Nod secret shrine",
+	0xE630F233: "Nod tech center",
+	0x8F61720F: "Nod tib chem plant",
+	0x667CDE9C: "Nod crane",
+	0xA78E52C1: "Nod redeemer eng. fac.",
+	0xC04FB821: "Nod laser turret",
+	0x821322AD: "Nod sam turret",
+	0x5593CBD2: "Nod silo",
+	0x9C462965: "Nod voice of Kane",
+	0x0E4953BD: "Nod air support tower",
+	0xE69ACCA8: "Nod obelisk of light",
+	0x638C1170: "Nod temple of Nod",
+
+	0x6BF191EB: "GDI crane",
+	0x239262C6: "GDI power",
+	0x13D568B3: "GDI barracks",
+	0x16A86D68: "GDI ref",
+	0xE1659649: "GDI command center",
+	0x115E0E31: "GDI armory",
+	0x9ABD65AC: "GDI factory",
+	0x8314C7A0: "GDI airfield",
+	0x33B40C6F: "GDI tech center",
+	0x51474781: "GDI rec. hub",
+	0x8136F6F6: "GDI space uplink",
+	0x3EA580F4: "GDI watch tower",
+	0x3554B096: "GDI guardian cannon",
+	0xAD54632A: "GDI AA turret",
+	0x15043F6B: "GDI silo",
+	0xCD0835A6: "GDI sonic emitter",
+	0x9D247A0D: "GDI support airfield",
+	0xF1F5671A: "GDI ion cannon",
+
+	0xE5F7D19B: "ST power plant",
+	0x349BBD51: "ST barracks",
+	0x6F3D0449: "ST watch tower",
+	0x4C2E2C25: "ST ref",
+	0x296BE097: "ST command center",
+	0xA0426848: "ST crane",
+	0xEEAC5E37: "ST airfield",
+	0x40A17081: "ST factory",
+	0x0F640F30: "ST space uplink",
+	0xEABA4298: "ST rec. hub",
+	0x6C309FAB: "ST tech center",
+	0x358EB5E4: "ST guardian cannon",
+	0x5C80259B: "ST AA turret",
+	0x2C6EB27C: "ST silo",
+	0xDF57BC42: "ST support airfield",
+	0x01644BAB: "ST ion cannon",
+}
+
+
+
+def byte2int( byte ) :
+	return struct.unpack( 'B', byte )[0]
+
+
+
+def uint42int( bys ) :
+	return struct.unpack( 'I', bys )[ 0 ]
 
 
 
@@ -136,6 +204,32 @@ class Chunk :
 		f.read( cmdlen-2 )
 		print( "varlen:", cmdlen )
 	
+	def decode_placedown_cmd( self, ncmd, payload ) :
+		building_type = uint42int( payload[ 8:12 ] )
+		substructure_cnt = payload[ 12 ]
+		print( "substructure_cnt:", substructure_cnt )
+		print( "building_type: 0x%08X" % building_type, end="" )
+		if building_type in UNITNAMES :
+			print( ", " + UNITNAMES[ building_type ] )
+		else :
+			print()
+
+		# For normal buildings, we don't get var length.
+		# But for Nod defenses... shredder turrets, laser turrets,
+		# SAM turrets... we get multiple coordinates.
+		# That's why we get var len commands.
+		# The multiplier 18 must be related to coordinates.
+		# 8 for 2*4bytes (=2 floats) of x-y coords.
+		# or... z coord?! dunno?!
+
+		# old code...
+		#unknown = f.read( 10 )
+		#l = read_byte( f )
+		#more_unknown = f.read( 18*l )
+		#cmdlen = 3
+		#more_unknown = f.read( 3 )
+
+	
 	def decode_commands( self, ncmd, payload ) :
 		f = io.BytesIO( payload )
 		print( "COMMANDS payload:", payload )
@@ -160,11 +254,8 @@ class Chunk :
 
 			# more var len commands
 			if cmd_id == 0x31 :
-				unknown = f.read( 10 )
-				l = read_byte( f )
-				more_unknown = f.read( 18*l )
-				cmdlen = 3
-				more_unknown = f.read( 3 )
+				self.decode_placedown_cmd( ncmd, payload )
+				return
 			elif cmd_id == 0x2D :
 				return
 				#unknown = f.read( 5 )
