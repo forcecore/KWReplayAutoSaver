@@ -94,7 +94,7 @@ CMDLENS = {
 }
 
 CMDNAMES = {
-	0x2D: "not quit game... dunno",
+	0x2D: "Unit production?",
 	0x31: "Place down building",
 	0x34: "sell?",
 	0x3D: "attack?",
@@ -125,6 +125,29 @@ UNITNAMES = {
 	0xE69ACCA8: "Nod obelisk of light",
 	0x638C1170: "Nod temple of Nod",
 
+	0xBC36257A: "Nod militant",
+	0x89C45844: "Nod mil. rocket",
+	0xA35D835C: "Nod saboteur",
+	0xBE7C389D: "Nod fanatics",
+	0x0128ABF1: "Nod black hand",
+	0xA6E10008: "Nod shadow team",
+	0xDADFF0A0: "Nod commando",
+	0xBB708BD5: "Nod attack bike",
+	0x6354531D: "Nod buggy",
+	0x02F9131D: "Nod scorpion",
+	0x3A3D109A: "Nod harvester",
+	0x084336F2: "Nod MCV",
+	0xFD8822B1: "Nod flame tank",
+	0x53024F73: "Nod reckoner",
+	0x4F9DF943: "Nod beam cannon",
+	0x0026538D: "Nod stealth tank",
+	0x4D1CFBBD: "Nod spectre",
+	0xBC0BF618: "Nod avatar",
+	0xD8BE0529: "Nod redeemer",
+	0x8B2AAF0B: "Nod venom",
+	0x6AA59D16: "Nod vertigo",
+	0x12CEBD57: "Nod emissary",
+
 	0x6BF191EB: "GDI crane",
 	0x239262C6: "GDI power",
 	0x13D568B3: "GDI barracks",
@@ -144,6 +167,30 @@ UNITNAMES = {
 	0x9D247A0D: "GDI support airfield",
 	0xF1F5671A: "GDI ion cannon",
 
+	0x9096966E: "GDI riflemen",
+	0xEF1252DB: "GDI missile squad",
+	0x64EEDB5A: "GDI engineer",
+	0x42896060: "GDI grenadier",
+	0xBCB36A05: "GDI sniper",
+	0xDCB85878: "GDI commando",
+	0x5D5E5931: "GDI zone trooper",
+	0x921C06CC: "GDI surveyer",
+	0x6FF52808: "GDI putbull",
+	0xE6EAD02C: "GDI predator",
+	0xD01CFD88: "GDI APC",
+	0x0D258354: "GDI harvester",
+	0x52935296: "GDI MCV",
+	0x2144BD64: "GDI sonic emitter tank",
+	0xB54034FF: "GDI sling shot",
+	0xB48BEDD2: "GDI rig",
+	0xBC0A0849: "GDI mammoth tank",
+	0x32488E32: "GDI juggernaught",
+
+	0xB587039F: "GDI orca",
+	0xB3363EA3: "GDI firehawk",
+	0xA8C09808: "GDI hammer head",
+	0x30354418: "GDI MARV",
+
 	0xE5F7D19B: "ST power plant",
 	0x349BBD51: "ST barracks",
 	0x6F3D0449: "ST watch tower",
@@ -160,6 +207,26 @@ UNITNAMES = {
 	0x2C6EB27C: "ST silo",
 	0xDF57BC42: "ST support airfield",
 	0x01644BAB: "ST ion cannon",
+
+	0xCF35F1B4: "ST riflemen",
+	0xEA23C76F: "ST missile",
+	0x80DFF5D9: "ST engineer",
+	0x0FC6A915: "ST grenadier",
+	0x6BD7B8AB: "ST orca",
+	0x1348CA0A: "ST firehawk",
+	0xDADBFA6C: "ST hammer head",
+	0xF3F183DD: "ST surveyer",
+	0x0C6387E0: "ST pitbull",
+	0x3C6842D0: "ST titan",
+	0x7CC56843: "ST MRT",
+	0xF52AEEDF: "ST harvester",
+	0x3E7EE781: "ST MCV",
+	0x4AFAC6E8: "ST slihgshot",
+	0x5C43DE8F: "ST wolverine",
+	0x82D6E5D8: "ST rig",
+	0xC1B5AB13: "ST mammoth tank",
+	0x53167D53: "ST behemoth",
+	0x565BE825: "ST MARV",
 
 	0x0A06D953: "BH crane",
 	0x29BD08C8: "BH power plant",
@@ -178,6 +245,26 @@ UNITNAMES = {
 	0xD78A3ED5: "BH voice of Kane",
 	0xF2C0CB22: "BH obelisk of light",
 	0x8D78D973: "BH temple of Nod",
+
+	0x0FDEF5E7: "BH confessor cabal",
+	0xC3011861: "BH mil. rocket",
+	0x282A11E3: "BH saboteur",
+	0x08E0F9C9: "BH fanatics",
+	0x5F44F92F: "BH black hand",
+	0x4E4C1963: "BH commando",
+	0x297C2132: "BH attack bike",
+	0x79609108: "BH buggy",
+	0xA33F11AF: "BH scorpion",
+	0x21661DFB: "BH harvester",
+	0x5B6D5FE4: "BH MCV",
+	0x1E1AEEBE: "BH flame tank",
+	0x198BF501: "BH reckoner",
+	0x7F5C5CDA: "BH beam cannon",
+	0xF38615BD: "BH mantis",
+	0x7A639A9A: "BH spectre",
+	0x3C7C08FB: "BH purifier",
+	0xCD5A5360: "BH redeemer",
+	0x7D560AEC: "BH emissary",
 
 	0x6753D4CA: "MoK crane",
 	0xBDEA92DF: "MoK power plant",
@@ -200,6 +287,29 @@ UNITNAMES = {
 	0xA12474B6: "MoK temple of Nod",
 	0x75F7ECE5: "MoK support air tower",
 
+	0x23E82509: "MoK venom",
+	0x393E446C: "MoK vertigo",
+	0xD5BE6F6C: "MoK awakened",
+	0x020126F6: "MoK mil. rocket",
+	0xA6A2C1D4: "MoK saboteur",
+	0x6093B1BE: "MoK fanatics",
+	0xE6E24EF7: "MoK tiberium trooper",
+	0x6AEA240A: "MoK shadow team",
+	0xB27DDF67: "MoK enlightened",
+	0x406C94AC: "MoK commando",
+	0x1DAE1C47: "MoK attack bike",
+	0xE3C841B0: "MoK buggy",
+	0x1B44D6AE: "MoK scorpion",
+	0xC3785BFE: "MoK harvester",
+	0xB3847303: "MoK MCV",
+	0x3000821A: "MoK reckoner",
+	0x3D143A57: "MoK beam cannon",
+	0x1025B90B: "MoK stealth tank",
+	0x9A533FC7: "MoK spectre",
+	0xD53D8ABF: "MoK avatar",
+	0x711A18DF: "MoK redeemer",
+	0xBDC39D7D: "MoK emissary",
+
 	0x95A33CC6: "Sc power plant",
 	0x0CA58AEF: "Sc ref.",
 	0x929BD6C1: "Sc barracks",
@@ -217,6 +327,26 @@ UNITNAMES = {
 	0xDFCF8D47: "Sc growth accelerator",
 	0x425D00A4: "Sc storm column",
 	0x384EA3E7: "Sc rift generator",
+
+	0x8E2679EF: "Sc buzzer",
+	0x2B9428D0: "Sc disint.",
+	0xAA95429D: "Sc assimiliator",
+	0x6495F509: "Sc shock trooper",
+	0x32EA13B3: "Sc ravager",
+	0xF601EB6C: "Sc master mind",
+	0x01A54C1B: "Sc gunwalker",
+	0xB8802763: "Sc seeker",
+	0x14E34DE2: "Sc harvester",
+	0xAF991372: "Sc devouer",
+	0x77A0E8A9: "Sc corrupter",
+	0xE2D7C037: "Sc tripod",
+	0x0D396F28: "Sc mechapede",
+	0x1D137C85: "Sc hexapod",
+	0x30E33C29: "Sc drone ship",
+	0xF6E707D5: "Sc storm rider",
+	0x42E35730: "Sc devastator warship",
+	0x14EACF09: "Sc carrier",
+	0x4B93BEEC: "Sc explorer",
 
 	0x3CDBD279: "R17 power plant",
 	0x7E291858: "R17 ref.",
@@ -236,6 +366,21 @@ UNITNAMES = {
 	0x6862DB83: "R17 storm column",
 	0xA503835E: "R17 rift generator",
 
+	# R17 buzzer, disint, assimiliators are shared with Scrin.
+	0x40241AC3: "R17 shock trooper",
+	0x7F2D0EF5: "R17 ravager",
+	0x7FCCFDE3: "R17 shard walker",
+	0xDB2B7D2F: "R17 seeker",
+	0xC37F7227: "R17 harvester",
+	0x416EFDFF: "R17 devouer",
+	0xB187F87A: "R17 corrupter",
+	0x4DD96105: "R17 tripod",
+	0x0F108542: "R17 mechapede",
+	0x146C2890: "R17 hexapod",
+	0xEECD3E80: "R17 drone ship",
+	0x1DF82E16: "R17 storm rider",
+	0xF3E8F14F: "R17 explorer",
+
 	0x1F633A81: "T59 power plant",
 	0xF4E73A51: "T59 ref.",
 	0xAD3B9CCD: "T59 barracks",
@@ -254,6 +399,26 @@ UNITNAMES = {
 	0x62697C2C: "T59 storm column",
 	0x4379775A: "T59 rift generator",
 
+	# buzzer is shared with scrin
+	0x00240FB1: "T59 disint.",
+	0xDFDE337F: "T59 assimiliators",
+	0x4803957E: "T59 shock trooper",
+	0xC46CECA2: "T59 cultist",
+	0x72A9F5D5: "T59 ravager",
+	0x5F8004DF: "T59 progidy",
+	0x51430053: "T59 gunwalker",
+	0x7296891C: "T59 seeker",
+	0x998395BF: "T59 harvester",
+	0x91B5B69D: "T59 corrupter",
+	0x748C4C22: "T59 tripod",
+	0x7F3CEB99: "T59 mechapede",
+	0xA4FD281B: "T59 hexapod",
+	0x292DB333: "T59 drone ship",
+	0xECA08561: "T59 storm rider",
+	0xB15E754C: "T59 devastator warship",
+	0x0F71843C: "T59 carrier",
+	0x8C82B86C: "T59 explorer",
+
 	0xDCD2D288: "ZCM crane",
 	0x34E71EC6: "ZCM power plant",
 	0xBA62677D: "ZCM ref",
@@ -271,6 +436,28 @@ UNITNAMES = {
 	0xEBDE1709: "ZCM rec. hub",
 	0xF459C486: "ZCM AA battery",
 	0x089DA349: "ZCM sonic emitter",
+
+	0x0AC645E3: "ZCM riflemen",
+	0x17A153BA: "ZCM missile",
+	0x009260E6: "ZCM engineer",
+	0xC43CF79F: "ZCM grenadier",
+	0xB724E036: "ZCM sniper",
+	0x2FA51492: "ZCM commando",
+	0x0D213112: "ZCM zone raider",
+	0xFAA68740: "ZCM pitbull",
+	0xFA477EAA: "ZCM predator",
+	0x42D55831: "ZCM apc",
+	0xAD5F0217: "ZCM harvester",
+	0xF714BBD3: "ZCM MCV",
+	0x64BCB106: "ZCM sonic emitter tank",
+	0xC23B3A15: "ZCM sling shot",
+	0x330CEC90: "ZCM rig",
+	0xAE73138F: "ZCM mammoth tank",
+	0x5A6044BC: "ZCM MARV",
+	0x6FCB2318: "ZCM hammerhead",
+	0x12E1C8C8: "ZCM firehawk",
+	0x37F0A5F5: "ZCM orca",
+	0xFD890B01: "ZCM surveyer",
 }
 
 
@@ -315,8 +502,44 @@ class Chunk :
 		cmdlen *= -1
 		f.read( cmdlen-2 )
 		print( "varlen:", cmdlen )
-	
+
+
+
+	def decode_production_cmd( self, ncmd, payload ) :
+		if ncmd != 1 :
+			print( "longer ncmd detected:" )
+			print( ncmd, payload )
+			return
+
+		if len( payload ) == 3 :
+			if payload[ 1 ] == 0x18 :
+				print( "Not production. GG from this player?" )
+				return
+			else :
+				print( "Unknown production_cmd" )
+				return
+
+		if len( payload ) < 15 :
+			print( "short production cmd... what is this?" )
+			print( ncmd, payload )
+			return
+
+		produced_by = uint42int( payload[ 3:7 ] ) # ? I'm not sure about the range but this could be it.
+		produced = uint42int( payload[ 10:14 ] ) # This one is pretty sure
+		cnt = payload[ 19 ]
+		if cnt > 0 :
+			print( "5x ", end="" )
+		if produced in UNITNAMES :
+			print( "Production of %s from 0x%08X" % (UNITNAMES[produced], produced_by) )
+		else :
+			print( "Production of 0x%08X from 0x%08X" % (produced, produced_by) )
+
+
+
 	def decode_placedown_cmd( self, ncmd, payload ) :
+		if ncmd != 1 :
+			print( "longer ncmd detected:" )
+
 		building_type = uint42int( payload[ 8:12 ] )
 		substructure_cnt = payload[ 12 ]
 		print( "substructure_cnt:", substructure_cnt )
@@ -369,6 +592,7 @@ class Chunk :
 				self.decode_placedown_cmd( ncmd, payload )
 				return
 			elif cmd_id == 0x2D :
+				self.decode_production_cmd( ncmd, payload )
 				return
 			elif cmd_id == 0x8A :
 				# dunno if this is fixed or not even.
