@@ -70,6 +70,7 @@ CMDLENS = {
 	0x90: 16,
 	0x91: 10,
 
+	0x00: 0, # some more unknown new command
 	0x28: 0,
 	0x2D: 0,
 	0x31: 0,
@@ -94,7 +95,9 @@ CMDLENS = {
 }
 
 CMDNAMES = {
-	0x2D: "Unit production?",
+	0x2B: "Upgrade",
+	0x2D: "Unit exit production building",
+	0x27: "Sidebar power",
 	0x31: "Place down building",
 	0x34: "sell?",
 	0x3D: "attack?",
@@ -102,6 +105,74 @@ CMDNAMES = {
 	0x8F: "'scroll'",
 	0xF5: "drag selection box and/or select units/structures",
 	0xF8: "left click"
+}
+
+POWERNAMES = {
+	0x4A529800: "Radar scan",
+	0x7CBA6F00: "GDI paratroopers",
+	0x77E6D800: "Orca strike",
+	0xA84A4B00: "Blood hound",
+	0xB1DC2400: "Sharp shooters",
+	0x6C18B300: "Zone trooper pod drop",
+	0x4783C500: "Shock wave artillary",
+	0x73E8D600: "Orbital strike",
+	0xEEF14800: "Sonic strike",
+	0x02FB0C00: "Ion cannon",
+}
+
+UPGRADENAMES = {
+	0x60737ED1: "GDI power plant",
+	0xB44E9A3B: "ST power plant",
+	0xA73AE932: "ZCM power plant",
+	0x30D999CB: "AP ammo",
+	0x252E5A6D: "Sensor pod",
+	0xF244BC18: "Scanner pack",
+	0x259526AE: "Aircraft hard point",
+	0xA88B018A: "Strato fighter",
+	0xDE945A9B: "Composite armor",
+	0x82730C76: "EMP grenade",
+	0x5DBB4B1B: "Power pack",
+	0x6EC57B03: "Mortar",
+	0x81902614: "Railgun",
+	0x39EFD155: "Tungsten",
+	0x7DC1C5B4: "Reactive armor",
+	0xCA8D43C1: "Tib resistant armor",
+	0xE5C2A0EC: "Zorca sensor pod",
+	0x5F9C9069: "Ceramic armor",
+	0x6FB1DF0F: "Zone raider scanner pack",
+
+	0x58B082E5: "Nod power plant",
+	0xE0DD89F8: "BH power plant",
+	0x6C96D5F1: "MoK power plant",
+	0xB28800DF: "Dozer blade",
+	0xD835BA8A: "Quad turrets",
+	0x1A38AADD: "Signature generator (venom)",
+	0x9562430C: "Disruption pod",
+	0x263F7EFB: "Confessor",
+	0x3129F082: "Tiberium infusion",
+	0x7926BE22: "EMP coils",
+	0xF6BAA511: "Laser capacitors",
+	0x7F35210F: "Tiberium warhead missiles",
+	0x062958A2: "Black disciples",
+	0xEEA7CE69: "Purifying flames",
+	0x9E6C330B: "Charged particle beams",
+	0x0B66C4A4: "Cybernetic legs",
+	0x2698DF3C: "Super charged particle beams",
+
+	0x3409F073: "Scrin power plant",
+	0xA98BDFE4: "R17 power plant",
+	0x9E936CEA: "T59 power plant",
+	0x269AF75A: "Attenuated shield",
+	0x023714AD: "Blink pack",
+	0x9B19AB1B: "Plasma disc launcher",
+	0xE5A3374C: "Force shield generator",
+	0x230E8321: "Shard launcher",
+	0x673B860F: "R17 attenuated shield",
+	0x88B36F31: "R17 force shield generator",
+	0x62495112: "Blue shards",
+	0x70427973: "Conversion beam cap.",
+	0xA921E313: "Advanced articulators",
+	0x4FCCDACF: "Traveller engine",
 }
 
 UNITNAMES = {
@@ -472,6 +543,11 @@ def uint42int( bys ) :
 
 
 
+def uint42float( bys ) :
+	return struct.unpack( 'f', bys )[ 0 ]
+
+
+
 class Chunk :
 	def __init__( self ) :
 		self.time_code = 0
@@ -536,6 +612,30 @@ class Chunk :
 
 
 
+	# this skill targets GROUND.
+	def decode_sidebar_power_xy( self, ncmd, payload ) :
+		assert ncmd == 1
+		x = uint42float( payload[ 8:12] ) # actually, these should be float.
+		y = uint42float( payload[ 12:16] )
+		power = uint42int( payload[ 2:6 ] )
+
+		if power in POWERNAMES :
+			print( "Skill use %s at (%f, %f)" % (POWERNAMES[power], x, y) )
+		else :
+			print( "Skill use 0x%08X at (%f, %f)" % (power, x, y) )
+
+
+
+	def decode_upgrade_cmd( self, ncmd, payload ) :
+		assert ncmd == 1
+		upgrade = uint42int( payload[ 3:7] )
+		if upgrade in UPGRADENAMES :
+			print( "Upgrade purchase of %s" % UPGRADENAMES[upgrade] )
+		else :
+			print( "Upgrade purchase of 0x%08X" % upgrade )
+
+
+
 	def decode_placedown_cmd( self, ncmd, payload ) :
 		if ncmd != 1 :
 			print( "longer ncmd detected:" )
@@ -582,14 +682,18 @@ class Chunk :
 
 			cmdlen = CMDLENS[ cmd_id ]
 
-			if cmdlen < 0 :
-				# var len cmds!
-				self.decode_var_len( f, cmdlen )
-				return
-
-			# more var len commands
+			# var len commands
 			if cmd_id == 0x31 :
 				self.decode_placedown_cmd( ncmd, payload )
+				return
+			elif cmd_id == 0x27 :
+				self.decode_sidebar_power_xy( ncmd, payload )
+				return
+			elif cmd_id == 0x28 :
+				self.decode_sidebar_power_target( ncmd, payload )
+				return
+			elif cmd_id == 0x2B :
+				self.decode_upgrade_cmd( ncmd, payload )
 				return
 			elif cmd_id == 0x2D :
 				self.decode_production_cmd( ncmd, payload )
@@ -597,7 +701,7 @@ class Chunk :
 			elif cmd_id == 0x8A :
 				# dunno if this is fixed or not even.
 				return
-			elif cmd_id == 0x28 :
+			elif cmd_id == 0x00 :
 				return
 				#unknown = f.read( 5 )
 				#some_code = read_byte( f )
@@ -609,6 +713,12 @@ class Chunk :
 			else :
 				# fixed len
 				self.decode_fixed_len( f, cmdlen )
+
+			# more var len commands
+			if cmdlen < 0 :
+				# var len cmds!
+				self.decode_var_len( f, cmdlen )
+				return
 
 			terminator = read_byte( f )
 			if terminator != 0xFF :
