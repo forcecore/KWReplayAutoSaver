@@ -23,6 +23,13 @@ def read_byte( f ) :
 
 
 
+def read_float( f ) :
+	data = f.read( 4 )
+	data = struct.unpack( 'f', data )[0]
+	return data
+
+
+
 def read_uint32( f ) :
 	tmp = f.read( 4 )
 	i = struct.unpack( 'I', tmp )[ 0 ]

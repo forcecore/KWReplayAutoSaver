@@ -13,7 +13,7 @@ import io
 import codecs
 import datetime
 import time
-from kwreplay import KWReplay, read_byte, read_uint32, time_code2str
+from kwreplay import KWReplay, read_byte, read_uint32, read_float, time_code2str
 
 CMDLENS = {
 	0x01: -2,
@@ -600,45 +600,77 @@ def print_bytes( bys ) :
 	print()
 
 
-
-class Chunk :
+class Command :
+	verbose = True
 	def __init__( self ) :
-		self.time_code = 0
-		self.ty = 0
-		self.size = 0
-		self.data = None
+		self.cmd_id = 0
+		self.player_id = 0 # dunno if it really is player_id.
+		self.payload = None # raw command
 
-		# decoded data
-		self.time = 0
-		self.paylaod = None
+		# these are dynamically alloced.
+		# self.substructures = []
 
-		# for ty == 1
-		self.ncmd = 0
-
-		# for ty == 2
-		# player number, index in the player list in the plain-text game info
-		self.player_number = 0
-		self.time_code_payload = 0 # another timecode, in the paylaod.
-		self.ty2_payload = None
-	
 	def decode_fixed_len( self, f, cmdlen ) :
 		# that cmdlen includes the terminator and cmd code+0xff Thus, -3.
 		cmdlen -= 3
 		code = f.read( cmdlen )
-		print( "fixed len, code:", code )
+
+		if Command.verbose :
+			print( "fixed len, code:" )
+			print_bytes( code )
+			print()
 	
 	def decode_var_len( self, f, cmdlen ) :
 		cmdlen *= -1
-		f.read( cmdlen-2 )
-		print( "varlen:", cmdlen )
+		code = f.read( cmdlen-2 )
+
+		if Command.verbose :
+			print( "varlen:", cmdlen )
+			print_bytes( code )
+			print()
+	
 
 
+	def decode_command( self, f ) :
+		self.cmd_id = read_byte( f )
+		self.player_id = read_byte( f )
+		cmdlen = CMDLENS[ self.cmd_id ]
 
-	def decode_production_cmd( self, ncmd, payload ) :
-		if ncmd != 1 :
-			print( "longer ncmd detected:" )
-			print( ncmd, payload )
+		# var len commands
+		if self.cmd_id == 0x31 :
+			self.decode_placedown_cmd( f, cmdlen )
+		elif self.cmd_id == 0x26 :
+			self.decode_skill_targetless( f )
+		elif self.cmd_id == 0x27 :
+			self.decode_skill_xy( f )
+		elif self.cmd_id == 0x28 :
+			self.decode_skill_target( f )
+		elif self.cmd_id == 0x2B :
+			self.decode_upgrade_cmd( f )
+		elif self.cmd_id == 0x2D :
+			self.decode_production_cmd( f, cmdlen )
+		elif self.cmd_id == 0x8A :
+			self.decode_skill_2xy( f )
+		elif self.cmd_id == 0x00 :
+			pass
+	
+		if cmdlen > 0 :
+			self.decode_fixed_len( f, cmdlen )
+
+		# more var len commands
+		if cmdlen < 0 :
+			# var len cmds!
+			self.decode_var_len( f, cmdlen )
 			return
+
+
+
+	def decode_production_cmd( self, f, cmdlen ) :
+		print( "0x%02X" % self.cmd_id )
+		print( "cmdlen:", cmdlen )
+		buf = f.read( 23 )
+		print_bytes( buf )
+		return
 
 		if len( payload ) == 3 :
 			if payload[ 1 ] == 0x18 :
@@ -667,8 +699,16 @@ class Chunk :
 
 	# this skill targets GROUND.
 	def decode_skill_xy( self, ncmd, payload ) :
-		assert ncmd == 1
-		x = uint42float( payload[ 8:12] ) # actually, these should be float.
+		print( "0x%02X" % self.cmd_id )
+		print( "cmdlen:", cmdlen )
+		buf = f.read()
+		print_bytes( buf )
+		return
+
+		#assert ncmd == 1
+		if ncmd > 1 :
+			print( "Mult xy target????" )
+		x = uint42float( payload[ 8:12] )
 		y = uint42float( payload[ 12:16] )
 		power = uint42int( payload[ 2:6 ] )
 
@@ -682,10 +722,16 @@ class Chunk :
 	# this skill targets GROUND, with two positions.
 	# Obviously, only wormhole does that.
 	def decode_skill_2xy( self, ncmd, payload ) :
+		print( "0x%02X" % self.cmd_id )
+		print( "cmdlen:", cmdlen )
+		buf = f.read()
+		print_bytes( buf )
+		return
+
 		assert ncmd == 1
-		x1 = uint42float( payload[ 18:22] ) # actually, these should be float.
+		x1 = uint42float( payload[ 18:22] )
 		y1 = uint42float( payload[ 22:26] )
-		x2 = uint42float( payload[ 30:34] ) # actually, these should be float.
+		x2 = uint42float( payload[ 30:34] )
 		y2 = uint42float( payload[ 34:38] )
 		power = uint42int( payload[ 2:6 ] )
 
@@ -703,6 +749,12 @@ class Chunk :
 
 	# this skill targets GROUND.
 	def decode_skill_target( self, ncmd, payload ) :
+		print( "0x%02X" % self.cmd_id )
+		print( "cmdlen:", cmdlen )
+		buf = f.read()
+		print_bytes( buf )
+		return
+
 		assert ncmd == 1
 		power = uint42int( payload[ 2:6 ] )
 		# dunno about target, but it is certain that this is only used on walling
@@ -716,6 +768,12 @@ class Chunk :
 
 
 	def decode_upgrade_cmd( self, ncmd, payload ) :
+		print( "0x%02X" % self.cmd_id )
+		print( "cmdlen:", cmdlen )
+		buf = f.read()
+		print_bytes( buf )
+		return
+
 		assert ncmd == 1
 		upgrade = uint42int( payload[ 3:7] )
 		if upgrade in UPGRADENAMES :
@@ -725,26 +783,38 @@ class Chunk :
 
 
 
-	def decode_placedown_cmd( self, ncmd, payload ) :
-		if ncmd != 1 :
-			print( "longer ncmd detected:" )
+	def decode_placedown_cmd( self, f, cmdlen ) :
+		buf = f.read( 6 ) # dunno what this is.
+		building_type = read_uint32( f )
 
-		building_type = uint42int( payload[ 8:12 ] )
-		substructure_cnt = payload[ 12 ]
-		print( "substructure_cnt:", substructure_cnt )
-		print( "building_type: 0x%08X" % building_type, end="" )
-		if building_type in UNITNAMES :
-			print( ", " + UNITNAMES[ building_type ], end="" )
+		substructure_cnt = read_byte( f )
+		self.substructures = []
 
-		x = uint42float( payload[ 17:21 ] )
-		y = uint42float( payload[ 21:25 ] )
-		orientation = payload[ 30 ] # one byte, it might be.
-		print( " @ %f %f" % (x, y) )
+		if Command.verbose :
+			if building_type in UNITNAMES :
+				print( "building_type: %s" % UNITNAMES[building_type] )
+			else :
+				print( "building_type: 0x%08X" % building_type )
+			print( "substructure_cnt:", substructure_cnt )
 
 		for i in range( substructure_cnt ) :
-			start = 13 + 18*i
-			print( "subcomponent " + str( i ) + ":" )
-			print_bytes( payload[ start:start+18 ] )
+			buf = f.read( 4 )
+			x = read_float( f )
+			y = read_float( f )
+			extra = f.read( 6 )
+
+			if Command.verbose :
+				print( "\tUnknown:", end=" " )
+				print_bytes( buf )
+				print( "\tLocation: %f, %f" % (x, y) )
+				print( "\tUnknown:", end=" " )
+				print_bytes( extra )
+
+		buf = f.read( 3 )
+		if Command.verbose :
+			print( "More unknown tag:", end=" " )
+			print_bytes( buf )
+			print()
 
 		# subcomponent ID, x, y, orientation
 		# I don't know how 18 bytes are made of...
@@ -767,66 +837,46 @@ class Chunk :
 		#cmdlen = 3
 		#more_unknown = f.read( 3 )
 
+
+
+class Chunk :
+	def __init__( self ) :
+		self.time_code = 0
+		self.ty = 0
+		self.size = 0
+		self.data = None
+
+		self.time = 0 # decoded time (str)
+
+		# for ty == 1
+		self.ncmd = 0
+		self.payload = None # undecoded payload
+		self.commands = []
+
+		# for ty == 2
+		# player number, index in the player list in the plain-text game info
+		self.player_number = 0
+		self.time_code_payload = 0 # another timecode, in the payload.
+		self.ty2_payload = None
 	
+	# Currently, I can't decode very well.
+	# I only extract what I can... T.T
 	def decode_commands( self, ncmd, payload ) :
 		f = io.BytesIO( payload )
-		print( "COMMANDS payload:", payload )
+		#print( "COMMANDS payload:", payload )
 
 		for i in range( ncmd ) :
-			cmd_id = read_byte( f )
-			if cmd_id in CMDNAMES :
-				print( "---" )
-				print( CMDNAMES[ cmd_id ] )
-				print( "---" )
-			player_id = read_byte( f )
-			print( "player_id:", player_id )
-			print( "cmd_id: 0x%X" % cmd_id )
-			# resolved the name.
-
-			cmdlen = CMDLENS[ cmd_id ]
-
-			# var len commands
-			if cmd_id == 0x31 :
-				self.decode_placedown_cmd( ncmd, payload )
-				return
-			elif cmd_id == 0x26 :
-				self.decode_skill_targetless( ncmd, payload )
-			elif cmd_id == 0x27 :
-				self.decode_skill_xy( ncmd, payload )
-				return
-			elif cmd_id == 0x28 :
-				self.decode_skill_target( ncmd, payload )
-				return
-			elif cmd_id == 0x2B :
-				self.decode_upgrade_cmd( ncmd, payload )
-				return
-			elif cmd_id == 0x2D :
-				self.decode_production_cmd( ncmd, payload )
-				return
-			elif cmd_id == 0x8A :
-				self.decode_skill_2xy( ncmd, payload )
-				return
-			elif cmd_id == 0x00 :
-				return
-				#unknown = f.read( 5 )
-				#some_code = read_byte( f )
-				#if some_code == 0xFF :
-				#	return # just, terminated.
-				#else :
-				#	buf = f.read( 17 )
-				#	print( buf )
-			else :
-				# fixed len
-				self.decode_fixed_len( f, cmdlen )
-
-			# more var len commands
-			if cmdlen < 0 :
-				# var len cmds!
-				self.decode_var_len( f, cmdlen )
-				return
+			c = Command()
+			self.commands.append( c )
+			c.decode_command( f )
 
 			terminator = read_byte( f )
 			if terminator != 0xFF :
+				print( "Decode error" )
+				print( "ncmd:", ncmd )
+				print( "cmd_id: 0x%02X" % c.cmd_id )
+				print( "Payload:" )
+				print_bytes( payload )
 				print( "TERMINATOR:" )
 				print( terminator )
 				print( f.read() )
@@ -848,6 +898,7 @@ class Chunk :
 				self.ncmd = read_uint32( f )
 				self.payload = f.read()
 				self.decode_commands( self.ncmd, self.payload )
+				assert len( self.commands ) == self.ncmd
 
 		elif self.ty == 2 :
 			f = io.BytesIO( self.data )
@@ -863,6 +914,13 @@ class Chunk :
 		self.decode()
 
 		if self.ty == 1 :
+			if cmd_id in CMDNAMES :
+				print( "---" )
+				print( CMDNAMES[ cmd_id ] )
+				print( "---" )
+			print( "player_id:", player_id )
+			print( "cmd_id: 0x%X" % cmd_id )
+
 			print( "time:", self.time )
 			print( "ncmd:", self.ncmd )
 			print( "payload:" )
@@ -888,6 +946,11 @@ class Chunk :
 			#print( "size:", self.size )
 			#print( "data:", self.data )
 	
+	def print_known( self ) :
+		self.decode()
+		if self.ty == 1 :
+			pass
+	
 
 
 class ReplayBody :
@@ -907,7 +970,7 @@ class ReplayBody :
 		chunk.data = f.read( chunk.size )
 		zero = read_uint32( f )
 
-		chunk.print()
+		#chunk.print()
 
 		assert zero == 0
 		return chunk
@@ -918,6 +981,14 @@ class ReplayBody :
 			if chunk == None :
 				break
 			self.chunks.append( chunk )
+	
+	def print_chunks( self ) :
+		for chunk in self.chunks :
+			chunk.print()
+	
+	def print_known_chunks( self ) :
+		for chunk in self.chunks :
+			chunk.print_known()
 
 
 
@@ -958,7 +1029,8 @@ def main() :
 	fname = "1.KWReplay"
 	if len( sys.argv ) >= 2 :
 		fname = sys.argv[1]
-	kw = KWReplayWithCommands( fname=fname, verbose=False )
+	kw = KWReplayWithCommands( fname=fname, verbose=True )
+	kw.replay_body.print_known_chunks()
 	#kw = KWReplay()
 	#kw.modify_desc( fname, "2.KWReplay", "매치 설명 있음" )
 	#kw.modify_desc_inplace( "2.KWReplay", "show me the money 오예" )
