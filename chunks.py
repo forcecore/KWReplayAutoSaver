@@ -97,7 +97,9 @@ CMDLENS = {
 CMDNAMES = {
 	0x2B: "Upgrade",
 	0x2D: "Unit exit production building",
-	0x27: "Sidebar power",
+	0x26: "Skill (targetless)",
+	0x27: "Skill",
+	0x28: "Skill (with target unit)",
 	0x31: "Place down building",
 	0x34: "sell?",
 	0x3D: "attack?",
@@ -110,14 +112,53 @@ CMDNAMES = {
 POWERNAMES = {
 	0x4A529800: "Radar scan",
 	0x7CBA6F00: "GDI paratroopers",
+	0x8C523500: "ZOCOM paratroopers",
 	0x77E6D800: "Orca strike",
-	0xA84A4B00: "Blood hound",
+	0xA84A4B00: "GDI Blood hound",
+	0x9097F400: "ST blood hound",
+	0xD6F29200: "ZOCOM blood hound",
+	0x6D899600: "Zone raider drop pod",
 	0xB1DC2400: "Sharp shooters",
 	0x6C18B300: "Zone trooper pod drop",
 	0x4783C500: "Shock wave artillary",
 	0x73E8D600: "Orbital strike",
 	0xEEF14800: "Sonic strike",
+	0x49960E00: "Rail gun accelerator",
 	0x02FB0C00: "Ion cannon",
+	0xC0527800: "Sonic wall",
+
+	0xA1819100: "Decoy army",
+	0x7668A300: "Radar jamming",
+	0xC21CA400: "Laser fence",
+	0x34EAD100: "Nod Stealth field",
+	0x7DBB9C00: "MoK Stealth field",
+	0x7CCD5D00: "Mines",
+	0x4256F200: "Redemption",
+	0x7FFE2700: "Catalyst missile",
+	0x7D860D00: "Seed tiberium",
+	0x15293700: "Tib. vapour bomb",
+	0x31031000: "Vein detonation",
+	0xF595A200: "Nuke",
+	0xD1CEE500: "Decoy temple",
+	0xAF82A100: "Magnetic mines",
+	0xFFB20600: "Shadow team",
+	0x45217320: "Power scan",
+
+	0xE37B6800: "Repair drone",
+	0x940B1600: "Overlord's Wrath",
+	0xA9CC4C00: "Buzzer swarm",
+	0xDC9ACC00: "Ichor seed",
+	0xD28EFC00: "Lightning spike",
+	0xEEF15100: "Rift generator",
+	0x8E430200: "Contaminate",
+	0xC6F96000: "Stasis",
+	0x1F467400: "Phase",
+	0x57E75020: "Tib. vib. scan",
+	0x0FA96520: "Tib. vib. scan R-17",
+	0xE1E50B20: "Mothership",
+	0xE930FD00: "Shock pod",
+	0xFD88FC00: "Temporal wormhole",
+	0xA0E6D800: "Wormhole",
 }
 
 UPGRADENAMES = {
@@ -548,6 +589,18 @@ def uint42float( bys ) :
 
 
 
+def print_bytes( bys ) :
+	i = 0
+	for b in bys :
+		print( "%02X " % b, end="" )
+		i += 1
+		if i >= 16 :
+			i = 0
+			print()
+	print()
+
+
+
 class Chunk :
 	def __init__( self ) :
 		self.time_code = 0
@@ -613,7 +666,7 @@ class Chunk :
 
 
 	# this skill targets GROUND.
-	def decode_sidebar_power_xy( self, ncmd, payload ) :
+	def decode_skill_xy( self, ncmd, payload ) :
 		assert ncmd == 1
 		x = uint42float( payload[ 8:12] ) # actually, these should be float.
 		y = uint42float( payload[ 12:16] )
@@ -623,6 +676,42 @@ class Chunk :
 			print( "Skill use %s at (%f, %f)" % (POWERNAMES[power], x, y) )
 		else :
 			print( "Skill use 0x%08X at (%f, %f)" % (power, x, y) )
+
+
+
+	# this skill targets GROUND, with two positions.
+	# Obviously, only wormhole does that.
+	def decode_skill_2xy( self, ncmd, payload ) :
+		assert ncmd == 1
+		x1 = uint42float( payload[ 18:22] ) # actually, these should be float.
+		y1 = uint42float( payload[ 22:26] )
+		x2 = uint42float( payload[ 30:34] ) # actually, these should be float.
+		y2 = uint42float( payload[ 34:38] )
+		power = uint42int( payload[ 2:6 ] )
+
+		if power in POWERNAMES :
+			print( "Skill use %s at (%f, %f)-(%f, %f)" % (POWERNAMES[power], x1, y1, x2, y2) )
+		else :
+			print( "Skill use 0x%08X at (%f, %f)-(%f, %f)" % (power, x1, y1, x2, y2) )
+
+
+
+	def decode_skill_targetless( self, ncmd, payload ) :
+		# currently, codes are the same for them.
+		self.decode_skill_target( ncmd, payload )
+
+
+	# this skill targets GROUND.
+	def decode_skill_target( self, ncmd, payload ) :
+		assert ncmd == 1
+		power = uint42int( payload[ 2:6 ] )
+		# dunno about target, but it is certain that this is only used on walling
+		# structures -_-
+
+		if power in POWERNAMES :
+			print( "Skill use %s" % POWERNAMES[power] )
+		else :
+			print( "Skill use 0x%08X" % power )
 
 
 
@@ -645,9 +734,23 @@ class Chunk :
 		print( "substructure_cnt:", substructure_cnt )
 		print( "building_type: 0x%08X" % building_type, end="" )
 		if building_type in UNITNAMES :
-			print( ", " + UNITNAMES[ building_type ] )
-		else :
-			print()
+			print( ", " + UNITNAMES[ building_type ], end="" )
+
+		x = uint42float( payload[ 17:21 ] )
+		y = uint42float( payload[ 21:25 ] )
+		orientation = payload[ 30 ] # one byte, it might be.
+		print( " @ %f %f" % (x, y) )
+
+		for i in range( substructure_cnt ) :
+			start = 13 + 18*i
+			print( "subcomponent " + str( i ) + ":" )
+			print_bytes( payload[ start:start+18 ] )
+
+		# subcomponent ID, x, y, orientation
+		# I don't know how 18 bytes are made of...
+		# I know x and y. What about the rest of 10 bytes?
+		# there should be building orientation... which shoulbe float, 4 bytes.
+		# or it sould be one byte? 0~255 enough?
 
 		# For normal buildings, we don't get var length.
 		# But for Nod defenses... shredder turrets, laser turrets,
@@ -686,11 +789,13 @@ class Chunk :
 			if cmd_id == 0x31 :
 				self.decode_placedown_cmd( ncmd, payload )
 				return
+			elif cmd_id == 0x26 :
+				self.decode_skill_targetless( ncmd, payload )
 			elif cmd_id == 0x27 :
-				self.decode_sidebar_power_xy( ncmd, payload )
+				self.decode_skill_xy( ncmd, payload )
 				return
 			elif cmd_id == 0x28 :
-				self.decode_sidebar_power_target( ncmd, payload )
+				self.decode_skill_target( ncmd, payload )
 				return
 			elif cmd_id == 0x2B :
 				self.decode_upgrade_cmd( ncmd, payload )
@@ -699,7 +804,7 @@ class Chunk :
 				self.decode_production_cmd( ncmd, payload )
 				return
 			elif cmd_id == 0x8A :
-				# dunno if this is fixed or not even.
+				self.decode_skill_2xy( ncmd, payload )
 				return
 			elif cmd_id == 0x00 :
 				return
