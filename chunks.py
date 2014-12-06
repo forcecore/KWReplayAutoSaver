@@ -619,19 +619,41 @@ class Command :
 			print( "fixed len, code:" )
 			print_bytes( code )
 			print()
-	
-	def decode_var_len( self, f, cmdlen ) :
-		cmdlen *= -1
-		code = f.read( cmdlen-2 )
+
+
+
+	def decode_var_len( self, f, cmdlen, ncmd ) :
+		assert ncmd == 1
+		payload = f.getbuffer() # cursor unaffected buffer, w00t.
 
 		if Command.verbose :
-			print( "varlen:", cmdlen )
-			print_bytes( code )
+			print( "Varlen input:" )
+			print( "Len info @:", cmdlen )
+			print( "Cheat: ", end="" )
+			print_bytes( payload )
+
+		#pos = cmdlen * -1
+		#multiplier = payload[ pos ]
+		#adv = (multiplier>>4)+1 # increment size
+		#print( "adv:", adv )
+		#print( "pos:", pos )
+
+		# seek 0xFF
+		i = 2 # skip cmd id and player id
+		while payload[ i ] != 0xFF :
+			#print( "0x%02X" % payload[ i ] )
+			i += 1
+		print( "read", i-2, "bytes" )
+
+		# remember the input
+		self.payload = f.read( i-2 )
+		if Command.verbose :
+			print( "Read varlen command: ", end="" )
+			print_bytes( self.payload )
 			print()
-	
 
 
-	def decode_command( self, f ) :
+	def decode_command( self, f, ncmd ) :
 		self.cmd_id = read_byte( f )
 		self.player_id = read_byte( f )
 		cmdlen = CMDLENS[ self.cmd_id ]
@@ -660,7 +682,7 @@ class Command :
 		# more var len commands
 		if cmdlen < 0 :
 			# var len cmds!
-			self.decode_var_len( f, cmdlen )
+			self.decode_var_len( f, cmdlen, ncmd )
 			return
 
 
@@ -668,6 +690,7 @@ class Command :
 	def decode_production_cmd( self, f, cmdlen ) :
 		print( "0x%02X" % self.cmd_id )
 		print( "cmdlen:", cmdlen )
+		print()
 		buf = f.read( 23 )
 		print_bytes( buf )
 		return
@@ -868,7 +891,7 @@ class Chunk :
 		for i in range( ncmd ) :
 			c = Command()
 			self.commands.append( c )
-			c.decode_command( f )
+			c.decode_command( f, ncmd )
 
 			terminator = read_byte( f )
 			if terminator != 0xFF :
