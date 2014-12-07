@@ -40,7 +40,7 @@ CMDLENS = {
 	0x27: -34,
 	0x29: 28,
 	0x2B: -11,
-	0x2C: 17,
+	0x2C: 0,
 	0x2E: 22,
 	0x2F: 17,
 	0x30: 17,
@@ -674,14 +674,23 @@ class Command :
 		l = read_byte( f )
 		if l > 0 :
 			s2 = read_tb_str( f, length=l )
-			buf = f.read( 2 ) # terminating zero.
+			#buf = f.read( 2 ) # terminating two bytes of 0.
 			if Command.verbose :
 				print( "s2:", s2 )
-			print( "term0:", buf[0], buf[1] )
+			#print( "term0: %02X %02X" % ( buf[0], buf[1] ) )
 
 		buf = f.read( 5 ) # consume til 0xFF?
 		#print( "what is left:" )
 		#print_bytes( buf )
+
+
+
+	def split_0x2c( self, f ) :
+		dunno = f.read( 5 )
+		l = read_byte( f )
+		for i in range( l ) :
+			f.read( 4 )
+		f.read( 4 ) # consume
 
 
 
@@ -712,6 +721,8 @@ class Command :
 				self.split_production_cmd( f )
 			elif self.cmd_id == 0x28 :
 				self.split_skill_target( f )
+			elif self.cmd_id == 0x2C :
+				self.split_0x2c( f )
 			elif self.cmd_id == 0x8B :
 				self.split_chunk1_uuid( f )
 			else :
@@ -1051,8 +1062,7 @@ class Chunk :
 				print( "cmd_id: 0x%02X" % c.cmd_id )
 				print( "Payload:" )
 				print_bytes( payload )
-				print( "TERMINATOR:" )
-				print( terminator )
+				print( "TERMINATOR: 0x%02X" % terminator )
 				print( f.read() )
 			assert terminator == 0xFF
 
@@ -1136,21 +1146,9 @@ class ReplayBody :
 		print( "read_chunk.size:", chunk.size )
 		print( "chunk.data:" )
 		print_bytes( chunk.data )
-		zero = read_uint32( f )
+		unknown = read_uint32( f ) # mostly 0, but not always.
 
 		chunk.split()
-
-		if zero != 0 :
-			# It seems there exists chunk.ty == 0xFE (!!!!)
-			# chunk.ty == 2 may have non zero "zero", too.
-			# I that case, zero might not be 0.
-			# Although that zero assertion fails, it seems
-			# it is safe to continue as if nothing happened.
-			print( "zero not 0!: 0x%08X" % zero )
-			if chunk.ty == 0x01 :
-				assert zero == 0
-			else :
-				print( "Trying to continue..." )
 		return chunk
 	
 	def loadFromStream( self, f ) :
@@ -1182,7 +1180,7 @@ class KWReplayWithCommands( KWReplay ) :
 		super().__init__( fname=fname, verbose=verbose )
 
 	def read_footer( self, f ) :
-		footer_str = self.read_cstr( f, self.FOOTER_MAGIC_SIZE )
+		footer_str = read_cstr( f, self.FOOTER_MAGIC_SIZE )
 		self.final_time_code = read_uint32( f )
 		self.footer_data = f.read()
 		if self.verbose :
