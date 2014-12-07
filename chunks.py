@@ -13,7 +13,8 @@ import io
 import codecs
 import datetime
 import time
-from kwreplay import KWReplay, read_byte, read_uint32, read_float, time_code2str
+from kwreplay import KWReplay, read_byte, read_uint32, read_float, \
+	read_cstr, time_code2str, read_tb_str
 
 CMDLENS = {
 	0x00: 8, # unknown, as of now. let's guess it is static len.
@@ -654,6 +655,36 @@ class Command :
 
 
 
+	def split_chunk1_uuid( self, f ) :
+		cheat = f.getbuffer()
+		print_bytes( cheat )
+
+		f.read( 1 )
+		l = read_byte( f )
+		s1 = read_cstr( f, l )
+
+		if Command.verbose :
+			print( "chunk thingy:" )
+			print( "0x%02X" % self.cmd_id )
+			print( "cheat:" )
+			print()
+			print( "s1:", s1 )
+
+		f.read( 1 ) # skip
+		l = read_byte( f )
+		if l > 0 :
+			s2 = read_tb_str( f, length=l )
+			buf = f.read( 2 ) # terminating zero.
+			if Command.verbose :
+				print( "s2:", s2 )
+			print( "term0:", buf[0], buf[1] )
+
+		buf = f.read( 5 ) # consume til 0xFF?
+		#print( "what is left:" )
+		#print_bytes( buf )
+
+
+
 	def split_command( self, f, ncmd ) :
 		self.cmd_id = read_byte( f )
 		self.player_id = read_byte( f )
@@ -681,6 +712,8 @@ class Command :
 				self.split_production_cmd( f )
 			elif self.cmd_id == 0x28 :
 				self.split_skill_target( f )
+			elif self.cmd_id == 0x8B :
+				self.split_chunk1_uuid( f )
 			else :
 				print( "Unhandled command:" )
 				print( "0x%02X" % self.cmd_id )
@@ -1092,20 +1125,32 @@ class ReplayBody :
 	def read_chunk( self, f ) :
 		chunk = Chunk()
 		chunk.time_code = read_uint32( f )
-		#print( chunk.time_code )
+		print( "read_chunk.time_code:", chunk.time_code )
 		if chunk.time_code == 0x7FFFFFFF :
 			return None
 
 		chunk.ty = read_byte( f )
 		chunk.size = read_uint32( f )
 		chunk.data = f.read( chunk.size )
+		print( "read_chunk.ty: 0x%02X" % chunk.ty )
+		print( "read_chunk.size:", chunk.size )
 		print( "chunk.data:" )
 		print_bytes( chunk.data )
 		zero = read_uint32( f )
 
 		chunk.split()
 
-		assert zero == 0
+		if zero != 0 :
+			# It seems there exists chunk.ty == 0xFE (!!!!)
+			# chunk.ty == 2 may have non zero "zero", too.
+			# I that case, zero might not be 0.
+			# Although that zero assertion fails, it seems
+			# it is safe to continue as if nothing happened.
+			print( "zero not 0!: 0x%08X" % zero )
+			if chunk.ty == 0x01 :
+				assert zero == 0
+			else :
+				print( "Trying to continue..." )
 		return chunk
 	
 	def loadFromStream( self, f ) :

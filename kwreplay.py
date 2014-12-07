@@ -16,6 +16,31 @@ import time
 
 
 
+def read_cstr( f, length ) :
+	data = f.read( length )
+	#s = struct.unpack( "18s", data )
+	data = data.decode( "utf-8" )
+	return data
+
+
+
+def read_tb_str( f, length=-1 ) :
+	buf = ""
+	while True :
+		l = f.read( 2 )
+		l = struct.unpack( 'H', l )[ 0 ]
+		if length == -1 and l == 0 :
+			break
+		buf += chr( l )
+
+		if length != -1 and len( buf ) == length :
+			break
+
+	#data = buf.decode( "utf-16" )
+	return buf
+
+
+
 def read_byte( f ) :
 	data = f.read( 1 )
 	data = struct.unpack( 'B', data )[0]
@@ -252,7 +277,7 @@ class KWReplay :
 	# in the future...
 	def modify_desc_stream( self, f, g, desc ) :
 		# these are based on loadFromFile function.
-		self.magic = self.read_cstr( f, self.MAGIC_SIZE ) # magic
+		self.magic = read_cstr( f, self.MAGIC_SIZE ) # magic
 		self.write_cstr( g, self.magic ) # write to dest
 
 		self.hnumber1 = self.game_network_info( f ) # skip network info
@@ -261,11 +286,11 @@ class KWReplay :
 		self.set_ver_info( f ) # skip ver info
 		self.write_ver_info( g )
 
-		self.title = self.read_tb_str( f ) # game title
+		self.title = read_tb_str( f ) # game title
 		self.write_tb_str( g, self.title )
 
 		# now here comes the game description
-		old_desc = self.read_tb_str( f )
+		old_desc = read_tb_str( f )
 		self.write_tb_str( g, desc ) # write new description
 
 		# now copy the rest of the stream as is.
@@ -290,7 +315,7 @@ class KWReplay :
 
 
 	def loadFromStream( self, f ) :
-		self.magic = self.read_cstr( f, self.MAGIC_SIZE )
+		self.magic = read_cstr( f, self.MAGIC_SIZE )
 		if self.verbose :
 			print( "-- header" )
 			print( self.magic )
@@ -301,28 +326,28 @@ class KWReplay :
 		self.set_ver_info( f )
 
 		# match title
-		self.title = self.read_tb_str( f )
+		self.title = read_tb_str( f )
 		if self.verbose :
 			print( "-- game title" )
 			print( self.title )
 			print()
 
 		# match description
-		self.desc = self.read_tb_str( f )
+		self.desc = read_tb_str( f )
 		if self.verbose :
 			print( "-- game description" )
 			print( self.desc )
 			print()
 
 		# map name
-		self.map_name = self.read_tb_str( f )
+		self.map_name = read_tb_str( f )
 		if self.verbose :
 			print( "-- map name" )
 			print( self.map_name )
 			print()
 
 		# map ID
-		self.map_id = self.read_tb_str( f )
+		self.map_id = read_tb_str( f )
 		if self.verbose :
 			print( "-- map ID" )
 			print( self.map_id )
@@ -340,7 +365,7 @@ class KWReplay :
 
 		offset = read_uint32( f )
 		str_repl_length = read_uint32( f ) # always == 8
-		repl_magic = self.read_cstr( f, str_repl_length )
+		repl_magic = read_cstr( f, str_repl_length )
 
 		if self.verbose :
 			print( "-- replay magic:" )
@@ -367,7 +392,7 @@ class KWReplay :
 			print()
 
 		header_len = read_uint32( f )
-		header = self.read_cstr( f, header_len )
+		header = read_cstr( f, header_len )
 		if self.verbose :
 			print( "-- header" )
 			print( header_len )
@@ -386,14 +411,14 @@ class KWReplay :
 		#assert zero4 == 0
 
 		filename_length = read_uint32( f )
-		filename = self.read_tb_str( f, length=filename_length )
+		filename = read_tb_str( f, length=filename_length )
 		if self.verbose :
 			print( "-- original replay file name: " )
 			print( filename_length )
 			print( filename )
 			print()
 
-		date_time = self.read_tb_str( f, length=8 )
+		date_time = read_tb_str( f, length=8 )
 		if self.verbose :
 			print( "-- date time" )
 			#print( date_time )
@@ -404,7 +429,7 @@ class KWReplay :
 
 
 		vermagic_len = read_uint32( f )
-		vermagic = self.read_cstr( f, vermagic_len )
+		vermagic = read_cstr( f, vermagic_len )
 		if self.verbose :
 			print( "vermagic:", vermagic )
 
@@ -503,7 +528,7 @@ class KWReplay :
 
 	def read_player( self, f ) :
 		player_id = read_uint32( f )
-		player_name = self.read_tb_str( f )
+		player_name = read_tb_str( f )
 
 		if self.hnumber1 == 5 : # internet game has "team info".
 			team = read_byte( f )
@@ -543,21 +568,6 @@ class KWReplay :
 	
 
 
-	def read_tb_str( self, f, length=-1 ) :
-		buf = ""
-		while True :
-			l = f.read( 2 )
-			l = struct.unpack( 'H', l )[ 0 ]
-			if length == -1 and l == 0 :
-				break
-			buf += chr( l )
-
-			if length != -1 and len( buf ) == length :
-				break
-
-		#data = buf.decode( "utf-16" )
-		return buf
-
 	def write_tb_str( self, f, string, write_len=False ) :
 		if write_len :
 			self.write_uint32( len( string ) )
@@ -596,12 +606,6 @@ class KWReplay :
 
 	def write_game_network_info( self, f, hnumber1 ) :
 		self.write_byte( f, hnumber1 )
-
-	def read_cstr( self, f, length ) :
-		data = f.read( length )
-		#s = struct.unpack( "18s", data )
-		data = data.decode( "utf-8" )
-		return data
 
 	def write_cstr( self, f, data ) :
 		#data = data.encode( "utf-8" )
