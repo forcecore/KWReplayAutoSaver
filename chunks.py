@@ -17,7 +17,7 @@ from kwreplay import KWReplay, read_byte, read_uint32, read_float, \
 	read_cstr, time_code2str, read_tb_str
 
 CMDLENS = {
-	0x00: 8, # unknown, as of now. let's guess it is static len.
+	0x00: 0, # unknown + var len.
 	0x01: -2,
 	0x02: -2,
 	0x03: -2,
@@ -27,10 +27,11 @@ CMDLENS = {
 	0x07: -2,
 	0x08: -2,
 	0x09: -2,
-	0x0A: 3, # unknown...
+	0x0A: 0, # short + no len info... assume 0x00
 	0x0B: -2,
 	0x0C: -2,
 	0x0D: -2,
+	0x0E: 0, # really rare command... short+nolen. assume 0x00
 	0x0F: -2,
 	0x10: -2,
 	0x11: -2,
@@ -46,7 +47,7 @@ CMDLENS = {
 	0x30: 17,
 	0x34: 8,
 	0x35: 12,
-	0x36: 13,
+	0x36: 0,
 	0x3C: 21,
 	0x3E: 16,
 	0x3D: 21,
@@ -89,7 +90,7 @@ CMDLENS = {
 	0xF8: -4,
 	0xF9: -2,
 	0xFA: -2,
-	0xFB: -2,
+	0xFB: 0,
 	0xFC: -2,
 	0xFD: -2,
 	0xFE: -2,
@@ -603,7 +604,9 @@ def print_bytes( bys ) :
 
 
 class Command :
-	verbose = True
+
+	verbose = True     # manually make this True if you want to debug...
+
 	def __init__( self ) :
 		self.cmd_id = 0
 		self.player_id = 0 # dunno if it really is player_id.
@@ -644,6 +647,7 @@ class Command :
 		self.payload = f.read( read_cnt )
 
 		if Command.verbose :
+			print( "cmd_id: 0x%02X" % self.cmd_id )
 			print( "spit_var_len.ncmd:", ncmd )
 			print( "cheat: ", end="" )
 			print_bytes( payload )
@@ -657,13 +661,13 @@ class Command :
 
 	def split_chunk1_uuid( self, f ) :
 		cheat = f.getbuffer()
-		print_bytes( cheat )
 
 		f.read( 1 )
 		l = read_byte( f )
 		s1 = read_cstr( f, l )
 
 		if Command.verbose :
+			print_bytes( cheat )
 			print( "chunk thingy:" )
 			print( "0x%02X" % self.cmd_id )
 			print( "cheat:" )
@@ -685,12 +689,43 @@ class Command :
 
 
 
-	def split_0x2c( self, f ) :
-		dunno = f.read( 5 )
+	def split_var_len2( self, f, cnt_skip, skip_after ) :
+		dunno = f.read( cnt_skip )
 		l = read_byte( f )
 		for i in range( l ) :
 			f.read( 4 )
-		f.read( 4 ) # consume
+		f.read( skip_after ) # consume
+
+	def split_0x2c( self, f ) :
+		self.split_var_len2( f, 5, 4 )
+
+
+
+	def split_0x00( self, f ) :
+		# 00 42 03 6C 1A 00 00 FF (8)
+
+		# 00 2A 33 9F 16 00 00 CC 16 00 00 A6 17 00 00 8A
+		# 17 00 00 FF (20)
+
+		# 00 32 13 63 05 00 00 69 05 00 00 FF (12)
+
+		# 00 22 33 51 08 00 00 9A 07 00 00 85 07 00 00 5F
+		# 07 00 00 FF (20)
+
+		# From what I have observed, there seems to be no length rule.
+		# It's not a null terminated string either.
+		# Lots of periodic 00 00 ... hmm...
+
+		# For now, I'll just seek FF, it seems to be the only
+		# feasible way, as there is no length info.
+
+		buf = f.getbuffer()
+		pos = f.tell()
+		end = pos
+		while buf[ end ] != 0xFF :
+			end += 1
+
+		self.payload = f.read( end-pos )
 
 
 
@@ -714,17 +749,29 @@ class Command :
 			# var len cmds!
 			self.split_var_len( f, cmdlen, ncmd )
 		else :
-			if self.cmd_id == 0x31 :
-				self.split_placedown_cmd( f )
+			if self.cmd_id == 0x00 :
+				self.split_0x00( f )
+			elif self.cmd_id == 0x0A :
+				# I usually get 0x0A 0x?? 0xFF (length=3).
+				# I sometimes get (rarely) 0x0A 0x00 0x00 0xFF
+				self.split_0x00( f ) # same as 0x00, creep until FF.
+			elif self.cmd_id == 0x0E :
+				self.split_0x00( f ) # same as 0x00, creep until FF.
 			elif self.cmd_id == 0x2D :
-				print( "split_cmd.ncmd:", ncmd )
+				#print( "split_cmd.ncmd:", ncmd )
 				self.split_production_cmd( f )
 			elif self.cmd_id == 0x28 :
 				self.split_skill_target( f )
 			elif self.cmd_id == 0x2C :
 				self.split_0x2c( f )
+			elif self.cmd_id == 0x31 :
+				self.split_placedown_cmd( f )
+			elif self.cmd_id == 0x36 :
+				self.split_var_len2( f, 1, 4 )
 			elif self.cmd_id == 0x8B :
 				self.split_chunk1_uuid( f )
+			elif self.cmd_id == 0xFB :
+				assert 0
 			else :
 				print( "Unhandled command:" )
 				print( "0x%02X" % self.cmd_id )
@@ -1135,17 +1182,18 @@ class ReplayBody :
 	def read_chunk( self, f ) :
 		chunk = Chunk()
 		chunk.time_code = read_uint32( f )
-		print( "read_chunk.time_code:", chunk.time_code )
+		#print( "read_chunk.time_code:", chunk.time_code )
 		if chunk.time_code == 0x7FFFFFFF :
 			return None
 
 		chunk.ty = read_byte( f )
 		chunk.size = read_uint32( f )
 		chunk.data = f.read( chunk.size )
-		print( "read_chunk.ty: 0x%02X" % chunk.ty )
-		print( "read_chunk.size:", chunk.size )
-		print( "chunk.data:" )
-		print_bytes( chunk.data )
+		#print( "read_chunk.ty: 0x%02X" % chunk.ty )
+		#print( "read_chunk.size:", chunk.size )
+		#print( "chunk.data:" )
+		#print_bytes( chunk.data )
+		#print()
 		unknown = read_uint32( f ) # mostly 0, but not always.
 
 		chunk.split()
