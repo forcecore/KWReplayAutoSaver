@@ -16,6 +16,7 @@ import time
 from kwreplay import KWReplay, read_byte, read_uint32, read_float, time_code2str
 
 CMDLENS = {
+	0x00: 8, # unknown, as of now. let's guess it is static len.
 	0x01: -2,
 	0x02: -2,
 	0x03: -2,
@@ -25,6 +26,7 @@ CMDLENS = {
 	0x07: -2,
 	0x08: -2,
 	0x09: -2,
+	0x0A: 3, # unknown...
 	0x0B: -2,
 	0x0C: -2,
 	0x0D: -2,
@@ -63,6 +65,7 @@ CMDLENS = {
 	0x7F: 12,
 	0x87: 8,
 	0x89: 8,
+	0x8A: 53, # skill with 2xy designation. (wormhole)
 	0x8C: 45,
 	0x8D: 1049,
 	0x8E: 16,
@@ -70,12 +73,10 @@ CMDLENS = {
 	0x90: 16,
 	0x91: 10,
 
-	0x00: 0, # some more unknown new command
-	0x28: 0,
+	0x28: 0, # target on structure...
 	0x2D: 0,
 	0x31: 0,
 	0x8B: 0,
-	0x8A: 0, # some unknown command, never seen before.
 
 	0x26: -15,
 	0x4C: -2,
@@ -610,122 +611,174 @@ class Command :
 		# these are dynamically alloced.
 		# self.substructures = []
 
-	def decode_fixed_len( self, f, cmdlen ) :
+	def split_fixed_len( self, f, cmdlen ) :
 		# that cmdlen includes the terminator and cmd code+0xff Thus, -3.
 		cmdlen -= 3
-		code = f.read( cmdlen )
+		self.payload = f.read( cmdlen )
 
-		if Command.verbose :
-			print( "fixed len, code:" )
-			print_bytes( code )
-			print()
+		#if Command.verbose :
+		#	print( "fixed len. payload:" )
+		#	print_bytes( self.payload )
+		#	print()
 
 
 
-	def decode_var_len( self, f, cmdlen, ncmd ) :
-		assert ncmd == 1
+	def split_var_len( self, f, cmdlen, ncmd ) :
 		payload = f.getbuffer() # cursor unaffected buffer, w00t.
+		opos = f.tell()
+
+		#if Command.verbose :
+		#	print( "Varlen input:" )
+		#	print( "Len info @:", cmdlen )
+		#	print( "Cheat: ", end="" )
+		#	print_bytes( payload )
+
+		pos = f.tell() - 2 + (-cmdlen)
+
+		while payload[ pos ] != 0xFF and pos < len( payload ) :
+			adv = ( payload[ pos ] >> 4 ) + 1
+			pos += 4*adv + 1
+
+		read_cnt = pos-opos
+		self.payload = f.read( read_cnt )
 
 		if Command.verbose :
-			print( "Varlen input:" )
-			print( "Len info @:", cmdlen )
-			print( "Cheat: ", end="" )
+			print( "spit_var_len.ncmd:", ncmd )
+			print( "cheat: ", end="" )
 			print_bytes( payload )
-
-		#pos = cmdlen * -1
-		#multiplier = payload[ pos ]
-		#adv = (multiplier>>4)+1 # increment size
-		#print( "adv:", adv )
-		#print( "pos:", pos )
-
-		# seek 0xFF
-		i = 2 # skip cmd id and player id
-		while payload[ i ] != 0xFF :
-			#print( "0x%02X" % payload[ i ] )
-			i += 1
-		print( "read", i-2, "bytes" )
-
-		# remember the input
-		self.payload = f.read( i-2 )
-		if Command.verbose :
+			print( "opos ~ pos:", opos, pos )
+			print( "read", read_cnt, "bytes" )
 			print( "Read varlen command: ", end="" )
 			print_bytes( self.payload )
 			print()
 
 
-	def decode_command( self, f, ncmd ) :
+
+	def split_command( self, f, ncmd ) :
 		self.cmd_id = read_byte( f )
 		self.player_id = read_byte( f )
+
+		if not self.cmd_id in CMDLENS :
+			print( "Unknown command:" )
+			print( "0x%02X" % self.cmd_id )
+			print_bytes( f.getbuffer() )
+			print()
+			assert 0
+
 		cmdlen = CMDLENS[ self.cmd_id ]
 
-		# var len commands
-		if self.cmd_id == 0x31 :
-			self.decode_placedown_cmd( f, cmdlen )
-		elif self.cmd_id == 0x26 :
-			self.decode_skill_targetless( f )
-		elif self.cmd_id == 0x27 :
-			self.decode_skill_xy( f )
-		elif self.cmd_id == 0x28 :
-			self.decode_skill_target( f )
-		elif self.cmd_id == 0x2B :
-			self.decode_upgrade_cmd( f )
-		elif self.cmd_id == 0x2D :
-			self.decode_production_cmd( f, cmdlen )
-		elif self.cmd_id == 0x8A :
-			self.decode_skill_2xy( f )
-		elif self.cmd_id == 0x00 :
-			pass
-	
 		if cmdlen > 0 :
-			self.decode_fixed_len( f, cmdlen )
-
+			self.split_fixed_len( f, cmdlen )
 		# more var len commands
-		if cmdlen < 0 :
+		elif cmdlen < 0 :
 			# var len cmds!
-			self.decode_var_len( f, cmdlen, ncmd )
-			return
+			self.split_var_len( f, cmdlen, ncmd )
+		else :
+			if self.cmd_id == 0x31 :
+				self.split_placedown_cmd( f )
+			elif self.cmd_id == 0x2D :
+				print( "split_cmd.ncmd:", ncmd )
+				self.split_production_cmd( f )
+			elif self.cmd_id == 0x28 :
+				self.split_skill_target( f )
+			else :
+				print( "Unhandled command:" )
+				print( "0x%02X" % self.cmd_id )
+				print_bytes( f.getbuffer() )
+				print()
+				assert 0
+
+		# var len commands
+		#if self.cmd_id == 0x31 :
+		#	self.decode_placedown_cmd( f, cmdlen )
+		#elif self.cmd_id == 0x26 :
+		#	self.decode_skill_targetless( f )
+		#elif self.cmd_id == 0x27 :
+		#	self.decode_skill_xy( f )
+		#elif self.cmd_id == 0x28 :
+		#	self.decode_skill_target( f )
+		#elif self.cmd_id == 0x2B :
+		##	self.decode_upgrade_cmd( f )
+		#elif self.cmd_id == 0x2D :
+		#	self.decode_production_cmd( f, cmdlen )
+		#elif self.cmd_id == 0x8A :
+		#	self.decode_skill_2xy( f )
+		#elif self.cmd_id == 0x00 :
+		#	pass
+		#else :
+
+
+
+	def split_production_cmd( self, f ) :
+		# either short or long...
+		# length 8 or length 26, it seems, refering to cnc3reader_impl.cpp.
+
+		cheat = f.getbuffer()
+	
+		if Command.verbose :
+			print( "Production decoding" )
+			print( "0x%02X" % self.cmd_id )
+			print( "cheat:" )
+			print_bytes( cheat )
+			print()
+
+		if cheat[ f.tell() ] == 0xFF :
+			self.payload = None # stub command can happen... omg
+		elif cheat[ f.tell() + 5 ] == 0xFF :
+			self.payload = f.read( 5 )
+		else :
+			self.payload = f.read( 23 )
 
 
 
 	def decode_production_cmd( self, f, cmdlen ) :
-		print( "0x%02X" % self.cmd_id )
-		print( "cmdlen:", cmdlen )
-		print()
-		buf = f.read( 23 )
-		print_bytes( buf )
-		return
+		# either short or long...
+		# length 8 or length 26, it seems, refering to cnc3reader_impl.cpp.
 
-		if len( payload ) == 3 :
+		cheat = f.getbuffer()
+	
+		if Command.verbose :
+			print( "Production decoding" )
+			print( "0x%02X" % self.cmd_id )
+			print( "cmdlen:", cmdlen )
+			print( "cheat:" )
+			print_bytes( cheat )
+			print()
+
+		if cheat[ 7 ] == 0xFF :
+			assert 0
 			if payload[ 1 ] == 0x18 :
 				print( "Not production. GG from this player?" )
 				return
 			else :
 				print( "Unknown production_cmd" )
 				return
-
-		if len( payload ) < 15 :
-			print( "short production cmd... what is this?" )
-			print( ncmd, payload )
-			return
-
-		produced_by = uint42int( payload[ 3:7 ] ) # ? I'm not sure about the range but this could be it.
-		produced = uint42int( payload[ 10:14 ] ) # This one is pretty sure
-		cnt = payload[ 19 ]
-		if cnt > 0 :
-			print( "5x ", end="" )
-		if produced in UNITNAMES :
-			print( "Production of %s from 0x%08X" % (UNITNAMES[produced], produced_by) )
 		else :
-			print( "Production of 0x%08X from 0x%08X" % (produced, produced_by) )
+			produced_by = uint42int( cheat[ 3:7 ] ) # probably.
+			produced = uint42int( cheat[ 10:14 ] ) # This one is pretty sure
+			cnt = cheat[ 19 ]
+			f.read( 23 ) # consume 23 bytes and leave 0xFF behind.
+			# 26 - 3... 3 for (cmdlen, cmdid, 0xFF)
+
+			if Command.verbose :
+				if cnt > 0 :
+					print( "5x ", end="" )
+				if produced in UNITNAMES :
+					print( "Production of %s from 0x%08X" % (UNITNAMES[produced], produced_by) )
+				else :
+					print( "Production of 0x%08X from 0x%08X" % (produced, produced_by) )
+				print()
 
 
 
 	# this skill targets GROUND.
 	def decode_skill_xy( self, ncmd, payload ) :
+		print( "decode_skill_xy" )
 		print( "0x%02X" % self.cmd_id )
 		print( "cmdlen:", cmdlen )
 		buf = f.read()
 		print_bytes( buf )
+		print()
 		return
 
 		#assert ncmd == 1
@@ -745,10 +798,12 @@ class Command :
 	# this skill targets GROUND, with two positions.
 	# Obviously, only wormhole does that.
 	def decode_skill_2xy( self, ncmd, payload ) :
+		print( "decode_skill_2xy" )
 		print( "0x%02X" % self.cmd_id )
 		print( "cmdlen:", cmdlen )
 		buf = f.read()
 		print_bytes( buf )
+		print()
 		return
 
 		assert ncmd == 1
@@ -765,17 +820,41 @@ class Command :
 
 
 
-	def decode_skill_targetless( self, ncmd, payload ) :
+	def decode_skill_targetless( self, f ) :
+		print( "decode_skill_targetless -> using decode_skill_target" )
 		# currently, codes are the same for them.
-		self.decode_skill_target( ncmd, payload )
+		self.decode_skill_target( f )
+
+
+
+	# this skill targets one exact unit.
+	# sonic/laser fence that is.
+	def split_skill_target( self, f ) :
+		buf = f.getbuffer()
+		cnt = buf[ f.tell() + 15 ]
+		end = f.tell() + 4*(cnt+1) + 30
+		self.payload = f.read( end - f.tell() - 1 )
+
+		if Command.verbose :
+			print( "split_skill_target" )
+			print( "0x%02X" % self.cmd_id )
+			print( "cheat: ", end="" )
+			print_bytes( buf )
+			print( "end:", end )
+			print( "payload:", end="" )
+			print_bytes( self.payload )
+			print()
+
 
 
 	# this skill targets GROUND.
-	def decode_skill_target( self, ncmd, payload ) :
+	def decode_skill_target( self, f ) :
+		print( "decode_skill_target" )
 		print( "0x%02X" % self.cmd_id )
 		print( "cmdlen:", cmdlen )
 		buf = f.read()
 		print_bytes( buf )
+		print()
 		return
 
 		assert ncmd == 1
@@ -791,10 +870,12 @@ class Command :
 
 
 	def decode_upgrade_cmd( self, ncmd, payload ) :
+		print( "decode_upgrade_cmd" )
 		print( "0x%02X" % self.cmd_id )
 		print( "cmdlen:", cmdlen )
 		buf = f.read()
 		print_bytes( buf )
+		print()
 		return
 
 		assert ncmd == 1
@@ -803,6 +884,20 @@ class Command :
 			print( "Upgrade purchase of %s" % UPGRADENAMES[upgrade] )
 		else :
 			print( "Upgrade purchase of 0x%08X" % upgrade )
+	
+
+
+	def split_placedown_cmd( self, f ) :
+		payload = io.BytesIO()
+		buf = f.read( 10 ) # dunno what this is.
+		payload.write( buf )
+		substructure_cnt = f.read( 1 )
+		payload.write( substructure_cnt )
+		substructure_cnt = byte2int( substructure_cnt )
+		payload.write( f.read( 18 * substructure_cnt ) )
+		payload.write( f.read( 3 ) ) # more unknown stuff
+
+		self.payload = payload.getbuffer()
 
 
 
@@ -882,18 +977,41 @@ class Chunk :
 		self.time_code_payload = 0 # another timecode, in the payload.
 		self.ty2_payload = None
 	
+	def split( self ) :
+		if self.ty != 1 :
+			# I only care about game affecting stuff.
+			return
+
+		f = io.BytesIO( self.data )
+		one = read_byte( f )
+		assert one == 1
+		if self.data[ -1 ] != 0xFF :
+			if Command.verbose :
+				print( "Some unknown command format:" )
+				print( "data:" )
+				print_bytes( self.data )
+				print()
+		else :
+			self.ncmd = read_uint32( f )
+			self.payload = f.read()
+			self.split_commands( self.ncmd, self.payload )
+			assert len( self.commands ) == self.ncmd
+
+
+
 	# Currently, I can't decode very well.
 	# I only extract what I can... T.T
-	def decode_commands( self, ncmd, payload ) :
+	def split_commands( self, ncmd, payload ) :
 		f = io.BytesIO( payload )
 		#print( "COMMANDS payload:", payload )
 
 		for i in range( ncmd ) :
 			c = Command()
 			self.commands.append( c )
-			c.decode_command( f, ncmd )
+			c.split_command( f, ncmd )
 
 			terminator = read_byte( f )
+			#terminator = 0xFF
 			if terminator != 0xFF :
 				print( "Decode error" )
 				print( "ncmd:", ncmd )
@@ -907,31 +1025,21 @@ class Chunk :
 
 
 	
-	def decode( self ) :
-		self.time = time_code2str( self.time_code/15 )
-		if self.ty == 1 :
-			f = io.BytesIO( self.data )
-			one = read_byte( f )
-			assert one == 1
-			if self.data[ -1 ] != 0xFF :
-				print( "Some unknown command format:" )
-				print( "data:", self.data )
-				self.payload = f.read()
-			else :
-				self.ncmd = read_uint32( f )
-				self.payload = f.read()
-				self.decode_commands( self.ncmd, self.payload )
-				assert len( self.commands ) == self.ncmd
+	def decode( self ) :	
+		if self.ty != 1 :
+			return
 
-		elif self.ty == 2 :
-			f = io.BytesIO( self.data )
-			# This is camera data or heart beat data.
-			# I'll not try too hard to decode this.
-			one = read_byte( f ) # should be ==1
-			zero = read_byte( f ) # should be ==0
-			self.player_number = read_uint32( f ) # uint32
-			self.time_code_payload = read_uint32( f ) # time code...
-			self.ty2_payload = f.read() # the payload
+		self.time = time_code2str( self.time_code/15 )
+		# I don't care about these!!
+		#elif self.ty == 2 :
+		#	f = io.BytesIO( self.data )
+		#	# This is camera data or heart beat data.
+		#	# I'll not try too hard to decode this.
+		#	one = read_byte( f ) # should be ==1
+		#	zero = read_byte( f ) # should be ==0
+		#	self.player_number = read_uint32( f ) # uint32
+		#	self.time_code_payload = read_uint32( f ) # time code...
+		#	self.ty2_payload = f.read() # the payload
 	
 	def print( self ) :
 		self.decode()
@@ -991,9 +1099,11 @@ class ReplayBody :
 		chunk.ty = read_byte( f )
 		chunk.size = read_uint32( f )
 		chunk.data = f.read( chunk.size )
+		print( "chunk.data:" )
+		print_bytes( chunk.data )
 		zero = read_uint32( f )
 
-		#chunk.print()
+		chunk.split()
 
 		assert zero == 0
 		return chunk
@@ -1035,7 +1145,7 @@ class KWReplayWithCommands( KWReplay ) :
 			print( "final_time_code:", self.final_time_code )
 			print( "footer_data:", self.footer_data )
 			print()
-
+	
 	def loadFromFile( self, fname ) :
 		f = open( fname, 'rb' )
 		self.loadFromStream( f )
@@ -1053,7 +1163,7 @@ def main() :
 	if len( sys.argv ) >= 2 :
 		fname = sys.argv[1]
 	kw = KWReplayWithCommands( fname=fname, verbose=True )
-	kw.replay_body.print_known_chunks()
+	#kw.replay_body.print_known_chunks()
 	#kw = KWReplay()
 	#kw.modify_desc( fname, "2.KWReplay", "매치 설명 있음" )
 	#kw.modify_desc_inplace( "2.KWReplay", "show me the money 오예" )
