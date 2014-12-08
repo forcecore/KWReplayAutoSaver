@@ -597,14 +597,19 @@ def uint42float( bys ) :
 
 
 
-def print_bytes( bys ) :
+def print_bytes( bys, break16=True ) :
+	if not bys :
+		print( "None" )
+		return
+
 	i = 0
 	for b in bys :
 		print( "%02X " % b, end="" )
 		i += 1
-		if i >= 16 :
-			i = 0
-			print()
+		if break16 :
+			if i >= 16 :
+				i = 0
+				print()
 	print()
 
 
@@ -697,11 +702,16 @@ class Command :
 
 
 	def split_var_len2( self, f, cnt_skip, skip_after ) :
+		payload = io.BytesIO()
+
 		dunno = f.read( cnt_skip )
 		l = read_byte( f )
-		for i in range( l ) :
-			f.read( 4 )
-		f.read( skip_after ) # consume
+		payload.write( dunno )
+		payload.write( l )
+		
+		payload.write( f.read( l*4 ) )
+		payload.write( f.read( skip_after ) ) # consume
+		self.payload = payload.getvalue()
 
 	def split_0x2c( self, f ) :
 		self.split_var_len2( f, 5, 4 )
@@ -802,6 +812,7 @@ class Command :
 			print()
 
 		if cheat[ f.tell() ] == 0xFF :
+			# 0x2D command with NOTHING in int.
 			self.payload = None # stub command can happen... omg
 		elif cheat[ f.tell() + 5 ] == 0xFF :
 			self.payload = f.read( 5 )
@@ -820,7 +831,7 @@ class Command :
 		data = self.payload
 
 		if not data :
-			pass
+			print( "GG?" )
 		elif len( data ) == 5 :
 			print( "GG?" )
 		else :
@@ -829,13 +840,13 @@ class Command :
 			cnt = data[ 17 ]
 
 			if cnt > 0 :
-				print( "(one of) 5x ", end="" )
+				print( "5x ", end="" )
 			if produced in UNITNAMES :
 				#print( "Production of %s from 0x%08X" % (UNITNAMES[produced], produced_by) )
-				print( "%s" % (UNITNAMES[produced]) )
+				print( "queue %s" % (UNITNAMES[produced]) )
 			else :
 				#print( "Production of 0x%08X from 0x%08X" % (produced, produced_by) )
-				print( "0x%08X" % produced )
+				print( "queue 0x%08X" % produced )
 			#print()
 
 
@@ -857,7 +868,7 @@ class Command :
 			print( "%s" % POWERNAMES[power] )
 		else :
 			#print( "Skill use 0x%08X at (%f, %f)" % (power, x, y) )
-			print( "0x%08X" % (power) )
+			print( "skill 0x%08X" % (power) )
 
 
 
@@ -880,7 +891,7 @@ class Command :
 			#print( "Skill use %s at (%f, %f)-(%f, %f)" % (POWERNAMES[power], x1, y1, x2, y2) )
 			print( "%s" % (POWERNAMES[power]) )
 		else :
-			print( "0x%08X" % power )
+			print( "skill 0x%08X" % power )
 
 
 
@@ -900,7 +911,7 @@ class Command :
 			print( "%s" % POWERNAMES[power] )
 		else :
 			#print( "Skill use 0x%08X" % power )
-			print( "0x%08X" % power )
+			print( "skill 0x%08X" % power )
 
 
 
@@ -941,7 +952,7 @@ class Command :
 			print( "%s" % POWERNAMES[power] )
 		else :
 			#print( "Skill use 0x%08X" % power )
-			print( "0x%08X" % power )
+			print( "skill 0x%08X" % power )
 
 
 
@@ -958,7 +969,7 @@ class Command :
 			print( "%s" % UPGRADENAMES[upgrade] )
 		else :
 			#print( "Upgrade purchase of 0x%08X" % upgrade )
-			print( "0x%08X" % upgrade )
+			print( "upgrade 0x%08X" % upgrade )
 	
 
 
@@ -999,7 +1010,7 @@ class Command :
 			print( "%s" % UNITNAMES[building_type] )
 		else :
 			#print( "building_type: 0x%08X" % building_type )
-			print( "0x%08X" % building_type )
+			print( "place 0x%08X" % building_type )
 		#print( "\tLocation: %f, %f" % (x, y) )
 		#print( "substructure_cnt:", substructure_cnt )
 
@@ -1165,6 +1176,14 @@ class Chunk :
 				return True
 		return False
 	
+	def dump_commands( self ) :
+		# print( "Time\tPlayer\tcmd_id\tparams" )
+		for cmd in self.commands :
+			print( cmd.time_code, end="\t" )
+			print( cmd.player_id, end="\t" )
+			print( "0x%02X" % cmd.cmd_id, end="\t" )
+			print_bytes( cmd.payload, break16=False )
+	
 	def print_known( self ) :
 		if self.ty == 1 :
 			if not self.has_known() :
@@ -1225,6 +1244,11 @@ class ReplayBody :
 		print( "Time\tPlayer\tAction" )
 		for chunk in self.chunks :
 			chunk.print_known()
+	
+	def dump_commands( self ) :
+		print( "Time\tPlayer\tcmd_id\tparams" )
+		for chunk in self.chunks :
+			chunk.dump_commands()
 
 
 
@@ -1255,7 +1279,8 @@ class KWReplayWithCommands( KWReplay ) :
 		self.replay_body = ReplayBody( f )
 		self.read_footer( f )
 
-		self.replay_body.print_known()
+		#self.replay_body.print_known()
+		self.replay_body.dump_commands()
 
 		f.close()
 
