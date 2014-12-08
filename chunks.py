@@ -90,7 +90,7 @@ CMDLENS = {
 	0xF8: -4,
 	0xF9: -2,
 	0xFA: -2,
-	0xFB: 0,
+	0xFB: -2,
 	0xFC: -2,
 	0xFD: -2,
 	0xFE: -2,
@@ -620,10 +620,10 @@ class Command :
 		cmdlen -= 3
 		self.payload = f.read( cmdlen )
 
-		#if Command.verbose :
-		#	print( "fixed len. payload:" )
-		#	print_bytes( self.payload )
-		#	print()
+		if Command.verbose :
+			print( "fixed len. payload:" )
+			print_bytes( self.payload )
+			print()
 
 
 
@@ -770,8 +770,11 @@ class Command :
 				self.split_var_len2( f, 1, 4 )
 			elif self.cmd_id == 0x8B :
 				self.split_chunk1_uuid( f )
-			elif self.cmd_id == 0xFB :
-				assert 0
+			#elif self.cmd_id == 0xFB :
+			#	print( "0xFB command:" )
+			#	print( "0x%02X" % self.cmd_id )
+			#	print_bytes( f.getbuffer() )
+			#	print()
 			else :
 				print( "Unhandled command:" )
 				print( "0x%02X" % self.cmd_id )
@@ -1182,20 +1185,23 @@ class ReplayBody :
 	def read_chunk( self, f ) :
 		chunk = Chunk()
 		chunk.time_code = read_uint32( f )
-		#print( "read_chunk.time_code:", chunk.time_code )
 		if chunk.time_code == 0x7FFFFFFF :
 			return None
 
 		chunk.ty = read_byte( f )
 		chunk.size = read_uint32( f )
 		chunk.data = f.read( chunk.size )
+		unknown = read_uint32( f ) # mostly 0, but not always.
+
+		# chunk debugging stuff:
+		#print( "chunk pos: 0x%08X" % f.tell() )
+		#print( "read_chunk.time_code: 0x%08X" % chunk.time_code )
 		#print( "read_chunk.ty: 0x%02X" % chunk.ty )
 		#print( "read_chunk.size:", chunk.size )
 		#print( "chunk.data:" )
 		#print_bytes( chunk.data )
 		#print()
-		unknown = read_uint32( f ) # mostly 0, but not always.
-
+	
 		chunk.split()
 		return chunk
 	
