@@ -707,7 +707,7 @@ class Command :
 		dunno = f.read( cnt_skip )
 		l = read_byte( f )
 		payload.write( dunno )
-		payload.write( l )
+		payload.write( struct.pack( "B", l ) )
 		
 		payload.write( f.read( l*4 ) )
 		payload.write( f.read( skip_after ) ) # consume
@@ -1281,8 +1281,8 @@ class KWReplayWithCommands( KWReplay ) :
 		self.replay_body = ReplayBody( f )
 		self.read_footer( f )
 
-		#self.replay_body.print_known()
-		self.replay_body.dump_commands()
+		self.replay_body.print_known()
+		#self.replay_body.dump_commands()
 
 		f.close()
 
