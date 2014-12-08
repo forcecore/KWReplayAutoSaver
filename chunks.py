@@ -1241,11 +1241,13 @@ class ReplayBody :
 			self.chunks.append( chunk )
 	
 	def print_known( self ) :
+		print( "Dump of known build order related commands" )
 		print( "Time\tPlayer\tAction" )
 		for chunk in self.chunks :
 			chunk.print_known()
 	
 	def dump_commands( self ) :
+		print( "Dump of commands" )
 		print( "Time\tPlayer\tcmd_id\tparams" )
 		for chunk in self.chunks :
 			chunk.dump_commands()
