@@ -578,6 +578,10 @@ UNITNAMES = {
 
 
 
+KNOWN_COMMANDS = [ 0x31, 0x26, 0x27, 0x28, 0x2B, 0x2D, 0x8A, 0x34 ]
+
+
+
 def byte2int( byte ) :
 	return struct.unpack( 'B', byte )[0]
 
@@ -604,12 +608,14 @@ def print_bytes( bys ) :
 	print()
 
 
+
 class Command :
 
 	verbose = False     # manually make this True if you want to debug...
 
 	def __init__( self ) :
 		self.cmd_id = 0
+		self.time_code = 0
 		self.player_id = 0 # dunno if it really is player_id.
 		self.payload = None # raw command
 
@@ -816,19 +822,21 @@ class Command :
 		if not data :
 			pass
 		elif len( data ) == 5 :
-			print( "Not production. GG from this player?" )
+			print( "GG?" )
 		else :
 			produced_by = uint42int( data[ 1:5 ] ) # probably.
 			produced = uint42int( data[ 8:12 ] ) # This one is pretty sure
 			cnt = data[ 17 ]
 
 			if cnt > 0 :
-				print( "5x ", end="" )
+				print( "(one of) 5x ", end="" )
 			if produced in UNITNAMES :
-				print( "Production of %s from 0x%08X" % (UNITNAMES[produced], produced_by) )
+				#print( "Production of %s from 0x%08X" % (UNITNAMES[produced], produced_by) )
+				print( "%s" % (UNITNAMES[produced]) )
 			else :
-				print( "Production of 0x%08X from 0x%08X" % (produced, produced_by) )
-			print()
+				#print( "Production of 0x%08X from 0x%08X" % (produced, produced_by) )
+				print( "0x%08X" % produced )
+			#print()
 
 
 
@@ -845,9 +853,11 @@ class Command :
 		power = uint42int( data[ 0:4 ] )
 
 		if power in POWERNAMES :
-			print( "Skill use %s at (%f, %f)" % (POWERNAMES[power], x, y) )
+			#print( "Skill use %s at (%f, %f)" % (POWERNAMES[power], x, y) )
+			print( "%s" % POWERNAMES[power] )
 		else :
-			print( "Skill use 0x%08X at (%f, %f)" % (power, x, y) )
+			#print( "Skill use 0x%08X at (%f, %f)" % (power, x, y) )
+			print( "0x%08X" % (power) )
 
 
 
@@ -867,9 +877,10 @@ class Command :
 		power = uint42int( data[ 0:4 ] )
 
 		if power in POWERNAMES :
-			print( "Skill use %s at (%f, %f)-(%f, %f)" % (POWERNAMES[power], x1, y1, x2, y2) )
+			#print( "Skill use %s at (%f, %f)-(%f, %f)" % (POWERNAMES[power], x1, y1, x2, y2) )
+			print( "%s" % (POWERNAMES[power]) )
 		else :
-			print( "Skill use 0x%08X at (%f, %f)-(%f, %f)" % (power, x1, y1, x2, y2) )
+			print( "0x%08X" % power )
 
 
 
@@ -885,9 +896,11 @@ class Command :
 		# structures -_-
 
 		if power in POWERNAMES :
-			print( "Skill use %s" % POWERNAMES[power] )
+			#print( "Skill use %s" % POWERNAMES[power] )
+			print( "%s" % POWERNAMES[power] )
 		else :
-			print( "Skill use 0x%08X" % power )
+			#print( "Skill use 0x%08X" % power )
+			print( "0x%08X" % power )
 
 
 
@@ -924,9 +937,11 @@ class Command :
 		# structures -_-
 
 		if power in POWERNAMES :
-			print( "Skill use %s" % POWERNAMES[power] )
+			#print( "Skill use %s" % POWERNAMES[power] )
+			print( "%s" % POWERNAMES[power] )
 		else :
-			print( "Skill use 0x%08X" % power )
+			#print( "Skill use 0x%08X" % power )
+			print( "0x%08X" % power )
 
 
 
@@ -939,9 +954,11 @@ class Command :
 
 		upgrade = uint42int( data[1:5] )
 		if upgrade in UPGRADENAMES :
-			print( "Upgrade purchase of %s" % UPGRADENAMES[upgrade] )
+			#print( "Upgrade purchase of %s" % UPGRADENAMES[upgrade] )
+			print( "%s" % UPGRADENAMES[upgrade] )
 		else :
-			print( "Upgrade purchase of 0x%08X" % upgrade )
+			#print( "Upgrade purchase of 0x%08X" % upgrade )
+			print( "0x%08X" % upgrade )
 	
 
 
@@ -978,10 +995,12 @@ class Command :
 			pos += 6
 
 		if building_type in UNITNAMES :
-			print( "building_type: %s" % UNITNAMES[building_type] )
+			#print( "building_type: %s" % UNITNAMES[building_type] )
+			print( "%s" % UNITNAMES[building_type] )
 		else :
-			print( "building_type: 0x%08X" % building_type )
-		print( "\tLocation: %f, %f" % (x, y) )
+			#print( "building_type: 0x%08X" % building_type )
+			print( "0x%08X" % building_type )
+		#print( "\tLocation: %f, %f" % (x, y) )
 		#print( "substructure_cnt:", substructure_cnt )
 
 		# subcomponent ID, x, y, orientation
@@ -1008,7 +1027,12 @@ class Command :
 
 
 	def print_known( self ) :
-		print( "Player" + str( self.player_id ) + ":" )
+		if not self.cmd_id in KNOWN_COMMANDS :
+			return
+
+		time = time_code2str( self.time_code/15 )
+		print( time, end="\t" )
+		print( "P" + str( self.player_id ), end="\t" )
 		if self.cmd_id == 0x31 :
 			self.decode_placedown_cmd()
 		elif self.cmd_id == 0x26 :
@@ -1023,7 +1047,9 @@ class Command :
 			self.decode_production_cmd()
 		elif self.cmd_id == 0x8A :
 			self.decode_skill_2xy()
-		print()
+		elif self.cmd_id == 0x34 :
+			print( "sell" )
+		#print()
 
 
 
@@ -1066,6 +1092,9 @@ class Chunk :
 			self.payload = f.read()
 			self.split_commands( self.ncmd, self.payload )
 			assert len( self.commands ) == self.ncmd
+
+			for cmd in self.commands :
+				cmd.time_code = self.time_code
 
 
 
@@ -1132,7 +1161,7 @@ class Chunk :
 	
 	def has_known( self ) :
 		for cmd in self.commands :
-			if cmd.cmd_id in [ 0x31, 0x26, 0x27, 0x28, 0x2B, 0x2D, 0x8A ] :
+			if cmd.cmd_id in KNOWN_COMMANDS :
 				return True
 		return False
 	
@@ -1140,9 +1169,6 @@ class Chunk :
 		if self.ty == 1 :
 			if not self.has_known() :
 				return
-
-			time = time_code2str( self.time_code/15 )
-			print( "time:", time )
 
 			for cmd in self.commands :
 				cmd.print_known()
@@ -1196,6 +1222,7 @@ class ReplayBody :
 			self.chunks.append( chunk )
 	
 	def print_known( self ) :
+		print( "Time\tPlayer\tAction" )
 		for chunk in self.chunks :
 			chunk.print_known()
 
