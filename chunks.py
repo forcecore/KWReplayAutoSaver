@@ -812,8 +812,10 @@ class Command :
 			print( "Production decoding" )
 			print_bytes( self.payload )
 		data = self.payload
-	
-		if len( data ) == 5 :
+
+		if not data :
+			pass
+		elif len( data ) == 5 :
 			print( "Not production. GG from this player?" )
 		else :
 			produced_by = uint42int( data[ 1:5 ] ) # probably.
