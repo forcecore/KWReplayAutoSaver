@@ -99,15 +99,17 @@ CMDLENS = {
 
 CMDNAMES = {
 	0x2B: "Upgrade",
-	0x2D: "Unit exit production building",
+	0x2D: "queue production",
 	0x26: "Skill (targetless)",
 	0x27: "Skill",
 	0x28: "Skill (with target unit)",
+	0x2F: "Start building construction",
 	0x31: "Place down building",
 	0x34: "sell?",
 	0x3D: "attack?",
 	0x61: "30s heartbeat",
 	0x8F: "'scroll'",
+	0x91: "GG?",
 	0xF5: "drag selection box and/or select units/structures",
 	0xF8: "left click"
 }
@@ -163,6 +165,9 @@ POWERNAMES = {
 	0xE930FD00: "Shock pod",
 	0xFD88FC00: "Temporal wormhole",
 	0xA0E6D800: "Wormhole",
+
+	0x63C6B820: "Nod MCV Pack?",
+	0x3039C820: "Nod MCV Unpack?",
 }
 
 UPGRADENAMES = {
@@ -578,7 +583,7 @@ UNITNAMES = {
 
 
 
-KNOWN_COMMANDS = [ 0x31, 0x26, 0x27, 0x28, 0x2B, 0x2D, 0x8A, 0x34 ]
+KNOWN_COMMANDS = [ 0x31, 0x26, 0x27, 0x28, 0x2B, 0x2D, 0x8A, 0x34, 0x91 ]
 
 
 
@@ -831,9 +836,9 @@ class Command :
 		data = self.payload
 
 		if not data :
-			print( "GG?" )
+			print( "End of game?" )
 		elif len( data ) == 5 :
-			print( "GG?" )
+			print( "End of game?" )
 		else :
 			produced_by = uint42int( data[ 1:5 ] ) # probably.
 			produced = uint42int( data[ 8:12 ] ) # This one is pretty sure
@@ -1060,6 +1065,8 @@ class Command :
 			self.decode_skill_2xy()
 		elif self.cmd_id == 0x34 :
 			print( "sell" )
+		elif self.cmd_id == 0x91 :
+			print( "P" + str(self.payload[1]) + " GG" )
 		#print()
 
 
@@ -1179,10 +1186,17 @@ class Chunk :
 	def dump_commands( self ) :
 		# print( "Time\tPlayer\tcmd_id\tparams" )
 		for cmd in self.commands :
+			# print tag or interpretation for readability.
+			if cmd.cmd_id in KNOWN_COMMANDS :
+				cmd.print_known()
+			elif cmd.cmd_id in CMDNAMES :
+				print( CMDNAMES[ cmd.cmd_id ] )
+
 			print( cmd.time_code, end="\t" )
 			print( cmd.player_id, end="\t" )
 			print( "0x%02X" % cmd.cmd_id, end="\t" )
 			print_bytes( cmd.payload, break16=False )
+			print()
 	
 	def print_known( self ) :
 		if self.ty == 1 :
@@ -1282,7 +1296,7 @@ class KWReplayWithCommands( KWReplay ) :
 		self.read_footer( f )
 
 		self.replay_body.print_known()
-		#self.replay_body.dump_commands()
+		self.replay_body.dump_commands()
 
 		f.close()
 
