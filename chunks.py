@@ -757,10 +757,6 @@ class KWReplayWithCommands( KWReplay ) :
 		self.loadFromStream( f )
 		self.replay_body = ReplayBody( f )
 		self.read_footer( f )
-
-		self.replay_body.print_known()
-		#self.replay_body.dump_commands()
-
 		f.close()
 
 
@@ -773,10 +769,8 @@ def main() :
 	if len( sys.argv ) >= 2 :
 		fname = sys.argv[1]
 	kw = KWReplayWithCommands( fname=fname, verbose=False )
-	#kw.replay_body.print_known_chunks()
-	#kw = KWReplay()
-	#kw.modify_desc( fname, "2.KWReplay", "매치 설명 있음" )
-	#kw.modify_desc_inplace( "2.KWReplay", "show me the money 오예" )
+	#kw.replay_body.print_known()
+	#kw.replay_body.dump_commands()
 
 if __name__ == "__main__" :
 	main()
