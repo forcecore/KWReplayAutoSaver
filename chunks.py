@@ -770,7 +770,7 @@ def main() :
 		fname = sys.argv[1]
 	kw = KWReplayWithCommands( fname=fname, verbose=False )
 	#kw.replay_body.print_known()
-	#kw.replay_body.dump_commands()
+	kw.replay_body.dump_commands()
 
 if __name__ == "__main__" :
 	main()

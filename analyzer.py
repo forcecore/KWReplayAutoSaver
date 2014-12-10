@@ -92,3 +92,4 @@ if __name__ == "__main__" :
 	#kw.replay_body.dump_commands()
 	ana = KWReplayAnalyzer( kw )
 	ana.emit_apm_csv( 60, file=sys.stdout )
+	ana.emit_resource_spent( file=sys.stdout )
