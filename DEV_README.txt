@@ -91,6 +91,32 @@ Have fun!
 
 
 
+-------------------------------------------------------------------
+Using matplotlib.
+
+For plotting graphs
+The version used for development: matplotlib-1.4.2.win32-py3.4
+You need to install module "six", too, manually:
+
+pip install six
+
+Then we need many others...
+
+pip install python-dateutil
+pip install pyparsing
+
+Numpy needed too download and install...
+http://www.lfd.uci.edu/~gohlke/pythonlibs/#numpy
+numpy-MKL?1.9.1.win32-py3.4.exe
+
+Plotting should work now.
+I have considered wx.lib.plot... But that requires NUMPY too.
+You can't run from it. I chose matplotlib for ease of programming.
+
+
+
+
+-------------------------------------------------------------------
 For distributing the program to non-programmers:
 Install py2exe with pip:
 pip install py2exe
