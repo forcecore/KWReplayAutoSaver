@@ -19,7 +19,7 @@ from consts import *
 
 
 
-KNOWN_COMMANDS = [ 0x31, 0x26, 0x27, 0x28, 0x2B, 0x2D, 0x8A, 0x34, 0x91 ]
+KNOWN_COMMANDS = [ 0x31, 0x26, 0x27, 0x28, 0x2B, 0x2D, 0x2E, 0x8A, 0x34, 0x91 ]
 
 
 
@@ -502,6 +502,8 @@ class Command :
 			self.decode_upgrade_cmd()
 		elif self.cmd_id == 0x2D :
 			self.decode_production_cmd()
+		elif self.cmd_id == 0x2E :
+			print( "hold/cancel/cancel_all production" )
 		elif self.cmd_id == 0x8A :
 			self.decode_skill_2xy()
 		elif self.cmd_id == 0x34 :
@@ -757,7 +759,7 @@ class KWReplayWithCommands( KWReplay ) :
 		self.read_footer( f )
 
 		self.replay_body.print_known()
-		self.replay_body.dump_commands()
+		#self.replay_body.dump_commands()
 
 		f.close()
 
