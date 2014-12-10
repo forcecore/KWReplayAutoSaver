@@ -5,10 +5,109 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib import font_manager
 from chunks import KWReplayWithCommands
+from consts import UNITCOST
 
 
 
-class KWReplayAnalyzer() :
+# Build queue simulator.
+class BuildQ() :
+	def __init__( self ) :
+		# countdown[ UNIT_UID ] = time left for production complete.
+		self.countdown = {}
+
+		# counts of units to produce
+		self.counts[ UNIT_UID ] = {}
+
+		# the order of user input
+		self.order = []
+
+
+
+class ResourceAnalyzer() :
+	def __init__( self, kwr_chunks ) :
+		self.kwr = kwr_chunks
+		self.nplayers = len( self.kwr.players )
+		self.queues = [] # build queues (dynamic!)
+
+		self.spents = [ None ] * self.nplayers # remember who spent what.
+		# spents[ pid ] = [ (t1, cost1), (t2, cost2), ... ]
+	
+	def calc( self ) :
+		# step 1. just collect how much is spent at time t, as a list.
+		for chunk in self.kwr.replay_body.chunks :
+			for cmd in chunk.commands :
+				self.feed( cmd )
+	
+	def collect( self, pid, t, cost ) :
+		if self.spents[ pid ] == None :
+			self.spents[ pid ] = []
+		spent = self.spents[ pid ]
+
+		# OK, if the latest entry has the same t,
+		# we merge the costs hehehe
+		if len( spent ) > 1 :
+			(old_t, old_cost) = spent[-1]
+			if old_t == t :
+				spent.pop()
+				cost += old_cost
+
+		spent.append( (t, cost) )
+	
+	def feed( self, cmd ) :
+		t = int( cmd.time_code / 15 ) # in seconds
+		if cmd.cmd_id == 0x31 : # place down building
+			cmd.decode_placedown_cmd()
+			if cmd.building_type in UNITCOST :
+				self.collect( cmd.player_id, t, UNITCOST[ cmd.building_type ] )
+	
+	def split( self, spent ) :
+		ts = []
+		costs = []
+		for t, cost in spent :
+			ts.append( t )
+
+			# accumulate cost
+			if len( costs ) > 0 :
+				acc = costs[-1]
+			else :
+				acc = 0
+			costs.append( acc + cost )
+		return ts, costs
+	
+	def plot( self, font_fname=None ) :
+		plt.xlabel( "Time (s)" )
+		plt.ylabel( "$$$ spent" )
+
+		plots = []
+		for i in range( self.nplayers ) :
+			player = self.kwr.players[i]
+			if not player.is_player() :
+				continue
+
+			ts, costs = self.split( self.spents[ i ] )
+
+			plot, = plt.plot( ts, costs, label=player.name )
+			plots.append( plot )
+
+		#fp = font_manager.FontProperties()
+		#fp.set_family( 'Gulim' )
+		if font_fname :
+			fp = font_manager.FontProperties( fname = font_fname )
+			plt.legend( handles=plots, loc='upper center', bbox_to_anchor=(0.5, -0.10), ncol=4, prop=fp )
+		else :
+			# legend at bottom.
+			plt.legend( handles=plots, loc='upper center', bbox_to_anchor=(0.5, -0.10), ncol=4 )
+
+		# shrink plot so that legend will be shown.
+		if len( plots ) > 4 :
+			plt.subplots_adjust( bottom=0.3 )
+		else :
+			plt.subplots_adjust( bottom=0.2 )
+		plt.show()
+
+
+
+class APMAnalyzer() :
 	def __init__( self, kwr_chunks ) :
 		self.kwr = kwr_chunks
 		self.nplayers = len( self.kwr.players )
@@ -85,7 +184,7 @@ class KWReplayAnalyzer() :
 
 
 
-	def plot_apm( self, interval, font_fname=None ) :
+	def plot( self, interval, font_fname=None ) :
 		# actions counted for that second...
 		counts_at_second = self.count_actions( interval )
 		ts = [ t for t in range( len( counts_at_second ) ) ]
@@ -108,9 +207,10 @@ class KWReplayAnalyzer() :
 		#fp.set_family( 'Gulim' )
 		if font_fname :
 			fp = font_manager.FontProperties( fname = font_fname )
-
-		# legend at bottom.
-		plt.legend( handles=plots, loc='upper center', bbox_to_anchor=(0.5, -0.10), ncol=4, prop=fp )
+			plt.legend( handles=plots, loc='upper center', bbox_to_anchor=(0.5, -0.10), ncol=4, prop=fp )
+		else :
+			# legend at bottom.
+			plt.legend( handles=plots, loc='upper center', bbox_to_anchor=(0.5, -0.10), ncol=4 )
 
 		# shrink plot so that legend will be shown.
 		if len( plots ) > 4 :
@@ -156,7 +256,11 @@ if __name__ == "__main__" :
 		fname = sys.argv[1]
 	kw = KWReplayWithCommands( fname=fname, verbose=False )
 	#kw.replay_body.dump_commands()
-	ana = KWReplayAnalyzer( kw )
+
+	#ana = APMAnalyzer( kw )
 	#ana.emit_apm_csv( 10, file=sys.stdout )
-	ana.plot_apm( 10, font_fname = 'c:\\windows\\fonts\\gulim.ttc' )
-	#ana.emit_resource_spent( file=sys.stdout )
+	#ana.plot( 10, font_fname = 'c:\\windows\\fonts\\gulim.ttc' )
+
+	res = ResourceAnalyzer( kw )
+	res.calc()
+	res.plot()

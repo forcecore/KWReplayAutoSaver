@@ -264,35 +264,45 @@ class Command :
 			self.payload = f.read( 5 )
 		else :
 			self.payload = f.read( 23 )
-
+	
 
 
 	def decode_production_cmd( self ) :
+		data = self.payload
+
+		if not data :
+			self.produced = None # end of game marker?
+		elif len( data ) == 5 :
+			self.produced = None # end of game marker?
+		else :
+			self.produced_by = uint42int( data[ 1:5 ] )
+			self.produced = uint42int( data[ 8:12 ] ) # This one is pretty sure
+			self.cnt = data[ 17 ]
+
+
+
+	def print_production_cmd( self ) :
 		# either short or long...
 		# length 8 or length 26, it seems, refering to cnc3reader_impl.cpp.
 
 		if Command.verbose :
 			print( "Production decoding" )
 			print_bytes( self.payload )
-		data = self.payload
 
-		if not data :
-			print( "End of game?" )
-		elif len( data ) == 5 :
+
+		self.decode_production_cmd()
+
+		if not self.produced :
 			print( "End of game?" )
 		else :
-			produced_by = uint42int( data[ 1:5 ] ) # probably.
-			produced = uint42int( data[ 8:12 ] ) # This one is pretty sure
-			cnt = data[ 17 ]
-
-			if cnt > 0 :
+			if self.cnt > 0 :
 				print( "5x ", end="" )
-			if produced in UNITNAMES :
+			if self.produced in UNITNAMES :
 				#print( "Production of %s from 0x%08X" % (UNITNAMES[produced], produced_by) )
-				print( "queue %s" % (UNITNAMES[produced]) )
+				print( "queue %s" % (UNITNAMES[self.produced]) )
 			else :
 				#print( "Production of 0x%08X from 0x%08X" % (produced, produced_by) )
-				print( "queue 0x%08X" % produced )
+				print( "queue 0x%08X" % self.produced )
 			#print()
 
 
@@ -430,33 +440,24 @@ class Command :
 		payload.write( f.read( 3 ) ) # more unknown stuff
 
 		self.payload = payload.getbuffer()
-
+	
 
 
 	def decode_placedown_cmd( self ) :
-		if Command.verbose :
-			print( "PLACE DOWN" )
-			print_bytes( self.payload )
-
 		data = self.payload
-		building_type = uint42int( data[6:10] )
-		substructure_cnt = data[10]
+		self.building_type = uint42int( data[6:10] )
+		self.substructure_cnt = data[10]
 		self.substructures = []
 
+		# substructure X and Y decoding.
 		pos = 11
-		for i in range( substructure_cnt ) :
+		for i in range( self.substructure_cnt ) :
 			pos += 4
 			x = uint42float( data[pos:pos+4] )
 			pos += 4
 			y = uint42float( data[pos:pos+4] )
 			pos += 6
 
-		if building_type in UNITNAMES :
-			#print( "building_type: %s" % UNITNAMES[building_type] )
-			print( "%s" % UNITNAMES[building_type] )
-		else :
-			#print( "building_type: 0x%08X" % building_type )
-			print( "place 0x%08X" % building_type )
 		#print( "\tLocation: %f, %f" % (x, y) )
 		#print( "substructure_cnt:", substructure_cnt )
 
@@ -474,13 +475,22 @@ class Command :
 		# 8 for 2*4bytes (=2 floats) of x-y coords.
 		# or... z coord?! dunno?!
 
-		# old code...
-		#unknown = f.read( 10 )
-		#l = read_byte( f )
-		#more_unknown = f.read( 18*l )
-		#cmdlen = 3
-		#more_unknown = f.read( 3 )
-	
+
+
+	def print_placedown_cmd( self ) :
+		if Command.verbose :
+			print( "PLACE DOWN" )
+			print_bytes( self.payload )
+
+		self.decode_placedown_cmd()
+
+		if self.building_type in UNITNAMES :
+			#print( "building_type: %s" % UNITNAMES[building_type] )
+			print( "%s" % UNITNAMES[self.building_type] )
+		else :
+			#print( "building_type: 0x%08X" % building_type )
+			print( "place 0x%08X" % self.building_type )
+
 
 
 	def print_known( self ) :
@@ -491,7 +501,7 @@ class Command :
 		print( time, end="\t" )
 		print( "P" + str( self.player_id ), end="\t" )
 		if self.cmd_id == 0x31 :
-			self.decode_placedown_cmd()
+			self.print_placedown_cmd()
 		elif self.cmd_id == 0x26 :
 			self.decode_skill_targetless()
 		elif self.cmd_id == 0x27 :
@@ -501,7 +511,7 @@ class Command :
 		elif self.cmd_id == 0x2B :
 			self.decode_upgrade_cmd()
 		elif self.cmd_id == 0x2D :
-			self.decode_production_cmd()
+			self.print_production_cmd()
 		elif self.cmd_id == 0x2E :
 			print( "hold/cancel/cancel_all production" )
 		elif self.cmd_id == 0x8A :
@@ -769,7 +779,8 @@ def main() :
 	if len( sys.argv ) >= 2 :
 		fname = sys.argv[1]
 	kw = KWReplayWithCommands( fname=fname, verbose=False )
-	#kw.replay_body.print_known()
+	kw.replay_body.print_known()
+	print()
 	kw.replay_body.dump_commands()
 
 if __name__ == "__main__" :
