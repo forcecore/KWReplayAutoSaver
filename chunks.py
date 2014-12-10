@@ -307,67 +307,73 @@ class Command :
 
 
 
-	# this skill targets GROUND.
 	def decode_skill_xy( self ) :
 		data = self.payload
+		self.x = uint42float( data[ 6:10] )
+		self.y = uint42float( data[ 10:14] )
+		self.power = uint42int( data[ 0:4 ] )
 
+	# this skill targets GROUND.
+	def print_skill_xy( self ) :
 		if Command.verbose :
-			print( "decode_skill_xy" )
+			print( "print_skill_xy" )
 			print_bytes( data )
 
-		x = uint42float( data[ 6:10] )
-		y = uint42float( data[ 10:14] )
-		power = uint42int( data[ 0:4 ] )
+		self.decode_skill_xy()
 
-		if power in POWERNAMES :
+		if self.power in POWERNAMES :
 			#print( "Skill use %s at (%f, %f)" % (POWERNAMES[power], x, y) )
-			print( "%s" % POWERNAMES[power] )
+			print( "%s" % POWERNAMES[self.power] )
 		else :
 			#print( "Skill use 0x%08X at (%f, %f)" % (power, x, y) )
-			print( "skill 0x%08X" % (power) )
+			print( "skill 0x%08X" % (self.power) )
 
 
+
+	def decode_skill_2xy( self ) :
+		data = self.payload
+		self.x1 = uint42float( data[ 16:20] )
+		self.y1 = uint42float( data[ 20:24] )
+		self.x2 = uint42float( data[ 28:32] )
+		self.y2 = uint42float( data[ 32:36] )
+		self.power = uint42int( data[ 0:4 ] )
 
 	# this skill targets GROUND, with two positions.
 	# Obviously, only wormhole does that.
-	def decode_skill_2xy( self ) :
-		data = self.payload
-
+	def print_skill_2xy( self ) :
 		if Command.verbose :
-			print( "decode_skill_2xy" )
+			print( "print_skill_2xy" )
 			print_bytes( data )
 
-		x1 = uint42float( data[ 16:20] )
-		y1 = uint42float( data[ 20:24] )
-		x2 = uint42float( data[ 28:32] )
-		y2 = uint42float( data[ 32:36] )
-		power = uint42int( data[ 0:4 ] )
+		self.decode_skill_2xy()
 
-		if power in POWERNAMES :
+		if self.power in POWERNAMES :
 			#print( "Skill use %s at (%f, %f)-(%f, %f)" % (POWERNAMES[power], x1, y1, x2, y2) )
-			print( "%s" % (POWERNAMES[power]) )
+			print( "%s" % (POWERNAMES[self.power]) )
 		else :
-			print( "skill 0x%08X" % power )
-
+			print( "skill 0x%08X" % self.power )
+	
 
 
 	def decode_skill_targetless( self ) :
 		data = self.payload
+		self.power = uint42int( data[ 0:4 ] )
 
+
+
+	def print_skill_targetless( self ) :
 		if Command.verbose :
-			print( "decode_skill_targetless" )
+			print( "print_skill_targetless" )
 			print_bytes( data )
 
-		power = uint42int( data[ 0:4 ] )
-		# dunno about target, but it is certain that this is only used on walling
-		# structures -_-
+		self.decode_skill_targetless()
 
-		if power in POWERNAMES :
+		if self.power in POWERNAMES :
 			#print( "Skill use %s" % POWERNAMES[power] )
-			print( "%s" % POWERNAMES[power] )
+			print( "%s" % POWERNAMES[self.power] )
 		else :
 			#print( "Skill use 0x%08X" % power )
-			print( "skill 0x%08X" % power )
+			print( "skill 0x%08X" % self.power )
 
 
 
@@ -391,41 +397,46 @@ class Command :
 
 
 
-	# this skill targets GROUND.
 	def decode_skill_target( self ) :
 		data = self.payload
-
-		if Command.verbose :
-			print( "decode_skill_target" )
-			print_bytes( data )
-
-		power = uint42int( data[ 0:4 ] )
+		self.power = uint42int( data[ 0:4 ] )
 		# dunno about target, but it is certain that this is only used on walling
 		# structures -_-
 
-		if power in POWERNAMES :
+	# this skill targets GROUND.
+	def print_skill_target( self ) :
+		if Command.verbose :
+			print( "print_skill_target" )
+			print_bytes( data )
+
+		self.decode_skill_target()
+
+		if self.power in POWERNAMES :
 			#print( "Skill use %s" % POWERNAMES[power] )
-			print( "%s" % POWERNAMES[power] )
+			print( "%s" % POWERNAMES[self.power] )
 		else :
 			#print( "Skill use 0x%08X" % power )
-			print( "skill 0x%08X" % power )
+			print( "skill 0x%08X" % self.power )
 
 
 
 	def decode_upgrade_cmd( self ) :
 		data = self.payload
+		self.upgrade = uint42int( data[1:5] )
 
+	def print_upgrade_cmd( self ) :
 		if Command.verbose :
 			print( "decode_upgrade_cmd" )
 			print_bytes( data )
 
-		upgrade = uint42int( data[1:5] )
-		if upgrade in UPGRADENAMES :
+		self.decode_upgrade_cmd()
+
+		if self.upgrade in UPGRADENAMES :
 			#print( "Upgrade purchase of %s" % UPGRADENAMES[upgrade] )
-			print( "%s" % UPGRADENAMES[upgrade] )
+			print( "%s" % UPGRADENAMES[self.upgrade] )
 		else :
 			#print( "Upgrade purchase of 0x%08X" % upgrade )
-			print( "upgrade 0x%08X" % upgrade )
+			print( "upgrade 0x%08X" % self.upgrade )
 	
 
 
@@ -503,11 +514,11 @@ class Command :
 		if self.cmd_id == 0x31 :
 			self.print_placedown_cmd()
 		elif self.cmd_id == 0x26 :
-			self.decode_skill_targetless()
+			self.print_skill_targetless()
 		elif self.cmd_id == 0x27 :
-			self.decode_skill_xy()
+			self.print_skill_xy()
 		elif self.cmd_id == 0x28 :
-			self.decode_skill_target()
+			self.print_skill_target()
 		elif self.cmd_id == 0x2B :
 			self.decode_upgrade_cmd()
 		elif self.cmd_id == 0x2D :
@@ -515,7 +526,7 @@ class Command :
 		elif self.cmd_id == 0x2E :
 			print( "hold/cancel/cancel_all production" )
 		elif self.cmd_id == 0x8A :
-			self.decode_skill_2xy()
+			self.print_skill_2xy()
 		elif self.cmd_id == 0x34 :
 			print( "sell" )
 		elif self.cmd_id == 0x91 :

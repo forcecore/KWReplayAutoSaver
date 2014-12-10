@@ -5,7 +5,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib import font_manager
 from chunks import KWReplayWithCommands
-from consts import UNITCOST
+from consts import UNITCOST, POWERCOST, UPGRADECOST
 
 
 
@@ -31,13 +31,17 @@ class ResourceAnalyzer() :
 
 		self.spents = [ None ] * self.nplayers # remember who spent what.
 		# spents[ pid ] = [ (t1, cost1), (t2, cost2), ... ]
-	
+
+
+
 	def calc( self ) :
 		# step 1. just collect how much is spent at time t, as a list.
 		for chunk in self.kwr.replay_body.chunks :
 			for cmd in chunk.commands :
 				self.feed( cmd )
-	
+
+
+
 	def collect( self, pid, t, cost ) :
 		if self.spents[ pid ] == None :
 			self.spents[ pid ] = []
@@ -52,14 +56,42 @@ class ResourceAnalyzer() :
 				cost += old_cost
 
 		spent.append( (t, cost) )
-	
+
+
+
 	def feed( self, cmd ) :
 		t = int( cmd.time_code / 15 ) # in seconds
 		if cmd.cmd_id == 0x31 : # place down building
 			cmd.decode_placedown_cmd()
 			if cmd.building_type in UNITCOST :
 				self.collect( cmd.player_id, t, UNITCOST[ cmd.building_type ] )
-	
+		elif 0x26 <= cmd.cmd_id and cmd.cmd_id <= 0x28 : # use skill
+			# decode 'em
+			if cmd.cmd_id == 0x26 :
+				cmd.decode_skill_targetless()
+			elif cmd.cmd_id == 0x27 :
+				cmd.decode_skill_xy()
+			elif cmd.cmd_id == 0x28 :
+				cmd.decode_skill_target()
+			elif cmd.cmd_id == 0x8A :
+				cmd.decode_skill_2xy()
+
+			# collection.
+			if cmd.power in POWERCOST :
+				self.collect( cmd.player_id, t, POWERCOST[ cmd.power ] )
+		elif cmd.cmd_id == 0x2B :
+			cmd.decode_upgrade_cmd()
+			if cmd.upgrade in UPGRADECOST :
+				self.collect( cmd.player_id, t, UPGRADECOST[ cmd.upgrade ] )
+		elif cmd.cmd_id == 0x2D :
+			# production Q simulation thingy
+			pass
+		elif cmd.cmd_id == 0x2E :
+			# production Q simulation thingy
+			pass
+
+
+
 	def split( self, spent ) :
 		ts = []
 		costs = []
@@ -73,7 +105,9 @@ class ResourceAnalyzer() :
 				acc = 0
 			costs.append( acc + cost )
 		return ts, costs
-	
+
+
+
 	def plot( self, font_fname=None ) :
 		plt.xlabel( "Time (s)" )
 		plt.ylabel( "$$$ spent" )
@@ -100,7 +134,7 @@ class ResourceAnalyzer() :
 
 		# shrink plot so that legend will be shown.
 		if len( plots ) > 4 :
-			plt.subplots_adjust( bottom=0.3 )
+			plt.subplots_adjust( bottom=0.2 )
 		else :
 			plt.subplots_adjust( bottom=0.2 )
 		plt.show()
@@ -214,7 +248,7 @@ class APMAnalyzer() :
 
 		# shrink plot so that legend will be shown.
 		if len( plots ) > 4 :
-			plt.subplots_adjust( bottom=0.3 )
+			plt.subplots_adjust( bottom=0.2 )
 		else :
 			plt.subplots_adjust( bottom=0.2 )
 		plt.show()
@@ -257,9 +291,9 @@ if __name__ == "__main__" :
 	kw = KWReplayWithCommands( fname=fname, verbose=False )
 	#kw.replay_body.dump_commands()
 
-	#ana = APMAnalyzer( kw )
+	ana = APMAnalyzer( kw )
 	#ana.emit_apm_csv( 10, file=sys.stdout )
-	#ana.plot( 10, font_fname = 'c:\\windows\\fonts\\gulim.ttc' )
+	ana.plot( 10, font_fname = 'c:\\windows\\fonts\\gulim.ttc' )
 
 	res = ResourceAnalyzer( kw )
 	res.calc()
