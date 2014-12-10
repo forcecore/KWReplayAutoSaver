@@ -209,12 +209,17 @@ class Command :
 			# var len cmds!
 			self.split_var_len( f, cmdlen, ncmd )
 		else :
-			if self.cmd_id == 0x00 :
+			if self.cmd_id <= 0x03 or self.cmd_id >= 0xFA :
+				# group designation command.
+				assert self.cmd_id >= 0
+				assert self.cmd_id <= 0xFF
 				self.split_0x00( f )
-			elif self.cmd_id == 0x0A :
+			elif 0x04 <= self.cmd_id and self.cmd_id <= 0x0D :
+				# group selection command.
 				# I usually get 0x0A 0x?? 0xFF (length=3).
 				# I sometimes get (rarely) 0x0A 0x00 0x00 0xFF
 				self.split_0x00( f ) # same as 0x00, creep until FF.
+
 			elif self.cmd_id == 0x0E :
 				self.split_0x00( f ) # same as 0x00, creep until FF.
 			elif self.cmd_id == 0x2D :
@@ -645,6 +650,8 @@ class Chunk :
 				cmd.print_known()
 			elif cmd.cmd_id in CMDNAMES :
 				print( CMDNAMES[ cmd.cmd_id ] )
+			else :
+				print( "unknown command" )
 
 			print( cmd.time_code, end="\t" )
 			print( cmd.player_id, end="\t" )

@@ -10,9 +10,9 @@
 
 CMDLENS = {
 	0x00: 0, # unknown + var len.
-	0x01: -2,
-	0x02: -2,
-	0x03: -2,
+	0x01: 0,
+	0x02: 0,
+	0x03: 0,
 	0x04: -2,
 	0x05: -2,
 	0x06: -2,
@@ -81,35 +81,70 @@ CMDLENS = {
 	0xF6: -4,
 	0xF8: -4,
 	0xF9: -2,
-	0xFA: -2,
-	0xFB: -2,
-	0xFC: -2,
-	0xFD: -2,
-	0xFE: -2,
-	0xFF: -2
+	0xFA: 0,
+	0xFB: 0,
+	0xFC: 0,
+	0xFD: 0,
+	0xFE: 0,
+	0xFF: 0
 }
 
 CMDNAMES = {
-	0x2B: "Upgrade",
-	0x2D: "queue production",
+	0x00: "Assign selection to group 6",
+	0x01: "Assign selection to group 7",
+	0x02: "Assign selection to group 8",
+	0x03: "Assign selection to group 9",
+	0x04: "Select group 0",
+	0x05: "Select group 1",
+	0x06: "Select group 2",
+	0x07: "Select group 3",
+	0x08: "Select group 4",
+	0x09: "Select group 5",
+	0x0A: "Select group 6",
+	0x0B: "Select group 7",
+	0x0C: "Select group 8",
+	0x0D: "Select group 9",
+
 	0x26: "Skill (targetless)",
 	0x27: "Skill",
 	0x28: "Skill (with target unit)",
+	0x2B: "Upgrade",
+	0x2D: "queue production",
+	0x2E: "hold/cancel/cancel all production",
 	0x2F: "Start building construction",
 	0x31: "Place down building",
-	0x34: "sell?",
-	0x3D: "attack?",
+	0x34: "sell",
+	0x3D: "attack",
+	0x3E: "force fire",
 	0x43: "enter building (eng capture)????????",
-	0x46: "move?",
-	0x4C: "stop?",
+	0x44: "return to the specified refinery",
+	0x45: "harvest specific lump of tiberium",
+	0x46: "move",
+	0x47: "A-move",
+	0x48: "G-move",
+	0x4C: "stop",
 	0x61: "30s heartbeat",
 	0x72: "repair",
 	0x73: "cancel repair",
+	0x77: "Q select",
+	0x7E: "set unit stance (aggresive, hold ground, hold fire...)",
 	0x7F: "alt hold/release (waypoint)?",
+	0x89: "toggle power down/up",
+	0x8E: "reverse move",
 	0x8F: "'scroll'",
 	0x91: "GG?",
+
 	0xF5: "drag selection box and/or select units/structures",
-	0xF8: "left click (delelect stuff)"
+	0xF6: "w-select units??",
+	0xF8: "left click (delelect stuff)",
+	0xF9: "remove units from selection (right click on unit group icon)",
+
+	0xFA: "Assign selection to group 0",
+	0xFB: "Assign selection to group 1",
+	0xFC: "Assign selection to group 2",
+	0xFD: "Assign selection to group 3",
+	0xFE: "Assign selection to group 4",
+	0xFF: "Assign selection to group 5",
 }
 
 POWERNAMES = {
@@ -164,8 +199,10 @@ POWERNAMES = {
 	0xFD88FC00: "Temporal wormhole",
 	0xA0E6D800: "Wormhole",
 
-	0x63C6B820: "Nod MCV Pack?",
-	0x3039C820: "Nod MCV Unpack?",
+	0x63C6B820: "MCV Pack",
+	0x3039C820: "MCV Unpack",
+	0x769F4920: "Dig fox hole",
+	0xB5F8AC20: "Return to a refinery",
 }
 
 UPGRADENAMES = {
