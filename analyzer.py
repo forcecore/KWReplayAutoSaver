@@ -50,7 +50,6 @@ class KWReplayAnalyzer() :
 					if cmd.cmd_id == 0x61 : # 30s heat beat
 						continue
 					pid = cmd.player_id
-					assert pid <= 7 # real checker here hehe
 					counts_at_second[ t ][ pid ] += 1
 
 		return counts_at_second
@@ -64,7 +63,7 @@ class KWReplayAnalyzer() :
 		# print header
 		print( "t", end=",", file=file )
 		for player in self.kwr.players :
-			print( player.name, end=",", file=file )
+			print( '"' + player.name + '"', end=",", file=file )
 		print( file=file )
 
 		for t in range( len( counts_at_second ) ) :
