@@ -458,7 +458,7 @@ class Command :
 	def decode_hold_cmd( self ) :
 		data = self.payload
 		self.factory = uint42int( data[ 1:5 ] )
-		self.unit_ty = uint42int( data[ 9:13 ] )
+		self.unit_ty = uint42int( data[ 8:12 ] )
 		self.cancel_all = data[13] # remove all build queue of this type
 	
 
