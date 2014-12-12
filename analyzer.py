@@ -756,8 +756,8 @@ if __name__ == "__main__" :
 	kw = KWReplayWithCommands( fname=fname, verbose=False )
 	#kw.replay_body.dump_commands()
 
-	#ana = APMAnalyzer( kw )
-	#ana.plot( 10 )
+	ana = APMAnalyzer( kw )
+	ana.plot( 10 )
 	#ana.emit_apm_csv( 10, file=sys.stdout )
 
 	res = ResourceAnalyzer( kw )
