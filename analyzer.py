@@ -123,9 +123,9 @@ class FactorySim() :
 			self.insert_event( cmd )
 
 	def insert_powerdown_evt( self, cmd ) :
-		# thin check is fine.
-		assert cmd.target in self.factories
-		self.insert_event( cmd )
+		# we can power down non-factories, you know!
+		if cmd.target in self.factories :
+			self.insert_event( cmd )
 
 
 
@@ -143,7 +143,7 @@ class FactorySim() :
 		if fa.player_id != cmd.player_id :
 			# flush current queue and events.
 			fa.player_id = cmd.player_id
-			self.remove_evt_with_factory( factory )
+			self.remove_evt_with_factory( fa.factory_id )
 			fa.flush()
 
 		self.insert_event( cmd )
@@ -153,6 +153,8 @@ class FactorySim() :
 	def remove_evt_with_factory( self, factory ) :
 		for i in reversed( range( len( self.events ) ) ) :
 			evt = self.events[ i ]
+			if not hasattr( evt, "factory" ) :
+				continue
 			if evt.factory == factory :
 				del self.events[ i ]
 	
