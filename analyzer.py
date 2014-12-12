@@ -509,8 +509,6 @@ class ResourceAnalyzer() :
 				cmd.decode_skill_xy()
 			elif cmd.cmd_id == 0x28 :
 				cmd.decode_skill_target()
-			elif cmd.cmd_id == 0x8A :
-				cmd.decode_skill_2xy()
 
 			# collection.
 			if cmd.power in POWERCOST :
@@ -532,6 +530,10 @@ class ResourceAnalyzer() :
 			# hold.
 			cmd.decode_hold_cmd()
 			self.sim.insert_hold_evt( cmd )
+		elif cmd.cmd_id == 0x8A :
+			cmd.decode_skill_2xy()
+			if cmd.power in POWERCOST :
+				self.collect( cmd.player_id, t, POWERCOST[ cmd.power ] )
 		elif cmd.cmd_id == 0x34 :
 			# could be factory sell.
 			cmd.decode_sell_cmd()
@@ -629,7 +631,7 @@ class APMAnalyzer() :
 		cmds_at_second = []
 		# cmds_at_second[ sec ] = list of commands at that second.
 
-		# except for heat beat, all are commands.
+		# except for heart beat, all are commands.
 		for chunk in self.kwr.replay_body.chunks :
 			for cmd in chunk.commands :
 				self.group_command_by_time( cmds_at_second, cmd )
@@ -648,7 +650,7 @@ class APMAnalyzer() :
 			# count commands!
 			for t in range( left, sec+1 ) : # range [left, sec+1)
 				for cmd in cmds_at_second[ sec ] :
-					if cmd.cmd_id == 0x61 : # 30s heat beat
+					if cmd.cmd_id == 0x61 : # 30s heart beat
 						continue
 					pid = cmd.player_id
 					counts_at_second[ t ][ pid ] += 1
@@ -749,6 +751,75 @@ class APMAnalyzer() :
 
 
 
+class PositionDumper() :
+	def __init__( self, kwr_chunks ) :
+		self.kwr = kwr_chunks
+		self.nplayers = len( self.kwr.players )
+
+
+
+	def group_commands_by_pid( self ) :
+		commandss = [ [] for i in range( self.nplayers ) ]
+
+		# except for heart beat, all are commands.
+		for chunk in self.kwr.replay_body.chunks :
+			for cmd in chunk.commands :
+				commands = commandss[ cmd.player_id ]
+				commands.append( cmd )
+
+		return commandss
+
+
+
+	def dump_csv( self ) :
+		commandss = self.group_commands_by_pid()
+
+		for pid in range( self.nplayers ) :
+			player = self.kwr.players[ pid ]
+			if not player.is_player() :
+				continue
+
+			print( "p" + str(pid ) )
+			commands = commandss[ pid ]
+
+			for cmd in commands :
+				if cmd.cmd_id == 0x27 : # use skill
+					cmd.decode_skill_xy()
+					#print( "0x%08X" % cmd.cmd_id )
+					print( "%f,%f" % (cmd.x, cmd.y ) )
+
+				elif cmd.cmd_id == 0x31 : # place down building
+					cmd.decode_placedown_cmd()
+					#print( "0x%08X" % cmd.cmd_id )
+					print( "%f,%f" % (cmd.x, cmd.y ) )
+
+				elif 0x46 <= cmd.cmd_id and cmd.cmd_id <= 0x48 :
+					cmd.decode_move_cmd() # this works for 'em all.
+					#print( "0x%08X" % cmd.cmd_id )
+					print( "%f,%f" % (cmd.x, cmd.y ) )
+
+				elif cmd.cmd_id == 0x7A : # formation move
+					cmd.decode_formation_move_cmd()
+					#print( "0x%08X" % cmd.cmd_id )
+					print( "%f,%f" % (cmd.x, cmd.y ) )
+
+				elif cmd.cmd_id == 0x8A : # wormhole
+					cmd.decode_skill_2xy()
+					#print( "0x%08X" % cmd.cmd_id )
+					print( "%f,%f" % (cmd.x1, cmd.y1 ) )
+					print( "%f,%f" % (cmd.x2, cmd.y2 ) )
+
+				elif cmd.cmd_id == 0x8E : # move
+					cmd.decode_move_cmd()
+					#print( "0x%08X" % cmd.cmd_id )
+					print( "%f,%f" % (cmd.x, cmd.y ) )
+
+			print()
+			print()
+			print()
+
+
+
 if __name__ == "__main__" :
 	fname = "test.KWReplay"
 	if len( sys.argv ) >= 2 :
@@ -756,10 +827,13 @@ if __name__ == "__main__" :
 	kw = KWReplayWithCommands( fname=fname, verbose=False )
 	#kw.replay_body.dump_commands()
 
-	ana = APMAnalyzer( kw )
-	ana.plot( 10 )
-	#ana.emit_apm_csv( 10, file=sys.stdout )
+	#ana = APMAnalyzer( kw )
+	#ana.plot( 10 )
+	# or ana.emit_apm_csv( 10, file=sys.stdout )
 
-	res = ResourceAnalyzer( kw )
-	res.calc()
-	res.plot()
+	#res = ResourceAnalyzer( kw )
+	#res.calc()
+	#res.plot()
+
+	pos = PositionDumper( kw )
+	pos.dump_csv()

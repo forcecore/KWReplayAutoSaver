@@ -128,6 +128,7 @@ CMDNAMES = {
 	0x72: "repair",
 	0x73: "cancel repair",
 	0x77: "Q select",
+	0x7A: "formation move",
 	0x7E: "set unit stance (aggresive, hold ground, hold fire...)",
 	0x7F: "alt hold/release (waypoint)?",
 	0x89: "toggle power down/up",

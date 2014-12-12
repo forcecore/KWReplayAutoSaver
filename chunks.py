@@ -471,6 +471,23 @@ class Command :
 	
 
 
+	def decode_formation_move_cmd( self ) :
+		self.decode_move_cmd() # seems to work, though there are more parameters.
+		#data = self.payload
+		#self.x = uint42float( data[ 1:5 ] )
+		#self.y = uint42float( data[ 5:9 ] )
+
+	def decode_move_cmd( self ) :
+		data = self.payload
+		self.x = uint42float( data[ 1:5 ] )
+		self.y = uint42float( data[ 5:9 ] )
+		#self.z = uint42float( data[ 9:13 ] ) # it really seems to be Z;;;
+
+	def decode_reverse_move_cmd( self ) :
+		self.decode_move_cmd() # this will do
+	
+
+
 	def decode_placedown_cmd( self ) :
 		data = self.payload
 		self.building_type = uint42int( data[6:10] )
@@ -481,10 +498,10 @@ class Command :
 		pos = 11
 		for i in range( self.substructure_cnt ) :
 			pos += 4
-			x = uint42float( data[pos:pos+4] )
+			self.x = uint42float( data[pos:pos+4] )
 			pos += 4
-			y = uint42float( data[pos:pos+4] )
-			pos += 6
+			self.y = uint42float( data[pos:pos+4] )
+			pos += 4
 
 		#print( "\tLocation: %f, %f" % (x, y) )
 		#print( "substructure_cnt:", substructure_cnt )
@@ -518,6 +535,7 @@ class Command :
 		else :
 			#print( "building_type: 0x%08X" % building_type )
 			print( "place 0x%08X" % self.building_type )
+		#print( "pos: %f, %f" % (self.x, self.y) )
 
 
 
