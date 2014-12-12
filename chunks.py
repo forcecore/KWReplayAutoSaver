@@ -267,21 +267,23 @@ class Command :
 	
 
 
-	def decode_production_cmd( self ) :
+	def decode_queue_cmd( self ) :
 		data = self.payload
 
 		if not data :
-			self.produced = None # end of game marker?
+			self.unit_ty = None # end of game marker?
 		elif len( data ) == 5 :
-			self.produced = None # end of game marker?
+			self.unit_ty = None # end of game marker?
 		else :
-			self.produced_by = uint42int( data[ 1:5 ] )
-			self.produced = uint42int( data[ 8:12 ] ) # This one is pretty sure
-			self.cnt = data[ 17 ]
+			self.factory = uint42int( data[ 1:5 ] )
+			self.unit_ty = uint42int( data[ 8:12 ] ) # This one is pretty sure
+			self.fivex = data[ 17 ]
 
 
 
-	def print_production_cmd( self ) :
+	# queue units to be built from the factory,
+	# or resume build (from suspended building)
+	def print_queue_cmd( self ) :
 		# either short or long...
 		# length 8 or length 26, it seems, refering to cnc3reader_impl.cpp.
 
@@ -289,20 +291,19 @@ class Command :
 			print( "Production decoding" )
 			print_bytes( self.payload )
 
+		self.decode_queue_cmd()
 
-		self.decode_production_cmd()
-
-		if not self.produced :
+		if not self.unit_ty :
 			print( "End of game?" )
 		else :
-			if self.cnt > 0 :
+			if self.fivex > 0 :
 				print( "5x ", end="" )
-			if self.produced in UNITNAMES :
+			if self.unit_ty in UNITNAMES :
 				#print( "Production of %s from 0x%08X" % (UNITNAMES[produced], produced_by) )
-				print( "queue %s" % (UNITNAMES[self.produced]) )
+				print( "queue %s" % (UNITNAMES[self.unit_ty]) )
 			else :
 				#print( "Production of 0x%08X from 0x%08X" % (produced, produced_by) )
-				print( "queue 0x%08X" % self.produced )
+				print( "queue 0x%08X" % self.unit_ty )
 			#print()
 
 
@@ -454,6 +455,14 @@ class Command :
 	
 
 
+	def decode_hold_cmd( self ) :
+		data = self.payload
+		self.factory = uint42int( data[ 1:5 ] )
+		self.unit_ty = uint42int( data[ 9:13 ] )
+		self.cancel_all = data[13] # remove all build queue of this type
+	
+
+
 	def decode_placedown_cmd( self ) :
 		data = self.payload
 		self.building_type = uint42int( data[6:10] )
@@ -520,9 +529,9 @@ class Command :
 		elif self.cmd_id == 0x28 :
 			self.print_skill_target()
 		elif self.cmd_id == 0x2B :
-			self.decode_upgrade_cmd()
+			self.print_upgrade_cmd()
 		elif self.cmd_id == 0x2D :
-			self.print_production_cmd()
+			self.print_queue_cmd()
 		elif self.cmd_id == 0x2E :
 			print( "hold/cancel/cancel_all production" )
 		elif self.cmd_id == 0x8A :
@@ -790,6 +799,8 @@ def main() :
 	if len( sys.argv ) >= 2 :
 		fname = sys.argv[1]
 	kw = KWReplayWithCommands( fname=fname, verbose=False )
+	print( fname )
+	print()
 	kw.replay_body.print_known()
 	print()
 	kw.replay_body.dump_commands()
