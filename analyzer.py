@@ -37,17 +37,29 @@ class Factory() :
 		return self.find_unheld() == -1
 	
 	def cancel_one( self, ty ) :
-		for i in reversed( range( fa.order ) ) :
-			if fa.order[ i ] == ty :
-				fa.pop( i )
-				return
-		assert 0
+		for i in reversed( range( len( self.order ) ) ) :
+			if self.order[ i ] == ty :
+				self.order.pop( i )
+				break
+
+		# if nothing is left of that ty...
+		# I can no longer say it is on hold.
+		if not ty in self.order :
+			if ty in self.countdown :
+				del self.countdown[ ty ]
+			if ty in self.held :
+				del self.held[ ty ]
+
+
 
 	def cancel_all( self, ty ) :
 		for i in reversed( range( len( self.order ) ) ) :
 			if self.order[ i ] == ty :
 				self.order.pop( i )
-		del self.held[ ty ]
+
+		# I can just shift right click, without anything queued.
+		if ty in self.held :
+			del self.held[ ty ]
 
 		# Well, countdown might not have begun.
 		# 1. build loads of riflemen
@@ -55,7 +67,11 @@ class Factory() :
 		# 3. while riflemen are trained, cancel all missielemen.
 		if ty in self.countdown :
 			del self.countdown[ ty ]
-	
+
+		# print( self.order )
+
+
+
 	def flush( self ) :
 		self.countdown = {}
 		self.held = {}
@@ -67,9 +83,7 @@ class Factory() :
 		for i in range( len( self.order ) ) :
 			ty = self.order[i]
 			if not ty in self.held :
-				print( "find_unheld:", i )
 				return i
-		print( "find_unheld:", -1 )
 		return -1
 
 
@@ -77,11 +91,15 @@ class Factory() :
 EVT_CONS_COMPLETE = 0x01
 EVT_QUEUE = 0x2D
 EVT_HOLD = 0x2E
+EVT_SELL = 0x34
+EVT_POWERDOWN = 0x89
 
 
 
 # event driven simulator?! w00t
 class FactorySim() :
+	verbose = False
+
 	def __init__( self ) :
 		self.factories = {}
 		self.events = [] # priority queue of events. time in time_code.
@@ -91,8 +109,22 @@ class FactorySim() :
 
 
 	def insert_hold_evt( self, cmd ) :
+		if cmd.factory in self.factories :
+			# well. we can have hold without queueing anything but...
+			# that's not too usual.
+			self.insert_event( cmd )
+
+
+
+	def insert_sell_evt( self, cmd ) :
 		# thin check is fine.
-		assert cmd.factory in self.factories
+		# Well, we can have sells that is NOT factories.
+		if cmd.target in self.factories :
+			self.insert_event( cmd )
+
+	def insert_powerdown_evt( self, cmd ) :
+		# thin check is fine.
+		assert cmd.target in self.factories
 		self.insert_event( cmd )
 
 
@@ -114,16 +146,6 @@ class FactorySim() :
 			self.remove_evt_with_factory( factory )
 			fa.flush()
 
-		#if 0 :
-		#	print( "Factory 0x%08X" % fa.factory_id )
-		#	fivex = ""
-		#	if cmd.fivex :
-		#		fivex = "5x "
-		#	print( "\tp%d queues %s%s @%d" % ( cmd.player_id, fivex,
-		#		UNITNAMES[ cmd.unit_ty ], cmd.time_code ) )
-		#	print( "\t0x%08X" % cmd.unit_ty )
-		#	print()
-
 		self.insert_event( cmd )
 	
 
@@ -141,20 +163,33 @@ class FactorySim() :
 		index = fa.find_unheld()
 		if index < 0 :
 			# everything is on hold. do nothing.
-			print( "pop_factory: everything on hold" )
-			print()
-			return
-
-		# if something is already in construction...
-		if self.find_evt_cons_complete( fa.factory_id ) != -1 :
-			# something is already in construction.
-			# DONT QUEUE ANY MORE COMPLETION EVENT.
+			if FactorySim.verbose :
+				print( "pop_factory: everything on hold" )
+				print()
 			return
 
 		unit_ty = fa.order[ index ]
+
+		# if something is already in construction...
+		# perhaps we need to defer building it.
+		# (but not hold or cancel.)
+		index = self.find_evt_cons_complete( fa.factory_id )
+		if index >= 0 :
+			under_const = self.events[ index ]
+
+			# unheld + in progress. doesn't matter.
+			# don't have to do anything.
+			if unit_ty == under_const.unit_ty :
+				return
+
+			self.events.pop( index ) # remove this.
+			remaining_time = under_const.time_code - self.t
+			fa.countdown[ unit_ty ] # save it to remaining time.
+
 		if not unit_ty in UNITCOST :
 			# just ignore this event.
-			print( "no data for this unit 0x%08X" % unit_ty )
+			if FactorySim.verbose :
+				print( "no data for this unit 0x%08X" % unit_ty )
 			return
 
 		if unit_ty in fa.countdown :
@@ -164,7 +199,7 @@ class FactorySim() :
 		else :
 			# build_time is proportional to unit cost.
 			# 15 for second -> time_code conversion.
-			build_time = 15 * int( UNITCOST[unit_ty]/100 )
+			build_time = 15 * int( UNITCOST[unit_ty]/100 ) + 6 # extra 6 for unit exit delay;;;;;;;
 
 		evt = Command()
 		evt.cmd_id = EVT_CONS_COMPLETE
@@ -173,18 +208,20 @@ class FactorySim() :
 		evt.unit_ty = unit_ty
 		evt.factory = fa.factory_id
 
-		print( "Factory 0x%08X" % fa.factory_id )
-		print( "\tevt insert, end construction of", UNITNAMES[ unit_ty ] )
-		print( "\t0x%08X" % unit_ty )
-		print( "\tevt @", evt.time_code )
-		print()
+		if FactorySim.verbose :
+			print( "Factory 0x%08X" % fa.factory_id )
+			print( "\tevt insert, end construction of", UNITNAMES[ unit_ty ] )
+			print( "\t0x%08X" % unit_ty )
+			print( "\tevt @", evt.time_code )
+			print()
 		self.insert_event( evt )
 
 
 
 	def insert_event( self, cmd ) :
 		if cmd.time_code > self.end_time :
-			print( "unit production past end of game. not inserting." )
+			if FactorySim.verbose :
+				print( "unit production past end of game. not inserting." )
 			return
 
 		# find insertion point
@@ -206,10 +243,18 @@ class FactorySim() :
 		fa = self.factories[ evt.factory ]
 
 		if evt.unit_ty in fa.held :
-			print( "Factory 0x%08X" % fa.factory_id )
-			print( "\tResuming construction of", UNITNAMES[ evt.unit_ty ] )
-			print()
+			if FactorySim.verbose :
+				print( "Factory 0x%08X" % fa.factory_id )
+				print( "\tResuming construction of", UNITNAMES[ evt.unit_ty ] )
+				print()
 			del fa.held[ evt.unit_ty ] # unblock this thingy
+
+			# Well... lets start building rifle men and
+			# hold it. then build missile men and hold it.
+			# unhold missile man than unhold rifleman.
+			# What you get is, rifleman resuming first then missileman getting blocked until rifleman is done.
+			# If you change the order of unholding, the results are same.
+			# First queued is built first.
 		else :
 			# queue the entries to the factory.
 			if evt.fivex :
@@ -219,7 +264,7 @@ class FactorySim() :
 			for i in range( cnt ) :
 				fa.order.append( evt.unit_ty )
 
-			if 1 :
+			if FactorySim.verbose :
 				print( "Factory 0x%08X" % fa.factory_id )
 				fivex = ""
 				if evt.fivex :
@@ -236,10 +281,6 @@ class FactorySim() :
 
 
 	def process_evt_cons_complete( self, evt ) :
-		#for (key, val) in evt.__dict__.items() :
-		#	print( "\t"+key+":", val )
-		#print()
-
 		factory = self.factories[ evt.factory ]
 
 		# shouldn't find anything, as we only queue one at a time.
@@ -251,14 +292,15 @@ class FactorySim() :
 		index = factory.order.index( evt.unit_ty )
 		factory.order.pop( index )
 
+		if FactorySim.verbose :
+			print( "Factory 0x%08X" % factory.factory_id )
+			print( "\tp%d built %s @%d" % ( evt.player_id,
+				UNITNAMES[ evt.unit_ty ], evt.time_code ) )
+			print()
+
 		# proceed, if anything in factory queue.
 		if len( factory.order ) > 0 :
 			self.pop_factory( factory )
-
-		print( "Factory 0x%08X" % factory.factory_id )
-		print( "\tp%d built %s @%d" % ( evt.player_id,
-			UNITNAMES[ evt.unit_ty ], evt.time_code ) )
-		print()
 
 		return (evt.player_id, evt.time_code, UNITCOST[ evt.unit_ty ])
 	
@@ -271,6 +313,9 @@ class FactorySim() :
 		for i in range( len( self.events ) ) :
 			e = self.events[ i ]
 
+			if not hasattr( e, "factory" ) :
+				continue
+
 			if e.factory != factory :
 				continue
 
@@ -280,41 +325,72 @@ class FactorySim() :
 			index = i
 			cnt += 1
 
-		print( "find_evt_cons_complete:", cnt )
+		if FactorySim.verbose :
+			print( "find_evt_cons_complete:", cnt )
 		assert 0 <= cnt and cnt <= 1
 
 		return index
 
 
 
+	def process_evt_sell( self, evt ) :
+		# Kill all events associated with this factory.
+		for i in reversed( range( len( self.events ) ) ) :
+			e = self.events[ i ]
+			if not hasattr( e, "factory" ) :
+				continue
+			if e.factory == evt.target :
+				self.events.pop( i )
+
+	def process_evt_powerdown( self, evt ) :
+		fa = self.factories[ evt.target ]
+
+		# toggle power
+		fa.is_powered_down = not fa.is_powered_down
+
+		if fa.is_powered_down :
+			index = self.find_evt_cons_complete( fa.factory_id )
+			if index >= 0 :
+				self.events.pop( index )
+		else :
+			self.pop_factory( fa )
+
+
+
 	# modify factory to hold status.
 	def process_evt_hold( self, evt ) :
 		fa = self.factories[ evt.factory ]
-		print( "Factory 0x%08X, trying to hold." % fa.factory_id )
-		print( "\t0x%08X" % evt.unit_ty )
-		print( "\t", UNITNAMES[ evt.unit_ty ] )
-		print( "\t@", evt.time_code )
+		if FactorySim.verbose :
+			print( "Factory 0x%08X, trying to hold." % fa.factory_id )
+			print( "\t0x%08X" % evt.unit_ty )
+			print( "\t", UNITNAMES[ evt.unit_ty ] )
+			print( "\t@", evt.time_code )
+
+		# When I just right click on the interfact (without even starting the build)
+		# I get evt_hold!!!!!
+		# It means that I can't assert too much about index.
 
 		index = self.find_evt_cons_complete( fa.factory_id )
 
 		if evt.unit_ty in fa.held :
-			assert index == -1
+			# wrong... assert index == -1
+			# I could be canceling units XX while YY is being built.
+			if index != -1 :
+				assert self.events[ index ].unit_ty != evt.unit_ty
 
 			# already on hold!
 			if evt.cancel_all :
 				# cancel all
-				print( "\tAttempting cancel all" )
+				if FactorySim.verbose :
+					print( "\tAlready on hold. Attempting cancel all" )
 				fa.cancel_all( evt.unit_ty )
 			else :
 				# cancel one...
-				print( "\tcancel one of this." )
+				if FactorySim.verbose :
+					print( "\tAlready on hold. Cancel one of this." )
 				fa.cancel_one( evt.unit_ty )
-		else :
-			# remove building completion event.
-			# assert index != -1 wrong...
-			# why? something can be going on while i'm canceling.
-			# I can hold missile squad and reduce their number while
-			# riflemen are being trained.
+		elif index != -1 :
+			# can just right click on the side bar with nothing being built;;
 
 			compl = self.events[ index ]
 			if compl.unit_ty == evt.unit_ty :
@@ -325,11 +401,13 @@ class FactorySim() :
 				remaining_time = compl.time_code - evt.time_code
 				fa.countdown[ evt.unit_ty ] = remaining_time
 
-				print( "\tRemoving completion evt of", UNITNAMES[compl.unit_ty] )
+				if FactorySim.verbose :
+					print( "\tRemoving completion evt of", UNITNAMES[compl.unit_ty] )
 
 			fa.held[ evt.unit_ty ] = True # value doesn't matter, though.
 
-		print()
+		if FactorySim.verbose :
+			print()
 
 		# Multiple units may be queued already.
 		# In case of that, proceed to the next queued buildable type.
@@ -341,12 +419,6 @@ class FactorySim() :
 		if len( self.events ) == 0 :
 			return None
 
-		#print( "time codes:" )
-		#for evt in self.events :
-		#	print( evt.time_code, end=" " )
-		#print()
-		#print()
-
 		evt = self.events.pop( 0 )
 		self.t = evt.time_code # make time go.
 
@@ -356,6 +428,10 @@ class FactorySim() :
 			return self.process_evt_cons_complete( evt )
 		elif evt.cmd_id == EVT_HOLD :
 			return self.process_evt_hold( evt )
+		elif evt.cmd_id == EVT_SELL :
+			return self.process_evt_sell( evt )
+		elif evt.cmd_id == EVT_POWERDOWN :
+			return self.process_evt_powerdown( evt )
 		else :
 			return None
 
@@ -378,7 +454,6 @@ class ResourceAnalyzer() :
 		if len( self.kwr.replay_body.chunks ) > 0 :
 			chunk = self.kwr.replay_body.chunks[-1]
 			self.sim.end_time = chunk.time_code
-			print( "end_time:", self.sim.end_time )
 
 		# step 1. just collect how much is spent at time t, as a list.
 		for chunk in self.kwr.replay_body.chunks :
@@ -455,13 +530,14 @@ class ResourceAnalyzer() :
 			# hold.
 			cmd.decode_hold_cmd()
 			self.sim.insert_hold_evt( cmd )
-			pass
 		elif cmd.cmd_id == 0x34 :
 			# could be factory sell.
-			pass
+			cmd.decode_sell_cmd()
+			self.sim.insert_sell_evt( cmd )
 		elif cmd.cmd_id == 0x89 :
 			# could be factory powerdown.
-			pass
+			cmd.decode_powerdown_cmd()
+			self.sim.insert_powerdown_evt( cmd )
 
 
 
@@ -507,6 +583,7 @@ class ResourceAnalyzer() :
 			ts, costs = pair
 
 			plot, = plt.plot( ts, costs, label=player.name )
+			plt.setp( plot, marker="+" )
 			plots.append( plot )
 
 		#fp = font_manager.FontProperties()

@@ -267,6 +267,14 @@ class Command :
 	
 
 
+	def decode_sell_cmd( self ) :
+		self.target = uint42int( self.payload[ 1:5 ] )
+
+	def decode_powerdown_cmd( self ) :
+		self.decode_sell_cmd() # this works for powerdown, too.
+
+
+
 	def decode_queue_cmd( self ) :
 		data = self.payload
 
