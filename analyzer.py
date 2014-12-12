@@ -48,8 +48,21 @@ class Factory() :
 			if self.order[ i ] == ty :
 				self.order.pop( i )
 		del self.held[ ty ]
-		del self.countdown[ ty ]
+
+		# Well, countdown might not have begun.
+		# 1. build loads of riflemen
+		# 2. queue up missilemen too.
+		# 3. while riflemen are trained, cancel all missielemen.
+		if ty in self.countdown :
+			del self.countdown[ ty ]
 	
+	def flush( self ) :
+		self.countdown = {}
+		self.held = {}
+		self.is_powered_down = False
+		self.was_constructing = 0
+		self.order = []
+
 	def find_unheld( self ) :
 		for i in range( len( self.order ) ) :
 			ty = self.order[i]
@@ -97,11 +110,9 @@ class FactorySim() :
 		# the factory can be captured, u know.
 		if fa.player_id != cmd.player_id :
 			# flush current queue and events.
-			self.remove_evt_with_factory( factory )
 			fa.player_id = cmd.player_id
-			fa.countdown = {}
-			fa.was_constructing = 0
-			fa.order = []
+			self.remove_evt_with_factory( factory )
+			fa.flush()
 
 		#if 0 :
 		#	print( "Factory 0x%08X" % fa.factory_id )
@@ -292,6 +303,7 @@ class FactorySim() :
 			# already on hold!
 			if evt.cancel_all :
 				# cancel all
+				print( "\tAttempting cancel all" )
 				fa.cancel_all( evt.unit_ty )
 			else :
 				# cancel one...
@@ -299,7 +311,11 @@ class FactorySim() :
 				fa.cancel_one( evt.unit_ty )
 		else :
 			# remove building completion event.
-			assert index != -1
+			# assert index != -1 wrong...
+			# why? something can be going on while i'm canceling.
+			# I can hold missile squad and reduce their number while
+			# riflemen are being trained.
+
 			compl = self.events[ index ]
 			if compl.unit_ty == evt.unit_ty :
 				# if unit type same, remove hold event.
