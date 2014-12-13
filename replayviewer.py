@@ -247,7 +247,7 @@ class MapView( wx.StaticBitmap ) :
 		return img
 
 	# mc: mc of the replay to draw
-	def set_map_preview( self, fname, mc, scale=True ) :
+	def set_map_preview( self, fname, mc, scale=True, watermark=True ) :
 		# clear the image area first.
 		# w, h may change. we generate it on every map change for sure.
 		# Well, I can do that on size change but can't be bothered to do that...
@@ -271,7 +271,7 @@ class MapView( wx.StaticBitmap ) :
 			del no_log # restore
 
 			# if 1.02+, draw 1.02+ on the image
-			if fname.find( "1.02+" ) >= 0 :
+			if watermark and fname.find( "1.02+" ) >= 0 :
 				img = self.draw_102( img, mc )
 
 			self.map_previews[ mc+fname ] = img # keep it in memory
@@ -284,7 +284,7 @@ class MapView( wx.StaticBitmap ) :
 			self.SetBitmap( wx.Bitmap( img ) )
 	
 	# show map preview
-	def show( self, kwr, scale=True ) :
+	def show( self, kwr, scale=True, watermark=True ) :
 		# Examine the replay, determine what map it is.
 		#print( kwr.map_id ) always says fake map id, useless.
 		#print( kwr.map_name ) depends on language, not good.
@@ -308,7 +308,7 @@ class MapView( wx.StaticBitmap ) :
 			wx.TheClipboard.Close()
 
 		# Load it and show it on the interface.
-		self.set_map_preview( fname, kwr.mc, scale=scale )
+		self.set_map_preview( fname, kwr.mc, scale=scale, watermark=watermark )
 
 
 

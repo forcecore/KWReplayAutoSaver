@@ -131,8 +131,8 @@ class PosViewer( wx.Frame ) :
 
 		self.scale = max( fx, fy )
 		print( "SCALE:", self.scale )
-		self.scale = 0.045
-		self.y_offset = -30
+		#self.scale = 0.045
+		#self.y_offset = -25
 
 
 
@@ -215,7 +215,7 @@ class PosViewer( wx.Frame ) :
 		self.digest_pos_analyzer( posa )
 
 		# drawing related things
-		self.map_view.show( kwr, scale=False )
+		self.map_view.show( kwr, scale=False, watermark=False )
 		self.calc_scale_factor()
 
 		self.map_bmp = self.map_view.GetBitmap()
