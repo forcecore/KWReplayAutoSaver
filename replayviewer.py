@@ -175,8 +175,8 @@ class MapZip() :
 class MapView( wx.StaticBitmap ) :
 	# maps: mapzip file name
 	# mcmap: map CRC mapping to discern which 1.02+ map it is.
-	def __init__( self, parent, maps, mcmap, size=(200,200) ) :
-		super().__init__( parent, size=size )
+	def __init__( self, parent, maps, mcmap, size=(200,200), pos=(0,0) ) :
+		super().__init__( parent, size=size, pos=pos )
 
 		# Like self.replay_items, load map images into memory and keep them
 		# it doesn't load everything from the beginning. it is loaded on request in
@@ -247,7 +247,7 @@ class MapView( wx.StaticBitmap ) :
 		return img
 
 	# mc: mc of the replay to draw
-	def set_map_preview( self, fname, mc ) :
+	def set_map_preview( self, fname, mc, scale=True ) :
 		# clear the image area first.
 		# w, h may change. we generate it on every map change for sure.
 		# Well, I can do that on size change but can't be bothered to do that...
@@ -276,12 +276,15 @@ class MapView( wx.StaticBitmap ) :
 
 			self.map_previews[ mc+fname ] = img # keep it in memory
 
-		(w, h) = self.calc_best_wh( img )
-		resized = img.Scale( w, h)
-		self.SetBitmap( wx.Bitmap( resized ) )
+		if scale == True :
+			(w, h) = self.calc_best_wh( img )
+			resized = img.Scale( w, h)
+			self.SetBitmap( wx.Bitmap( resized ) )
+		else :
+			self.SetBitmap( wx.Bitmap( img ) )
 	
 	# show map preview
-	def show( self, kwr ) :
+	def show( self, kwr, scale=True ) :
 		# Examine the replay, determine what map it is.
 		#print( kwr.map_id ) always says fake map id, useless.
 		#print( kwr.map_name ) depends on language, not good.
@@ -305,7 +308,7 @@ class MapView( wx.StaticBitmap ) :
 			wx.TheClipboard.Close()
 
 		# Load it and show it on the interface.
-		self.set_map_preview( fname, kwr.mc )
+		self.set_map_preview( fname, kwr.mc, scale=scale )
 
 
 

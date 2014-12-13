@@ -755,6 +755,7 @@ class PositionDumper() :
 	def __init__( self, kwr_chunks ) :
 		self.kwr = kwr_chunks
 		self.nplayers = len( self.kwr.players )
+		self.commandss = None # populated by calc()
 
 
 
@@ -771,46 +772,62 @@ class PositionDumper() :
 
 
 
-	def dump_csv( self ) :
-		commandss = self.group_commands_by_pid()
+	def decode_commands( self, commands ) :
+		for cmd in commands :
+			if cmd.cmd_id == 0x27 : # use skill
+				cmd.decode_skill_xy()
 
+			elif cmd.cmd_id == 0x31 : # place down building
+				cmd.decode_placedown_cmd()
+
+			elif 0x46 <= cmd.cmd_id and cmd.cmd_id <= 0x48 :
+				cmd.decode_move_cmd() # this works for 'em all.
+
+			elif cmd.cmd_id == 0x7A : # formation move
+				cmd.decode_formation_move_cmd()
+
+			elif cmd.cmd_id == 0x8A : # wormhole
+				cmd.decode_skill_2xy()
+
+			elif cmd.cmd_id == 0x8E : # move
+				cmd.decode_move_cmd()
+
+
+
+	def filter_commands( self, commands ) :
+		result = []
+		for cmd in commands :
+			if cmd.cmd_id in [ 0x27, 0x31, 0x46, 0x47, 0x48, 0x7A, 0x8A, 0x8E ] :
+				result.append( cmd )
+		return result
+
+
+
+	def calc( self ) :
+		commandss = self.group_commands_by_pid()
+		for i in range( len( commandss ) ) :
+			commandss[ i ] = self.filter_commands( commandss[ i ] )
+			self.decode_commands( commandss[ i ] )
+
+		self.commandss = commandss
+
+
+
+	def dump_csv( self ) :
 		for pid in range( self.nplayers ) :
 			player = self.kwr.players[ pid ]
 			if not player.is_player() :
 				continue
 
 			print( "p" + str(pid ) )
-			commands = commandss[ pid ]
+			commands = self.commandss[ pid ]
 
 			for cmd in commands :
-				if cmd.cmd_id == 0x27 : # use skill
-					cmd.decode_skill_xy()
-					#print( "0x%08X" % cmd.cmd_id )
-					print( "%f,%f" % (cmd.x, cmd.y ) )
-
-				elif cmd.cmd_id == 0x31 : # place down building
-					cmd.decode_placedown_cmd()
-					#print( "0x%08X" % cmd.cmd_id )
-					print( "%f,%f" % (cmd.x, cmd.y ) )
-
-				elif 0x46 <= cmd.cmd_id and cmd.cmd_id <= 0x48 :
-					cmd.decode_move_cmd() # this works for 'em all.
-					#print( "0x%08X" % cmd.cmd_id )
-					print( "%f,%f" % (cmd.x, cmd.y ) )
-
-				elif cmd.cmd_id == 0x7A : # formation move
-					cmd.decode_formation_move_cmd()
-					#print( "0x%08X" % cmd.cmd_id )
-					print( "%f,%f" % (cmd.x, cmd.y ) )
-
-				elif cmd.cmd_id == 0x8A : # wormhole
-					cmd.decode_skill_2xy()
+				if cmd.cmd_id == 0x8A : # wormhole
 					#print( "0x%08X" % cmd.cmd_id )
 					print( "%f,%f" % (cmd.x1, cmd.y1 ) )
 					print( "%f,%f" % (cmd.x2, cmd.y2 ) )
-
-				elif cmd.cmd_id == 0x8E : # move
-					cmd.decode_move_cmd()
+				else :
 					#print( "0x%08X" % cmd.cmd_id )
 					print( "%f,%f" % (cmd.x, cmd.y ) )
 
@@ -821,7 +838,7 @@ class PositionDumper() :
 
 
 if __name__ == "__main__" :
-	fname = "test.KWReplay"
+	fname = "1.KWReplay"
 	if len( sys.argv ) >= 2 :
 		fname = sys.argv[1]
 	kw = KWReplayWithCommands( fname=fname, verbose=False )
@@ -836,4 +853,5 @@ if __name__ == "__main__" :
 	#res.plot()
 
 	pos = PositionDumper( kw )
+	pos.calc()
 	pos.dump_csv()
