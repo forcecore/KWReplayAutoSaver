@@ -2,6 +2,8 @@
 from args import Args
 from kwreplay import Player, KWReplay
 from watcher import Watcher
+from chunks import KWReplayWithCommands
+from gnuplot import Gnuplot
 import os
 import io
 import time
@@ -10,6 +12,7 @@ import zipfile
 import subprocess
 import hashlib
 import wx
+import analyzer
 
 KWICO='KW.ico'
 
@@ -913,9 +916,12 @@ class ReplayViewer( wx.Frame ) :
 		self.set_icon()
 
 		self.rep_list.set_path( path )
+		self.make_menu()
 
 		# don't need DB. we just set the image name right.
 		#self.map_db = self.load_map_db( 'MapDB.txt' )
+
+
 
 	# Obsolete but, a working code. Keeping it in case I need it in future.
 	def load_map_db( self, fname ) :
@@ -1087,6 +1093,85 @@ class ReplayViewer( wx.Frame ) :
 		fil = self.filter_text.GetValue()
 		self.rep_list.populate( self.rep_list.replay_items, filter=fil )
 
+
+
+	# For common use in analysis stuff...
+	def get_selected_replay( self ) :
+		if self.rep_list.GetSelectedItemCount() == 0 :
+			msg = "No replay is selected for analysis."
+			wx.MessageBox( msg, "Error", wx.OK|wx.ICON_ERROR )
+			return None
+		elif self.rep_list.GetSelectedItemCount() == 1 :
+			pos = self.rep_list.GetFocusedItem()
+			rep_name = self.rep_list.GetItem( pos, 0 ).GetText()
+			fname = os.path.join( self.rep_list.path, rep_name )
+			return fname
+		else :
+			msg = "Only one replay must be selected for analysis"
+			wx.MessageBox( msg, "Error", wx.OK|wx.ICON_ERROR )
+			return None
+
+
+
+	# For common use in analysis stuff...
+	def save_as_csv_diag( self ) :
+		diag = wx.FileDialog( self, "Save as CSV", "", "",
+			"CSV File (*.csv)|*.csv",
+			wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT )
+		
+		if diag.ShowModal() != wx.ID_OK :
+			return None
+
+		ofname = diag.GetPath()
+		diag.Destroy()
+		return ofname
+
+
+
+	def on_apm_csv( self, evt ) :
+		# Check if replay is selected.
+		fname = self.get_selected_replay()
+		if not fname :
+			# error message is shown by get_selected_replay.
+			return
+		ofname = self.save_as_csv_diag()
+		if not ofname :
+			return
+	
+		kwr_chunks = KWReplayWithCommands( fname=fname, verbose=False )
+		ana = analyzer.APMAnalyzer( kwr_chunks )
+		f = open( ofname, "w" )
+		ana.emit_apm_csv( 10, file=f )
+		f.close()
+	
+
+
+	def gnuplot_ok( self ) :
+		gp = Gnuplot.find_gnuplot()
+		if not gp :
+			wx.MessageBox( msg, "GNUplot is not installed.", wx.OK|wx.ICON_ERROR )
+			return False
+		else :
+			return True
+	
+
+
+	def on_plot_apm( self, evt ) :
+		# Check if replay is selected.
+		fname = self.get_selected_replay()
+		if not fname :
+			# error message is shown by get_selected_replay.
+			return
+
+		if not self.gnuplot_ok() :
+			return
+
+		kwr_chunks = KWReplayWithCommands( fname=fname, verbose=False )
+		ana = analyzer.APMAnalyzer( kwr_chunks )
+		ana.plot( 10 )
+
+
+
 	def event_bindings( self ) :
 		self.refresh_btn.Bind( wx.EVT_BUTTON, self.on_refresh_btnClick )
 
@@ -1098,6 +1183,25 @@ class ReplayViewer( wx.Frame ) :
 		self.apply_btn.Bind( wx.EVT_BUTTON, self.on_filter_applyClick )
 		self.nofilter_btn.Bind( wx.EVT_BUTTON, self.on_nofilter_btnClick )
 		self.filter_text.Bind( wx.EVT_TEXT_ENTER, self.on_filter_applyClick )
+
+
+
+	def make_menu( self ) :
+		menubar = wx.MenuBar()
+		analysis_menu = wx.Menu()
+		menubar.Append( analysis_menu, "&Analysis" )
+
+		# APM to CSV
+		apm_csv_menu_item = analysis_menu.Append( wx.NewId(), "Dump APM to CSV file",
+				"Analyze the replay and calculate actions per minute of each player" )
+		analysis_menu.Bind( wx.EVT_MENU, self.on_apm_csv, apm_csv_menu_item )
+
+		# Plot APM
+		plot_apm_menu_item = analysis_menu.Append( wx.NewId(), "Plot &APM",
+				"Analyze the replay and calculate actions per minute of each player" )
+		analysis_menu.Bind( wx.EVT_MENU, self.on_plot_apm, plot_apm_menu_item )
+
+		self.SetMenuBar( menubar )
 
 
 

@@ -5,8 +5,7 @@ import subprocess
 
 class Gnuplot() :
 	def __init__( self ) :
-		self.is_win32 = (sys.platform == 'win32')
-		self.gnuplot_path = self.find_gnuplot()
+		self.gnuplot_path = Gnuplot.find_gnuplot()
 		#self.linestyle_id = 0
 		self.xss = []
 		self.yss = []
@@ -61,8 +60,9 @@ class Gnuplot() :
 		self.f.stdin.write( bytes( cmd, "UTF-8" ) )
 		self.f.stdin.flush()
 	
-	def find_gnuplot( self ) :
-		if not self.is_win32:
+	def find_gnuplot() :
+		is_win32 = (sys.platform == 'win32')
+		if not is_win32:
 			gnuplot = "/usr/bin/gnuplot"
 			if os.path.isfile( gnuplot ) :
 				return gnuplot
