@@ -1143,7 +1143,26 @@ class ReplayViewer( wx.Frame ) :
 		f = open( ofname, "w" )
 		ana.emit_apm_csv( 10, file=f )
 		f.close()
+
+
+
+	def on_res_csv( self, evt ) :
+		# Check if replay is selected.
+		fname = self.get_selected_replay()
+		if not fname :
+			# error message is shown by get_selected_replay.
+			return
+		ofname = self.save_as_csv_diag()
+		if not ofname :
+			return
 	
+		kwr_chunks = KWReplayWithCommands( fname=fname, verbose=False )
+		ana = analyzer.ResourceAnalyzer( kwr_chunks )
+		ana.calc()
+		f = open( ofname, "w" )
+		ana.emit_csv( file=f )
+		f.close()
+
 
 
 	def gnuplot_ok( self ) :
@@ -1172,6 +1191,23 @@ class ReplayViewer( wx.Frame ) :
 
 
 
+	def on_plot_res( self, evt ) :
+		# Check if replay is selected.
+		fname = self.get_selected_replay()
+		if not fname :
+			# error message is shown by get_selected_replay.
+			return
+
+		if not self.gnuplot_ok() :
+			return
+
+		kwr_chunks = KWReplayWithCommands( fname=fname, verbose=False )
+		ana = analyzer.ResourceAnalyzer( kwr_chunks )
+		ana.calc()
+		ana.plot()
+
+
+
 	def event_bindings( self ) :
 		self.refresh_btn.Bind( wx.EVT_BUTTON, self.on_refresh_btnClick )
 
@@ -1191,15 +1227,25 @@ class ReplayViewer( wx.Frame ) :
 		analysis_menu = wx.Menu()
 		menubar.Append( analysis_menu, "&Analysis" )
 
+		# Plot APM
+		plot_apm_menu_item = analysis_menu.Append( wx.NewId(), "Plot &APM",
+				"Analyze the replay and calculate actions per minute of each player" )
+		analysis_menu.Bind( wx.EVT_MENU, self.on_plot_apm, plot_apm_menu_item )
+
+		# Plot Resource
+		plot_res_menu_item = analysis_menu.Append( wx.NewId(), "Plot &Resource Spent",
+				"Analyze the replay and calculate resource spent of each player" )
+		analysis_menu.Bind( wx.EVT_MENU, self.on_plot_res, plot_res_menu_item )
+
 		# APM to CSV
 		apm_csv_menu_item = analysis_menu.Append( wx.NewId(), "Dump APM to CSV file",
 				"Analyze the replay and calculate actions per minute of each player" )
 		analysis_menu.Bind( wx.EVT_MENU, self.on_apm_csv, apm_csv_menu_item )
 
-		# Plot APM
-		plot_apm_menu_item = analysis_menu.Append( wx.NewId(), "Plot &APM",
-				"Analyze the replay and calculate actions per minute of each player" )
-		analysis_menu.Bind( wx.EVT_MENU, self.on_plot_apm, plot_apm_menu_item )
+		# Res to CSV
+		res_csv_menu_item = analysis_menu.Append( wx.NewId(), "Dump Resource Spent to CSV file",
+				"Analyze the replay and calculate resource spent of each player" )
+		analysis_menu.Bind( wx.EVT_MENU, self.on_res_csv, res_csv_menu_item )
 
 		self.SetMenuBar( menubar )
 
