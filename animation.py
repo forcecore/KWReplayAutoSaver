@@ -154,6 +154,140 @@ class Timeline( wx.Panel ) :
 	def __init__( self, parent ) :
 		super().__init__( parent )
 		self.SetBackgroundColour( (0,0,0) )
+		self.eventsss = None
+		self.t = -1
+		# eventsss[t][pid] = events of that player at time t.
+
+		# the important, paint binding.
+		self.Bind( wx.EVT_PAINT, self.OnPaint )
+	
+
+
+	def draw_midline( self, dc ) :
+		line_spacing = 20
+		line_len = 5
+
+		w, h = dc.GetSize()
+		x = int( w/2 )
+		y = 0
+		dc.SetPen( wx.Pen( "#ff7fff" ) ) # pink
+		while y < h :
+			dc.DrawLine( x, y, x, y + line_len )
+			y += line_spacing
+	
+
+
+	
+
+
+	def draw_player_timeline( self, dc, pid ) :
+		self.draw_time_grid( dc, pid )
+	
+	def draw_time_pin( self, dc, t, x, Y, pin_len ) :
+		dc.DrawLine( x, Y, x, Y-pin_len )
+		dc.DrawText( time_code2str(t), x, Y+5 )
+
+	def draw_time_grid( self, dc, pid ) :
+		Y = (pid+1) * 200 # 200 pixels high
+
+		pin_spacing = 80 # 20 pixels of "second" grids.
+		pin_len = 5 # 5 pixels.
+		
+		w, h = dc.GetSize()
+
+		dc.SetPen( wx.Pen( wx.WHITE ) )
+		dc.SetTextForeground( wx.WHITE )
+
+		# major time line
+		dc.DrawLine( 0, Y, w-1, Y )
+
+		# grids
+		mid = int( w/2 )
+		x = w - pin_spacing * int( w / pin_spacing )
+		t = self.t - int( mid/pin_spacing )
+		while x < w :
+			if t < 0 :
+				t += 1
+				x += pin_spacing
+				continue
+			self.draw_time_pin( dc, t, x, Y, pin_len )
+			x += pin_spacing
+			t += 1
+
+		# draw label (text) to indicate what they are.
+
+
+
+	def OnPaint( self, evt ) :
+		if not self :
+			return
+		if self.t < 0 :
+			return
+	
+		dc = wx.PaintDC( self )
+
+		# draw vertical line at the center.
+		self.draw_midline( dc )
+
+		row = 0
+		for pid in range( self.nplayers ) :
+			if not self.kwr.players[ pid ].is_player() :
+				continue
+			self.draw_player_timeline( dc, row )
+			row += 1
+
+		del dc
+
+
+
+	def feed( self, t, cmd ) :
+		self.eventsss[ t ][ cmd.player_id ].append( cmd )
+
+	# populate eventsss
+	def process( self, kwr_chunks ) :
+		self.kwr = kwr_chunks
+
+		self.nplayers = len( self.kwr.players )
+
+		end_time = int( self.kwr.replay_body.chunks[-1].time_code/15 )
+		self.eventsss = [ None ] * (end_time+1) # cos eventss[end_time] must be accessible.
+		for i in range( len( self.eventsss ) ) :
+			# eventss[pid] = events.
+			eventss = [ [] for i in range( self.nplayers ) ]
+			self.eventsss[ i ] = eventss
+
+		for chunk in self.kwr.replay_body.chunks :
+			time = int( chunk.time_code/15 )
+			for cmd in chunk.commands :
+				if cmd.cmd_id == 0x31 :
+					cmd.decode_placedown_cmd()
+					self.feed( time, cmd )
+				elif cmd.cmd_id == 0x26 :
+					cmd.decode_skill_targetless()
+					self.feed( time, cmd )
+				elif cmd.cmd_id == 0x27 :
+					cmd.decode_skill_xy()
+					self.feed( time, cmd )
+				elif cmd.cmd_id == 0x28 :
+					cmd.decode_skill_target()
+					self.feed( time, cmd )
+				elif cmd.cmd_id == 0x2B :
+					cmd.decode_upgrade_cmd()
+					self.feed( time, cmd )
+				elif cmd.cmd_id == 0x2D :
+					cmd.decode_queue_cmd()
+					self.feed( time, cmd )
+				elif cmd.cmd_id == 0x2E :
+					# hold/cancel/cancel all production
+					self.feed( time, cmd )
+				elif cmd.cmd_id == 0x8A :
+					cmd.decode_skill_2xy()
+					self.feed( time, cmd )
+				elif cmd.cmd_id == 0x34 :
+					self.feed( time, cmd ) # sell
+				elif cmd.cmd_id == 0x91 :
+					cmd.pid = cmd.payload[1]
+					self.feed( time, cmd )
 
 
 
@@ -224,10 +358,10 @@ class PosViewer( wx.Frame ) :
 		# Map view + controls sizer panel
 		top_sizer = self.create_top_panel( self )
 
-		self.mid_panel = Timeline( self )
+		self.timeline = Timeline( self )
 
 		sizer.Add( top_sizer, 0, wx.EXPAND )
-		sizer.Add( self.mid_panel, 1, wx.EXPAND )
+		sizer.Add( self.timeline, 1, wx.EXPAND )
 		sizer.Add( self.slider, 0, wx.EXPAND )
 		self.SetSizer( sizer )
 
@@ -251,6 +385,8 @@ class PosViewer( wx.Frame ) :
 		t = evt.GetPosition()
 		self.time.SetLabel( time_code2str( t ) )
 		self.minimap.draw_positions( t )
+		self.timeline.t = t
+		self.timeline.Refresh()
 	
 
 
@@ -280,6 +416,9 @@ class PosViewer( wx.Frame ) :
 		self.slider.SetMax( self.length )
 		self.slider.SetValue( 0 )
 		self.time.SetLabel( "00:00:00" )
+
+		# pass the events to the timeline class.
+		self.timeline.process( self.kwr )
 
 		# analyze positions
 		posa = PositionDumper( kwr )
