@@ -47,9 +47,6 @@ class MiniMap( MapView ) :
 				'#7f667f', # Pink
 			]
 	
-	def show( self, kwr, scale=True, watermark=True ) :
-		super().show( self.kwr, scale=scale, watermark=watermark )
-
 
 
 	def calc_scale_factor( self ) :
@@ -183,8 +180,8 @@ class PosViewer( wx.Frame ) :
 		self.time = None
 		self.do_layout()
 		self.event_bindings()
-
 	
+
 
 	def create_top_panel( self, parent ) :
 		#panel = wx.Panel( parent, -1 )
@@ -205,11 +202,11 @@ class PosViewer( wx.Frame ) :
 		lbl_time = wx.StaticText( rpanel, label="time:", pos=(5,95) )
 		self.time = wx.StaticText( rpanel, label="", pos=(50,95) )
 
-		self.txt_scale   = wx.TextCtrl( rpanel, size=(50,-1), pos=(50,5) )
-		self.txt_xoffset = wx.TextCtrl( rpanel, size=(50,-1), pos=(50,35) )
-		self.txt_yoffset = wx.TextCtrl( rpanel, size=(50,-1), pos=(50,65) )
+		self.txt_scale   = wx.TextCtrl( rpanel, size=(60,-1), pos=(50,5) )
+		self.txt_xoffset = wx.TextCtrl( rpanel, size=(60,-1), pos=(50,35) )
+		self.txt_yoffset = wx.TextCtrl( rpanel, size=(60,-1), pos=(50,65) )
 
-		self.btn_apply = wx.Button( rpanel, label="Apply", pos=(100,35) )
+		self.btn_apply = wx.Button( rpanel, label="Apply", pos=(120,35) )
 
 		sizer.Add( lpanel, 0 )
 		sizer.Add( rpanel, 1, wx.EXPAND )
@@ -238,6 +235,15 @@ class PosViewer( wx.Frame ) :
 
 	def event_bindings( self ) :
 		self.slider.Bind( wx.EVT_SCROLL, self.on_scroll )
+		self.btn_apply.Bind( wx.EVT_BUTTON, self.on_apply )
+	
+
+
+	def on_apply( self, evt ) :
+		self.minimap.scale = float( self.txt_scale.GetValue() )
+		self.minimap.x_offset = float( self.txt_xoffset.GetValue() )
+		self.minimap.y_offset = float( self.txt_yoffset.GetValue() )
+		self.minimap.Refresh()
 
 
 
@@ -285,6 +291,11 @@ class PosViewer( wx.Frame ) :
 		self.minimap.kwr = kwr
 		self.minimap.show( kwr, scale=False, watermark=False )
 		self.minimap.calc_scale_factor()
+
+		# populate the text boxes with the factors.
+		self.txt_xoffset.SetValue( str( self.minimap.x_offset ) )
+		self.txt_yoffset.SetValue( str( self.minimap.y_offset ) )
+		self.txt_scale.SetValue( str( self.minimap.scale ) )
 
 		#self.map_bmp = self.minimap.GetBitmap()
 		# At this point, the original state will be captured in the overlay.
