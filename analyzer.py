@@ -7,6 +7,46 @@ from consts import UNITCOST, POWERCOST, UPGRADECOST, UNITNAMES
 
 
 
+def merge_lines( f, players, xss, yss ) :
+	# data check.
+	for xs, ys in zip( xss, yss ) :
+		assert len(xs) == len(ys)
+
+	# Lets extend short ones...
+	# find the longest.
+	max_len = 0
+	for xs in xss :
+		max_len = max( max_len, len( xs ) )
+
+	# extend shorter ones.
+	for xs in xss :
+		while len( xs ) < max_len :
+			xs.append( -1 )
+	for ys in yss :
+		while len( ys ) < max_len :
+			ys.append( -1 )
+	
+	# We are now ready to dump.
+	for player in players :
+		print( "%s,," % player, end="", file=f )
+	print( file=f )
+
+	# print merged! finally.
+	for i in range( max_len ) :
+		line = []
+		for xs, ys in zip( xss, yss ) :
+			if xs[i] >= 0 :
+				line.append( str( xs[i] ) )
+			else :
+				line.append( "" )
+			if ys[i] >= 0 :
+				line.append( str( ys[i] ) )
+			else :
+				line.append( "" )
+		print( ",".join( line ), file=f )
+
+
+
 # Build queue simulator.
 class Factory() :
 	def __init__( self ) :
@@ -594,6 +634,33 @@ class ResourceAnalyzer() :
 
 		plt.legend( labels )
 		plt.show()
+	
+
+
+	def emit_csv( self, file=None ) :
+		if file == None :
+			file=sys.stdout
+
+		xss = []
+		yss = []
+		players = []
+
+		for i in range( self.nplayers ) :
+			player = self.kwr.players[i]
+			if not player.is_player() :
+				continue
+
+			pair = self.split( self.spents[ i ] )
+			if not pair :
+				continue
+			ts, costs = pair
+
+			xss.append( ts )
+			yss.append( costs )
+			players.append( player.name )
+
+		print( "t,$$$ spent", file=file )
+		merge_lines( file, players, xss, yss )
 
 
 
@@ -828,13 +895,14 @@ if __name__ == "__main__" :
 	kw = KWReplayWithCommands( fname=fname, verbose=False )
 	#kw.replay_body.dump_commands()
 
-	ana = APMAnalyzer( kw )
-	ana.plot( 10 )
+	#ana = APMAnalyzer( kw )
+	#ana.plot( 10 )
 	# or ana.emit_apm_csv( 10, file=sys.stdout )
 
 	res = ResourceAnalyzer( kw )
 	res.calc()
-	res.plot()
+	res.emit_csv()
+	#res.plot()
 
 	#pos = PositionDumper( kw )
 	#pos.calc()
