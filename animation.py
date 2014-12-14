@@ -74,7 +74,7 @@ class MiniMap( MapView ) :
 		fx = W/X
 		fy = H/Y
 
-		self.scale = max( fx, fy )
+		self.scale = min( fx, fy )
 
 
 	def draw_dot( self, dc, x, y, color ) :
@@ -99,6 +99,8 @@ class MiniMap( MapView ) :
 
 	def OnPaint( self, evt ) :
 		if not self :
+			return
+		if self.scale == 0 :
 			return
 		if self.posa == None :
 			return
@@ -178,22 +180,28 @@ class PosViewer( wx.Frame ) :
 	
 
 	def create_top_panel( self, parent ) :
-		panel = wx.Panel( parent )
-		panel.SetBackgroundColour( (0,0,0) )
+		#panel = wx.Panel( parent, -1 )
+		#panel.SetBackgroundColour( (255,0,0) )
 
 		sizer = wx.BoxSizer( wx.HORIZONTAL )
 
 		# map view
-		self.minimap = MiniMap( panel, self.MAPS_ZIP, self.args.mcmap, size=(400,400) )
+		lpanel = wx.Panel( parent, -1 )
+		self.minimap = MiniMap( lpanel, self.MAPS_ZIP, self.args.mcmap, size=(300,300) )
 
 		# map control panel
-		panel_map_ctrl = wx.Panel( self )
-		panel_map_ctrl.SetBackgroundColour( (255,0,0) )
-		sizer.Add( self.minimap, 0, wx.ALIGN_LEFT|wx.ALIGN_TOP )
-		sizer.Add( panel_map_ctrl, 1, wx.EXPAND )
+		rpanel = wx.Panel( parent, -1 )
 
-		panel.SetSizer( sizer )
-		return panel
+		scale = wx.StaticText( rpanel, label="Scale:", pos=(5,5) )
+		xoffset = wx.StaticText( rpanel, label="x offset:", pos=(5,15) )
+		yoffset = wx.StaticText( rpanel, label="y offset:", pos=(5,25) )
+
+		sizer.Add( lpanel, 0 )
+		sizer.Add( rpanel, 1, wx.EXPAND )
+		#panel.SetSizer( sizer )
+		return sizer
+
+
 
 	def do_layout( self ) :
 		sizer = wx.BoxSizer( wx.VERTICAL )
@@ -202,9 +210,9 @@ class PosViewer( wx.Frame ) :
 		self.time = wx.StaticText( self, label="" )
 
 		# Map view + controls sizer panel
-		top_panel = self.create_top_panel( self )
+		top_sizer = self.create_top_panel( self )
 
-		sizer.Add( top_panel, 1, wx.EXPAND )
+		sizer.Add( top_sizer, 1, wx.EXPAND )
 		sizer.Add( self.time, 0, wx.EXPAND )
 		sizer.Add( self.slider, 0, wx.EXPAND )
 		self.SetSizer( sizer )
