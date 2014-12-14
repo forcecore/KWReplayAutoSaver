@@ -4,6 +4,7 @@ from kwreplay import Player, KWReplay
 from watcher import Watcher
 from chunks import KWReplayWithCommands
 from gnuplot import Gnuplot
+import sys
 import os
 import io
 import time
@@ -1126,6 +1127,19 @@ class ReplayViewer( wx.Frame ) :
 		diag.Destroy()
 		return ofname
 
+	# For common use in analysis stuff...
+	def save_as_txt_diag( self ) :
+		diag = wx.FileDialog( self, "Save as Text", "", "",
+			"TXT File (*.txt)|*.txt",
+			wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT )
+		
+		if diag.ShowModal() != wx.ID_OK :
+			return None
+
+		ofname = diag.GetPath()
+		diag.Destroy()
+		return ofname
+
 
 
 	def on_apm_csv( self, evt ) :
@@ -1205,6 +1219,72 @@ class ReplayViewer( wx.Frame ) :
 		ana = analyzer.ResourceAnalyzer( kwr_chunks )
 		ana.calc()
 		ana.plot()
+	
+
+
+	def on_build_order( self, evt ) :
+		# Check if replay is selected.
+		fname = self.get_selected_replay()
+		if not fname :
+			# error message is shown by get_selected_replay.
+			return
+
+		ofname = self.save_as_txt_diag()
+		if not ofname :
+			return
+
+		kwr_chunks = KWReplayWithCommands( fname=fname, verbose=False )
+		tmp = sys.stdout # intercept stdout temporarily.
+		f = open( ofname, "w" )
+		sys.stdout = f
+		kwr_chunks.replay_body.print_known()
+		f.close()
+		sys.stdout = tmp
+
+
+
+	def on_dump_cmds( self, evt ) :
+		# Check if replay is selected.
+		fname = self.get_selected_replay()
+		if not fname :
+			# error message is shown by get_selected_replay.
+			return
+
+		ofname = self.save_as_txt_diag()
+		if not ofname :
+			return
+
+		kwr_chunks = KWReplayWithCommands( fname=fname, verbose=False )
+		tmp = sys.stdout # intercept stdout temporarily.
+		f = open( ofname, "w" )
+		sys.stdout = f
+		kwr_chunks.replay_body.dump_commands()
+		f.close()
+		sys.stdout = tmp
+	
+
+
+	def on_dump_dist( self, evt ) :
+		# Check if replay is selected.
+		fname = self.get_selected_replay()
+		if not fname :
+			# error message is shown by get_selected_replay.
+			return
+
+		ofname = self.save_as_txt_diag()
+		if not ofname :
+			return
+
+		kwr_chunks = KWReplayWithCommands( fname=fname, verbose=False )
+		ana = analyzer.ResourceAnalyzer( kwr_chunks )
+		ana.calc()
+
+		tmp = sys.stdout # intercept stdout temporarily.
+		f = open( ofname, "w" )
+		sys.stdout = f
+		ana.print_unit_distribution()
+		f.close()
+		sys.stdout = tmp
 
 
 
@@ -1237,6 +1317,19 @@ class ReplayViewer( wx.Frame ) :
 				"Analyze the replay and calculate resource spent of each player" )
 		analysis_menu.Bind( wx.EVT_MENU, self.on_plot_res, plot_res_menu_item )
 
+		# dump build order
+		build_order_menu_item = analysis_menu.Append( wx.NewId(), "Dump &Build Order",
+				"Dump build order to file" )
+		analysis_menu.Bind( wx.EVT_MENU, self.on_build_order, build_order_menu_item )
+
+		# dump commands
+		dump_cmds_menu_item = analysis_menu.Append( wx.NewId(), "Dump &Commands",
+				"Dump commands to file" )
+		analysis_menu.Bind( wx.EVT_MENU, self.on_dump_cmds, dump_cmds_menu_item )
+
+		# Sep.
+		analysis_menu.AppendSeparator()
+
 		# APM to CSV
 		apm_csv_menu_item = analysis_menu.Append( wx.NewId(), "Dump APM to CSV file",
 				"Analyze the replay and calculate actions per minute of each player" )
@@ -1246,6 +1339,11 @@ class ReplayViewer( wx.Frame ) :
 		res_csv_menu_item = analysis_menu.Append( wx.NewId(), "Dump Resource Spent to CSV file",
 				"Analyze the replay and calculate resource spent of each player" )
 		analysis_menu.Bind( wx.EVT_MENU, self.on_res_csv, res_csv_menu_item )
+
+		# dump commands
+		dump_dist_menu_item = analysis_menu.Append( wx.NewId(), "Dump Unit Distribution",
+				"Dump unit distribution to file" )
+		analysis_menu.Bind( wx.EVT_MENU, self.on_dump_dist, dump_dist_menu_item )
 
 		self.SetMenuBar( menubar )
 

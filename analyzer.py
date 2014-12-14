@@ -342,7 +342,7 @@ class FactorySim() :
 		if len( factory.order ) > 0 :
 			self.pop_factory( factory )
 
-		return (evt.player_id, evt.time_code, UNITCOST[ evt.unit_ty ])
+		return (evt.player_id, evt.time_code, UNITCOST[ evt.unit_ty ], evt.unit_ty)
 	
 
 
@@ -483,7 +483,8 @@ class ResourceAnalyzer() :
 		self.nplayers = len( self.kwr.players )
 		self.sim = FactorySim()
 
-		self.spents = [ None ] * self.nplayers # remember who spent what.
+		self.spents = [ [] for i in range( self.nplayers ) ] # remember who spent what.
+		self.units = [ {} for i in range( self.nplayers ) ] # remember who built what how many.
 		# spents[ pid ] = [ (t1, cost1), (t2, cost2), ... ]
 
 
@@ -504,21 +505,45 @@ class ResourceAnalyzer() :
 		while len( self.sim.events ) > 0 :
 			spent = self.sim.run()
 			if spent :
-				pid, time_code, cost = spent
+				pid, time_code, cost, unit = spent
 				t = int( time_code / 15 )
 				self.spents[ pid ].append( (t, cost) )
+
+				# count units produced, too, for histogram.
+				histo = self.units[ pid ]
+				if unit in histo :
+					histo[ unit ] += 1
+				else :
+					histo[ unit ] = 1
 
 		# step 3. Sort events by time.
 		for spent in self.spents :
 			if not spent :
 				continue
 			spent.sort( key=lambda pair: pair[0] ) # sort by time
+	
+
+
+	def print_unit_distribution( self ) :
+		print( "Unit distribution" )
+
+		for i in range( self.nplayers ) :
+			player = self.kwr.players[i]
+			if not player.is_player() :
+				continue
+			print( player.name )
+
+			histo = self.units[ i ]
+			for unit, cnt in histo.items() :
+				print( UNITNAMES[ unit ] + "," + str( cnt ) )
+
+			print()
+			print()
+			print()
 
 
 
 	def collect( self, pid, t, cost ) :
-		if self.spents[ pid ] == None :
-			self.spents[ pid ] = []
 		spent = self.spents[ pid ]
 
 		# OK, if the latest entry has the same t,
@@ -901,7 +926,8 @@ if __name__ == "__main__" :
 
 	res = ResourceAnalyzer( kw )
 	res.calc()
-	res.emit_csv()
+	res.print_unit_distribution()
+	#res.emit_csv()
 	#res.plot()
 
 	#pos = PositionDumper( kw )
