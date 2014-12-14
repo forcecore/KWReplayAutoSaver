@@ -243,7 +243,7 @@ class Timeline( wx.Panel ) :
 			if cmd.building_type in UNITNAMES :
 				name = UNITNAMES[ cmd.building_type ]
 			else :
-				print( "bldg 0x%08X" % cmd.building_type )
+				name ="bldg 0x%08X" % cmd.building_type
 			dc.DrawText( name, x-10, y )
 
 			dc.DrawLine( x, self.Y, x, y+20 )
@@ -256,7 +256,7 @@ class Timeline( wx.Panel ) :
 			if cmd.power in POWERNAMES :
 				name = POWERNAMES[ cmd.power ]
 			else :
-				print( "skill 0x%08X" % cmd.power )
+				name = "skill 0x%08X" % cmd.power
 			dc.DrawText( name, x-10, y )
 
 			dc.DrawLine( x, self.Y, x, y+20 )
@@ -268,7 +268,7 @@ class Timeline( wx.Panel ) :
 			if cmd.upgrade in UPGRADENAMES :
 				name = UPGRADENAMES[ cmd.upgrade ]
 			else :
-				print( "upgrade 0x%08X" % cmd.power )
+				name = "upgrade 0x%08X" % cmd.power
 			dc.DrawText( name, x-10, y )
 
 			dc.DrawLine( x, self.Y, x, y+20 )
@@ -282,7 +282,7 @@ class Timeline( wx.Panel ) :
 				if cmd.unit_ty in UNITNAMES :
 					name = UNITNAMES[ cmd.unit_ty ]
 				else :
-					print( "unit 0x%08X" % cmd.unit_ty )
+					name = "unit 0x%08X" % cmd.unit_ty
 
 				if cmd.fivex :
 					dc.DrawText( "5x Q " + name, x-10, y )
@@ -301,7 +301,7 @@ class Timeline( wx.Panel ) :
 				if cmd.unit_ty in UNITNAMES :
 					name = UNITNAMES[ cmd.unit_ty ]
 				else :
-					print( "unit 0x%08X" % cmd.unit_ty )
+					name = "unit 0x%08X" % cmd.unit_ty
 
 				if cmd.cancel_all :
 					dc.DrawText( "CA " + name, x-10, y )
