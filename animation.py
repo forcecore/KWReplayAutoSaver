@@ -6,7 +6,7 @@ from replayviewer import MapView
 from chunks import KWReplayWithCommands
 from analyzer import PositionDumper
 from args import Args
-from consts import UNITNAMES
+from consts import UNITNAMES, POWERNAMES, UPGRADENAMES
 
 
 
@@ -157,7 +157,7 @@ class Timeline( wx.Panel ) :
 		self.SetBackgroundColour( (0,0,0) )
 		self.eventsss = None
 		self.t = -1
-		# eventsss[t][pid] = events of that player at time t.
+		# eventsss[pid][t] = events of that player at time t.
 
 		self.pin_spacing = 80 # 80 pixels == one second!
 
@@ -215,28 +215,24 @@ class Timeline( wx.Panel ) :
 	def draw_events( self, dc, row, pid ) :
 		cnt = int( self.mid/self.pin_spacing )
 		t = self.t - cnt
+
 		while t <= self.t + cnt and t < self.length :
-			eventss = self.eventsss[ t ]
-			self.draw_events_at_second( dc, row, eventss[pid] )
+			eventss = self.eventsss[ pid ]
+			self.draw_events_at_second( dc, eventss[t] )
 			t += 1
 
 
 
-	def draw_events_at_second( self, dc, row, events ) :
-		label_init_pos = self.Y - 160
-
-		y = label_init_pos
+	def draw_events_at_second( self, dc, events ) :
 		for cmd in events :
 			xoffset = int( ( cmd.time_code - 15*self.t )*self.pin_spacing/15 )
 			x = self.mid + xoffset
 
 			# Draw text & line here.
+			y = cmd.offset%5 * 20 # cycle of 4
+			y += self.Y - 140
 			self.cmd_desc( dc, cmd, x, y )
 
-			y += 20
-			if y > self.Y - 40 :
-				y = label_init_pos
-	
 
 
 	def cmd_desc( self, dc, cmd, x, y ) :
@@ -250,6 +246,76 @@ class Timeline( wx.Panel ) :
 				print( "bldg 0x%08X" % cmd.building_type )
 			dc.DrawText( name, x-10, y )
 
+			dc.DrawLine( x, self.Y, x, y+20 )
+
+
+		elif cmd.cmd_id in [0x26, 0x27, 0x28, 0x8A] :
+			dc.SetTextForeground( wx.GREEN )
+			dc.SetPen( wx.Pen( wx.GREEN ) )
+
+			if cmd.power in POWERNAMES :
+				name = POWERNAMES[ cmd.power ]
+			else :
+				print( "skill 0x%08X" % cmd.power )
+			dc.DrawText( name, x-10, y )
+
+			dc.DrawLine( x, self.Y, x, y+20 )
+
+		elif cmd.cmd_id == 0x2B :
+			dc.SetTextForeground( wx.YELLOW )
+			dc.SetPen( wx.Pen( wx.YELLOW ) )
+
+			if cmd.upgrade in UPGRADENAMES :
+				name = UPGRADENAMES[ cmd.upgrade ]
+			else :
+				print( "upgrade 0x%08X" % cmd.power )
+			dc.DrawText( name, x-10, y )
+
+			dc.DrawLine( x, self.Y, x, y+20 )
+
+		elif cmd.cmd_id == 0x2D :
+			# hold/cancel
+			dc.SetTextForeground( wx.RED )
+			dc.SetPen( wx.Pen( wx.RED ) )
+
+			if cmd.unit_ty :
+				if cmd.unit_ty in UNITNAMES :
+					name = UNITNAMES[ cmd.unit_ty ]
+				else :
+					print( "unit 0x%08X" % cmd.unit_ty )
+
+				if cmd.fivex :
+					dc.DrawText( "5x Q " + name, x-10, y )
+				else :
+					dc.DrawText( "Q " + name, x-10, y )
+
+				dc.DrawLine( x, self.Y, x, y+20 )
+
+
+		elif cmd.cmd_id == 0x2E :
+			# hold/cancel
+			dc.SetTextForeground( '#ff7fff' )
+			dc.SetPen( wx.Pen( '#ff7fff' ) )
+
+			if cmd.unit_ty :
+				if cmd.unit_ty in UNITNAMES :
+					name = UNITNAMES[ cmd.unit_ty ]
+				else :
+					print( "unit 0x%08X" % cmd.unit_ty )
+
+				if cmd.cancel_all :
+					dc.DrawText( "CA " + name, x-10, y )
+				else :
+					dc.DrawText( "C/H" + name, x-10, y )
+
+				dc.DrawLine( x, self.Y, x, y+20 )
+
+
+		elif cmd.cmd_id == 0x34 :
+			dc.SetTextForeground( wx.YELLOW )
+			dc.SetPen( wx.Pen( wx.YELLOW ) )
+
+			dc.DrawText( "sell", x-10, y )
 			dc.DrawLine( x, self.Y, x, y+20 )
 
 
@@ -272,6 +338,11 @@ class Timeline( wx.Panel ) :
 		self.w, self.h = dc.GetSize()
 		self.mid = int( self.w/2 )
 
+		dc.SetTextForeground( wx.WHITE )
+		dc.DrawText( "C/H: Cancel or Hold", 0, 0 )
+		dc.DrawText( "CA: Cancel all", 0, 10 )
+		dc.DrawText( "Q: Queue unit production", 0, 20 )
+
 		# draw vertical line at the center.
 		self.draw_midline( dc )
 
@@ -287,7 +358,7 @@ class Timeline( wx.Panel ) :
 
 
 	def feed( self, t, cmd ) :
-		self.eventsss[ t ][ cmd.player_id ].append( cmd )
+		self.eventsss[ cmd.player_id ][ t ].append( cmd )
 
 	# populate eventsss
 	def process( self, kwr_chunks, length ) :
@@ -296,10 +367,10 @@ class Timeline( wx.Panel ) :
 
 		self.nplayers = len( self.kwr.players )
 
-		self.eventsss = [ None ] * length
+		self.eventsss = [ None ] * self.nplayers
 		for i in range( len( self.eventsss ) ) :
 			# eventss[pid] = events.
-			eventss = [ [] for i in range( self.nplayers ) ]
+			eventss = [ [] for i in range( self.length ) ]
 			self.eventsss[ i ] = eventss
 
 		for chunk in self.kwr.replay_body.chunks :
@@ -325,6 +396,7 @@ class Timeline( wx.Panel ) :
 					self.feed( time, cmd )
 				elif cmd.cmd_id == 0x2E :
 					# hold/cancel/cancel all production
+					cmd.decode_hold_cmd()
 					self.feed( time, cmd )
 				elif cmd.cmd_id == 0x8A :
 					cmd.decode_skill_2xy()
@@ -341,6 +413,15 @@ class Timeline( wx.Panel ) :
 		#	for pid in range( self.nplayers ) :
 		#		print( self.eventsss[t][pid] )
 		#	print()
+
+		# assign "offset" to the commands.
+		for pid in range( self.nplayers ) :
+			eventss = self.eventsss[ pid ]
+			offset = 0
+			for events in eventss :
+				for cmd in events :
+					cmd.offset = offset
+					offset += 1
 
 
 
