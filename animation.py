@@ -10,11 +10,11 @@ from args import Args
 
 
 class PosViewer( wx.Frame ) :
-	def __init__( self, parent, args ) :
+	def __init__( self, parent, args, maps_zip='maps.zip' ) :
 		super().__init__( parent, title='Replay Movement Viewer', size=(500,500) )
 		self.parent = parent
 		self.args = args
-		self.MAPS_ZIP = 'maps.zip'
+		self.MAPS_ZIP = maps_zip
 
 		self.kwr = None
 		self.pos_analyzer = None
@@ -54,27 +54,46 @@ class PosViewer( wx.Frame ) :
 			]
 
 		self.bldg_colors = [
-				'#cc0000', # R
-				'#0000cc', # B
-				'#00cc00', # G
-				'#cccc00', # Y
-				'#cc6600', # Orange
-				'#00cccc', # Cyan
-				'#cc66cc', # Pink
+				'#7f0000', # R
+				'#00007f', # B
+				'#007f00', # G
+				'#7f7f00', # Y
+				'#7f6600', # Orange
+				'#007f7f', # Cyan
+				'#7f667f', # Pink
 			]
 
 
+	def create_top_panel( self, parent ) :
+		panel = wx.Panel( parent )
+		panel.SetBackgroundColour( (0,0,0) )
+
+		sizer = wx.BoxSizer( wx.HORIZONTAL )
+
+		# map view
+		self.map_view = MapView( panel, self.MAPS_ZIP, self.args.mcmap, size=(400,400) )
+
+		# map control panel
+		panel_map_ctrl = wx.Panel( self )
+		panel_map_ctrl.SetBackgroundColour( (255,0,0) )
+		sizer.Add( self.map_view, 0, wx.ALIGN_LEFT|wx.ALIGN_TOP )
+		sizer.Add( panel_map_ctrl, 1, wx.EXPAND )
+
+		panel.SetSizer( sizer )
+		return panel
 
 	def do_layout( self ) :
 		sizer = wx.BoxSizer( wx.VERTICAL )
 		panel = wx.Panel( self )
-		self.map_view = MapView( panel, self.MAPS_ZIP, self.args.mcmap, pos=(0,0), size=(400,400) )
 		self.slider = wx.Slider( self, minValue=0, maxValue=100, pos=(20, 20), size=(250, -1) )
 		self.time = wx.StaticText( self, label="" )
 
-		sizer.Add( panel, 0, wx.EXPAND )
-		sizer.Add( self.time, 1, wx.EXPAND )
-		sizer.Add( self.slider, 2, wx.EXPAND )
+		# Map view + controls sizer panel
+		top_panel = self.create_top_panel( self )
+
+		sizer.Add( top_panel, 1, wx.EXPAND )
+		sizer.Add( self.time, 0, wx.EXPAND )
+		sizer.Add( self.slider, 0, wx.EXPAND )
 		self.SetSizer( sizer )
 
 
@@ -133,17 +152,18 @@ class PosViewer( wx.Frame ) :
 		print( "SCALE:", self.scale )
 		#self.scale = 0.045
 		#self.y_offset = -25
-
+	
 
 
 	def draw_positions( self, t ) :
 		#self.unit_view.show( self.kwr, scale=False ) # remove previous dots.
-		#bmp = self.unit_view.GetBitmap()
-		self.map_view.SetBitmap( self.map_bmp )
-		dc = wx.ClientDC( self.map_view )
+		#self.map_view.SetBitmap( self.map_bmp )
+		#dc = wx.PaintDC( self.map_view )
 		#trans_brush = wx.Brush( wx.BLACK, style=wx.BRUSHSTYLE_TRANSPARENT )
 		#dc.SetBackground( trans_brush )
 		#dc.Clear()
+		bmp = wx.Bitmap( self.map_bmp )
+		dc = wx.MemoryDC( bmp )
 		null, dc.Y = dc.GetSize()
 
 		posa = self.pos_analyzer
@@ -178,7 +198,7 @@ class PosViewer( wx.Frame ) :
 					self.draw_dot( dc, cmd.x, cmd.y, self.colors[pid] )
 
 		del dc
-		#self.unit_view.SetBitmap( bmp )
+		self.map_view.SetBitmap( bmp )
 
 
 
@@ -249,8 +269,9 @@ def main() :
 	args = Args( CONFIGF )
 
 	frame = PosViewer( None, args )
-	frame.Show( True )
 	frame.load( kw )
+	frame.Layout() # do layout again.
+	frame.Show( True )
 	app.MainLoop()
 
 if __name__ == "__main__" :
