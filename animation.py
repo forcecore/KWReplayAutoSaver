@@ -153,6 +153,13 @@ class MiniMap( MapView ) :
 
 
 
+class Timeline( wx.Panel ) :
+	def __init__( self, parent ) :
+		super().__init__( parent )
+		self.SetBackgroundColour( (0,0,0) )
+
+
+
 class PosViewer( wx.Frame ) :
 	def __init__( self, parent, args, maps_zip='maps.zip' ) :
 		super().__init__( parent, title='Replay Movement Viewer', size=(500,500) )
@@ -192,9 +199,17 @@ class PosViewer( wx.Frame ) :
 		# map control panel
 		rpanel = wx.Panel( parent, -1 )
 
-		scale = wx.StaticText( rpanel, label="Scale:", pos=(5,5) )
-		xoffset = wx.StaticText( rpanel, label="x offset:", pos=(5,15) )
-		yoffset = wx.StaticText( rpanel, label="y offset:", pos=(5,25) )
+		lbl_scale = wx.StaticText( rpanel, label="Scale:", pos=(5,5) )
+		lbl_xoffset = wx.StaticText( rpanel, label="x offset:", pos=(5,35) )
+		lbl_yoffset = wx.StaticText( rpanel, label="y offset:", pos=(5,65) )
+		lbl_time = wx.StaticText( rpanel, label="time:", pos=(5,95) )
+		self.time = wx.StaticText( rpanel, label="", pos=(50,95) )
+
+		self.txt_scale   = wx.TextCtrl( rpanel, size=(50,-1), pos=(50,5) )
+		self.txt_xoffset = wx.TextCtrl( rpanel, size=(50,-1), pos=(50,35) )
+		self.txt_yoffset = wx.TextCtrl( rpanel, size=(50,-1), pos=(50,65) )
+
+		self.btn_apply = wx.Button( rpanel, label="Apply", pos=(100,35) )
 
 		sizer.Add( lpanel, 0 )
 		sizer.Add( rpanel, 1, wx.EXPAND )
@@ -205,15 +220,17 @@ class PosViewer( wx.Frame ) :
 
 	def do_layout( self ) :
 		sizer = wx.BoxSizer( wx.VERTICAL )
-		panel = wx.Panel( self )
+		#panel = wx.Panel( self )
+		#panel.SetBackgroundColour( (255,0,0) )
 		self.slider = wx.Slider( self, minValue=0, maxValue=100, pos=(20, 20), size=(250, -1) )
-		self.time = wx.StaticText( self, label="" )
 
 		# Map view + controls sizer panel
 		top_sizer = self.create_top_panel( self )
 
-		sizer.Add( top_sizer, 1, wx.EXPAND )
-		sizer.Add( self.time, 0, wx.EXPAND )
+		self.mid_panel = Timeline( self )
+
+		sizer.Add( top_sizer, 0, wx.EXPAND )
+		sizer.Add( self.mid_panel, 1, wx.EXPAND )
 		sizer.Add( self.slider, 0, wx.EXPAND )
 		self.SetSizer( sizer )
 
