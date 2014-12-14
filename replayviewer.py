@@ -1219,7 +1219,24 @@ class ReplayViewer( wx.Frame ) :
 		ana = analyzer.ResourceAnalyzer( kwr_chunks )
 		ana.calc()
 		ana.plot()
-	
+
+
+
+	def on_plot_unit_dist( self, evt ) :
+		# Check if replay is selected.
+		fname = self.get_selected_replay()
+		if not fname :
+			# error message is shown by get_selected_replay.
+			return
+
+		if not self.gnuplot_ok() :
+			return
+
+		kwr_chunks = KWReplayWithCommands( fname=fname, verbose=False )
+		ana = analyzer.ResourceAnalyzer( kwr_chunks )
+		ana.calc()
+		ana.plot_unit_distribution()
+
 
 
 	def on_build_order( self, evt ) :
@@ -1322,6 +1339,11 @@ class ReplayViewer( wx.Frame ) :
 				"Dump build order to file" )
 		analysis_menu.Bind( wx.EVT_MENU, self.on_build_order, build_order_menu_item )
 
+		# Plot unit distribution
+		plot_unit_dist_menu_item = analysis_menu.Append( wx.NewId(), "Plot Estimated &Unit Distribution",
+				"Plots estimated unit distribution" )
+		analysis_menu.Bind( wx.EVT_MENU, self.on_plot_unit_dist, plot_unit_dist_menu_item )
+
 		# dump commands
 		dump_cmds_menu_item = analysis_menu.Append( wx.NewId(), "Dump &Commands",
 				"Dump commands to file" )
@@ -1340,7 +1362,7 @@ class ReplayViewer( wx.Frame ) :
 				"Analyze the replay and calculate resource spent of each player" )
 		analysis_menu.Bind( wx.EVT_MENU, self.on_res_csv, res_csv_menu_item )
 
-		# dump commands
+		# dump unit distribution.
 		dump_dist_menu_item = analysis_menu.Append( wx.NewId(), "Dump Unit Distribution",
 				"Dump unit distribution to file" )
 		analysis_menu.Bind( wx.EVT_MENU, self.on_dump_dist, dump_dist_menu_item )

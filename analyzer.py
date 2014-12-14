@@ -540,6 +540,59 @@ class ResourceAnalyzer() :
 			print()
 			print()
 			print()
+	
+
+
+	def plot_unit_distribution( self ) :
+		color = 1
+		for i in range( self.nplayers ) :
+			player = self.kwr.players[i]
+			if not player.is_player() :
+				continue
+
+			histo = self.units[ i ]
+
+			plt = Gnuplot()
+			plt.open()
+
+			plt.write( 'set style fill solid\n' )
+			plt.write( 'set key off\n' )
+			plt.write( 'set boxwidth 0.5\n' )
+			plt.write( 'set title "%s"\n' % player.name )
+
+			n_kinds = len( histo )
+			plt.write( 'set xrange[-1:%d]\n' % n_kinds )
+
+			# set X tics, 45 degress rotated.
+			cmd = "set xtics ("
+			i = 0
+			items = []
+			for unit, cnt in histo.items() :
+				items.append( '"%s" %d' % ( UNITNAMES[ unit ], i ) )
+				i += 1
+			cmd += ", ".join( items )
+			cmd += ") rotate by 45 right\n"
+			plt.write( cmd )
+
+			# write values on the graph (labels)
+			#i = 0
+			#for unit, cnt in histo.items() :
+			#	cmd = 'set label "%d" at %d,%d\n' % ( cnt, i, cnt+5 )
+			#	plt.write( cmd )
+			#	i += 1
+
+			# feed data
+			cmd = 'plot "-" using 0:1 with boxes linecolor %s, ' % color
+			cmd += "'-' using 0:1:1 with labels offset 0, 1\n"
+			plt.write( cmd )
+			for unit, cnt in histo.items() :
+				plt.write( str(cnt) + "\n" )
+			plt.write( 'e\n' )
+			for unit, cnt in histo.items() :
+				plt.write( str(cnt) + "\n" )
+			plt.write( 'e\n' )
+
+			color += 1
 
 
 
@@ -740,7 +793,10 @@ class APMAnalyzer() :
 	
 
 
-	def emit_apm_csv( self, interval, file=sys.stdout ) :
+	def emit_apm_csv( self, interval, file=None ) :
+		if file == None :
+			file = sys.stdout
+
 		# actions counted for that second...
 		counts_at_second = self.count_actions( interval )
 
@@ -926,7 +982,8 @@ if __name__ == "__main__" :
 
 	res = ResourceAnalyzer( kw )
 	res.calc()
-	res.print_unit_distribution()
+	#res.print_unit_distribution()
+	res.plot_unit_distribution()
 	#res.emit_csv()
 	#res.plot()
 
