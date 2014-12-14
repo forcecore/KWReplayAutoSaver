@@ -6,6 +6,7 @@ from replayviewer import MapView
 from chunks import KWReplayWithCommands
 from analyzer import PositionDumper
 from args import Args
+from consts import UNITNAMES
 
 
 
@@ -158,6 +159,8 @@ class Timeline( wx.Panel ) :
 		self.t = -1
 		# eventsss[t][pid] = events of that player at time t.
 
+		self.pin_spacing = 80 # 80 pixels == one second!
+
 		# the important, paint binding.
 		self.Bind( wx.EVT_PAINT, self.OnPaint )
 	
@@ -167,45 +170,38 @@ class Timeline( wx.Panel ) :
 		line_spacing = 20
 		line_len = 5
 
-		w, h = dc.GetSize()
-		x = int( w/2 )
+		x = self.mid
 		y = 0
 		dc.SetPen( wx.Pen( "#ff7fff" ) ) # pink
-		while y < h :
+		while y < self.h :
 			dc.DrawLine( x, y, x, y + line_len )
 			y += line_spacing
 	
 
-
-	
-
-
-	def draw_player_timeline( self, dc, pid ) :
-		self.draw_time_grid( dc, pid )
 	
 	def draw_time_pin( self, dc, t, x, Y, pin_len ) :
 		dc.DrawLine( x, Y, x, Y-pin_len )
 		dc.DrawText( time_code2str(t), x, Y+5 )
 
-	def draw_time_grid( self, dc, pid ) :
-		Y = (pid+1) * 200 # 200 pixels high
 
-		pin_spacing = 80 # 20 pixels of "second" grids.
+
+	def draw_time_grid( self, dc, row ) :
+		Y = self.Y
+
+		pin_spacing = self.pin_spacing
 		pin_len = 5 # 5 pixels.
 		
-		w, h = dc.GetSize()
-
 		dc.SetPen( wx.Pen( wx.WHITE ) )
 		dc.SetTextForeground( wx.WHITE )
 
 		# major time line
-		dc.DrawLine( 0, Y, w-1, Y )
+		dc.DrawLine( 0, Y, self.w-1, Y )
 
 		# grids
-		mid = int( w/2 )
-		x = w - pin_spacing * int( w / pin_spacing )
+		mid = self.mid
+		x = self.w - pin_spacing * int( self.w / pin_spacing )
 		t = self.t - int( mid/pin_spacing )
-		while x < w :
+		while x < self.w :
 			if t < 0 :
 				t += 1
 				x += pin_spacing
@@ -213,8 +209,55 @@ class Timeline( wx.Panel ) :
 			self.draw_time_pin( dc, t, x, Y, pin_len )
 			x += pin_spacing
 			t += 1
+	
 
-		# draw label (text) to indicate what they are.
+
+	def draw_events( self, dc, row, pid ) :
+		cnt = int( self.mid/self.pin_spacing )
+		t = self.t - cnt
+		while t <= self.t + cnt and t < self.length :
+			eventss = self.eventsss[ t ]
+			self.draw_events_at_second( dc, row, eventss[pid] )
+			t += 1
+
+
+
+	def draw_events_at_second( self, dc, row, events ) :
+		label_init_pos = self.Y - 160
+
+		y = label_init_pos
+		for cmd in events :
+			xoffset = int( ( cmd.time_code - 15*self.t )*self.pin_spacing/15 )
+			x = self.mid + xoffset
+
+			# Draw text & line here.
+			self.cmd_desc( dc, cmd, x, y )
+
+			y += 20
+			if y > self.Y - 40 :
+				y = label_init_pos
+	
+
+
+	def cmd_desc( self, dc, cmd, x, y ) :
+		if cmd.cmd_id == 0x31 :
+			dc.SetTextForeground( wx.BLUE )
+			dc.SetPen( wx.Pen( wx.BLUE ) )
+
+			if cmd.building_type in UNITNAMES :
+				name = UNITNAMES[ cmd.building_type ]
+			else :
+				print( "bldg 0x%08X" % cmd.building_type )
+			dc.DrawText( name, x-10, y )
+
+			dc.DrawLine( x, self.Y, x, y+20 )
+
+
+
+	def draw_player_timeline( self, dc, row, pid ) :
+		self.Y = (row+1) * 200 # 200 pixels high
+		self.draw_time_grid( dc, row )
+		self.draw_events( dc, row, pid )
 
 
 
@@ -226,6 +269,9 @@ class Timeline( wx.Panel ) :
 	
 		dc = wx.PaintDC( self )
 
+		self.w, self.h = dc.GetSize()
+		self.mid = int( self.w/2 )
+
 		# draw vertical line at the center.
 		self.draw_midline( dc )
 
@@ -233,7 +279,7 @@ class Timeline( wx.Panel ) :
 		for pid in range( self.nplayers ) :
 			if not self.kwr.players[ pid ].is_player() :
 				continue
-			self.draw_player_timeline( dc, row )
+			self.draw_player_timeline( dc, row, pid )
 			row += 1
 
 		del dc
@@ -244,13 +290,13 @@ class Timeline( wx.Panel ) :
 		self.eventsss[ t ][ cmd.player_id ].append( cmd )
 
 	# populate eventsss
-	def process( self, kwr_chunks ) :
+	def process( self, kwr_chunks, length ) :
 		self.kwr = kwr_chunks
+		self.length = length
 
 		self.nplayers = len( self.kwr.players )
 
-		end_time = int( self.kwr.replay_body.chunks[-1].time_code/15 )
-		self.eventsss = [ None ] * (end_time+1) # cos eventss[end_time] must be accessible.
+		self.eventsss = [ None ] * length
 		for i in range( len( self.eventsss ) ) :
 			# eventss[pid] = events.
 			eventss = [ [] for i in range( self.nplayers ) ]
@@ -288,6 +334,13 @@ class Timeline( wx.Panel ) :
 				elif cmd.cmd_id == 0x91 :
 					cmd.pid = cmd.payload[1]
 					self.feed( time, cmd )
+
+		#print( self.eventsss )
+		#for t in range( len( self.eventsss ) ) :
+		#	print( "t:", t )
+		#	for pid in range( self.nplayers ) :
+		#		print( self.eventsss[t][pid] )
+		#	print()
 
 
 
@@ -418,7 +471,7 @@ class PosViewer( wx.Frame ) :
 		self.time.SetLabel( "00:00:00" )
 
 		# pass the events to the timeline class.
-		self.timeline.process( self.kwr )
+		self.timeline.process( self.kwr, self.length )
 
 		# analyze positions
 		posa = PositionDumper( kwr )
