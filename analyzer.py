@@ -1,9 +1,7 @@
 #!/usr/bin/python3
 
 import sys
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-from matplotlib import font_manager
+from gnuplot import Gnuplot
 from chunks import KWReplayWithCommands, Command
 from consts import UNITCOST, POWERCOST, UPGRADECOST, UNITNAMES
 
@@ -572,10 +570,15 @@ class ResourceAnalyzer() :
 
 
 	def plot( self, font_fname=None ) :
+		plt = Gnuplot()
+		plt.open()
+
 		plt.xlabel( "Time (s)" )
 		plt.ylabel( "$$$ spent" )
+		plt.set_style( "linespoints" )
 
 		plots = []
+		labels = []
 		for i in range( self.nplayers ) :
 			player = self.kwr.players[i]
 			if not player.is_player() :
@@ -586,24 +589,10 @@ class ResourceAnalyzer() :
 				continue
 			ts, costs = pair
 
-			plot, = plt.plot( ts, costs, label=player.name )
-			plt.setp( plot, marker="+" )
-			plots.append( plot )
+			plt.plot( ts, costs )
+			labels.append( player.name )
 
-		#fp = font_manager.FontProperties()
-		#fp.set_family( 'Gulim' )
-		if font_fname :
-			fp = font_manager.FontProperties( fname = font_fname )
-			plt.legend( handles=plots, loc='upper center', bbox_to_anchor=(0.5, -0.10), ncol=4, prop=fp )
-		else :
-			# legend at bottom.
-			plt.legend( handles=plots, loc='upper center', bbox_to_anchor=(0.5, -0.10), ncol=4 )
-
-		# shrink plot so that legend will be shown.
-		if len( plots ) > 4 :
-			plt.subplots_adjust( bottom=0.2 )
-		else :
-			plt.subplots_adjust( bottom=0.2 )
+		plt.legend( labels )
 		plt.show()
 
 
@@ -686,6 +675,9 @@ class APMAnalyzer() :
 
 
 	def plot( self, interval, font_fname=None ) :
+		plt = Gnuplot()
+		plt.open()
+
 		# actions counted for that second...
 		counts_at_second = self.count_actions( interval )
 		ts = [ t for t in range( len( counts_at_second ) ) ]
@@ -695,29 +687,21 @@ class APMAnalyzer() :
 		plt.xlabel( "Time (s)" )
 		plt.ylabel( "APM" )
 
-		plots = []
+		labels = []
+
 		for i in range( self.nplayers ) :
 			player = self.kwr.players[i]
 			if not player.is_player() :
 				continue
 
-			plot, = plt.plot( ts, apmss[ i ], label=player.name )
-			plots.append( plot )
+			plt.plot( ts, apmss[ i ] )
+			labels.append( player.name )
 
-		#fp = font_manager.FontProperties()
-		#fp.set_family( 'Gulim' )
-		if font_fname :
-			fp = font_manager.FontProperties( fname = font_fname )
-			plt.legend( handles=plots, loc='upper center', bbox_to_anchor=(0.5, -0.10), ncol=4, prop=fp )
-		else :
-			# legend at bottom.
-			plt.legend( handles=plots, loc='upper center', bbox_to_anchor=(0.5, -0.10), ncol=4 )
+		# touch up label of the curve
 
-		# shrink plot so that legend will be shown.
-		if len( plots ) > 4 :
-			plt.subplots_adjust( bottom=0.2 )
-		else :
-			plt.subplots_adjust( bottom=0.2 )
+		# draw legend
+		plt.legend( labels )
+
 		plt.show()
 
 
