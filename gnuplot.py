@@ -69,15 +69,18 @@ class Gnuplot() :
 		else:
 			# example for windows
 			import winreg
-			key = winreg.OpenKey( winreg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\wgnuplot.exe" )
-			gnuplot = winreg.QueryValue( key, None )
-			if not os.path.isfile( gnuplot ) :
+			try :
+				key = winreg.OpenKey( winreg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\wgnuplot.exe" )
+				gnuplot = winreg.QueryValue( key, None )
+				if not os.path.isfile( gnuplot ) :
+					return None
+				else :
+					# I want pgnuplot.
+					path = os.path.dirname( gnuplot )
+					gnuplot = os.path.join( path, "gnuplot.exe" ) # piped gnuplot!
+					return gnuplot
+			except FileNotFoundError :
 				return None
-			else :
-				# I want pgnuplot.
-				path = os.path.dirname( gnuplot )
-				gnuplot = os.path.join( path, "gnuplot.exe" ) # piped gnuplot!
-				return gnuplot
 
 		return None
 
