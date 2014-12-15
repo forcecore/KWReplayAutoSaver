@@ -125,7 +125,7 @@ class MiniMap( wx.Panel ) :
 	def draw_building( self, dc, x, y, color ) :
 		x = int( self.scale * x ) + self.x_offset
 		y = dc.Y - int( self.scale * y ) + self.y_offset
-		dc.SetPen( wx.Pen( color ) )
+		dc.SetPen( wx.Pen( wx.BLACK ) )
 		dc.SetBrush( wx.Brush( color ) )
 		dc.DrawCircle( x, y, 3 )
 
