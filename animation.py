@@ -14,7 +14,7 @@ from consts import UNITNAMES, POWERNAMES, UPGRADENAMES
 
 UNIT_COLORS = [
 		'#FF0000', # R
-		'#0000FF', # B
+		'#0066ff', # B, cos pure blue 0000FF sucks
 		'#00FF00', # G
 		'#FFFF00', # Y
 		'#ff7f00', # Orange
