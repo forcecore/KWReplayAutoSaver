@@ -299,7 +299,7 @@ class TimelineAnalyzer() :
 class Timeline( wx.Panel ) :
 	H = 250 # we want the timeline drawing area to be this high.
 	Y = 200 # Draw time grid at this level.
-	pin_spacing = 80 # 80 pixels == one second!
+	pin_spacing = 40 # 80 pixels == one second!
 	cycle = 5 #label height cycle
 
 	def __init__( self, parent, eventss, length, size=(100,100) ) :
@@ -357,14 +357,23 @@ class Timeline( wx.Panel ) :
 		mid = self.mid
 		x = self.w - pin_spacing * int( self.w / pin_spacing )
 		t = self.t - int( mid/pin_spacing )
+
+		# But, to draw time pins, we need to check if we can fit those number labels.
+		(tw, th) = dc.GetTextExtent( "00:00" )
+		if tw >= Timeline.pin_spacing :
+			# OK, how many pins can we fit in them?
+			mult = int( tw / Timeline.pin_spacing ) + 1
+		else :
+			mult = 1
+
 		while x < self.w :
 			if t < 0 :
-				t += 1
-				x += pin_spacing
+				t += mult
+				x += mult * pin_spacing
 				continue
 			self.draw_time_pin( dc, t, x, Y, pin_len )
-			x += pin_spacing
-			t += 1
+			t += mult
+			x += mult *pin_spacing
 	
 
 
@@ -567,16 +576,16 @@ class TimelineViewer( wx.Frame ) :
 		lbl_scale = wx.StaticText( rpanel, label="Scale:", pos=(5,5) )
 		lbl_xoffset = wx.StaticText( rpanel, label="x offset:", pos=(5,35) )
 		lbl_yoffset = wx.StaticText( rpanel, label="y offset:", pos=(5,65) )
-		lbl_time = wx.StaticText( rpanel, label="time:", pos=(5,95) )
-		lbl_time_scale = wx.StaticText( rpanel, label="time scale:", pos=(5,125) )
+		lbl_time_scale = wx.StaticText( rpanel, label="pixels/s", pos=(75,100) )
 
 		# time mark
-		self.time = wx.StaticText( rpanel, label="", pos=(5,155) )
+		lbl_time = wx.StaticText( rpanel, label="time:", pos=(5,155) )
+		self.time = wx.StaticText( rpanel, label="", pos=(50,155) )
 
 		self.txt_scale   = wx.TextCtrl( rpanel, size=(60,-1), pos=(50,5) )
 		self.txt_xoffset = wx.TextCtrl( rpanel, size=(60,-1), pos=(50,35) )
 		self.txt_yoffset = wx.TextCtrl( rpanel, size=(60,-1), pos=(50,65) )
-		self.txt_time_scale = wx.TextCtrl( rpanel, size=(60,-1), pos=(50,95) )
+		self.txt_time_scale = wx.TextCtrl( rpanel, size=(60,-1), pos=(5,95) )
 
 		self.btn_apply = wx.Button( rpanel, label="Apply", pos=(120,35) )
 
@@ -622,7 +631,10 @@ class TimelineViewer( wx.Frame ) :
 		self.minimap.scale = float( self.txt_scale.GetValue() )
 		self.minimap.x_offset = float( self.txt_xoffset.GetValue() )
 		self.minimap.y_offset = float( self.txt_yoffset.GetValue() )
+		Timeline.pin_spacing = int( self.txt_time_scale.GetValue() )
 		self.minimap.Refresh()
+		for timeline in self.timelines :
+			timeline.Refresh()
 
 
 
@@ -699,7 +711,7 @@ class TimelineViewer( wx.Frame ) :
 		self.txt_xoffset.SetValue( str( self.minimap.x_offset ) )
 		self.txt_yoffset.SetValue( str( self.minimap.y_offset ) )
 		self.txt_scale.SetValue( str( self.minimap.scale ) )
-
+		self.txt_time_scale.SetValue( str( Timeline.pin_spacing ) )
 
 
 
