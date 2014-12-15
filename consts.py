@@ -138,7 +138,7 @@ CMDNAMES = {
 
 	0xF5: "drag selection box and/or select units/structures",
 	0xF6: "w-select units??",
-	0xF8: "left click (delelect stuff)",
+	0xF8: "left click (deselect stuff)",
 	0xF9: "remove units from selection (right click on unit group icon)",
 
 	0xFA: "Assign selection to group 0",
