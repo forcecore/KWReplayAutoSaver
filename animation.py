@@ -79,7 +79,12 @@ class MiniMap( wx.Panel ) :
 			return
 
 		# lets load from zip.
+		# now we show proper image.
+		# I get "iCCP: known incorrect sRGB profile" for some PNG files.
+		# Lets silence this with log null object.
+		no_log = wx.LogNull()
 		img = self.mapzip.load( fname )
+		del no_log # restore
 		self.Bitmap = wx.Bitmap( img )
 		self.SetSize( self.Bitmap.GetSize() )
 
