@@ -14,6 +14,7 @@ import subprocess
 import hashlib
 import wx
 import analyzer
+import webbrowser
 
 KWICO='KW.ico'
 
@@ -1182,7 +1183,13 @@ class ReplayViewer( wx.Frame ) :
 	def gnuplot_ok( self ) :
 		gp = Gnuplot.find_gnuplot()
 		if not gp :
-			wx.MessageBox( msg, "GNUplot is not installed.", wx.OK|wx.ICON_ERROR )
+			msg = "gnuplot is not installed. Open gnuplot homepage?"
+			result = wx.MessageBox( msg, "Error",
+					wx.ICON_QUESTION|wx.YES|wx.YES_DEFAULT|wx.NO )
+			if result == wx.YES :
+				msg = "The recommended choice of download is gp466-win32-setup.exe."
+				wx.MessageBox( msg, "Which version?", wx.OK )
+				webbrowser.open( "http://www.gnuplot.info/" )
 			return False
 		else :
 			return True
