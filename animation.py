@@ -328,7 +328,11 @@ class Timeline( wx.Panel ) :
 	
 	def draw_time_pin( self, dc, t, x, Y, pin_len ) :
 		dc.DrawLine( x, Y, x, Y-pin_len )
-		dc.DrawText( time_code2str(t), x, Y+5 )
+		time_label = time_code2str(t)
+		# space conservation trick
+		if time_label.startswith( "00:" ) :
+			time_label = time_label[3:]
+		dc.DrawText( time_label, x, Y+5 )
 
 
 
@@ -559,11 +563,15 @@ class TimelineViewer( wx.Frame ) :
 		lbl_xoffset = wx.StaticText( rpanel, label="x offset:", pos=(5,35) )
 		lbl_yoffset = wx.StaticText( rpanel, label="y offset:", pos=(5,65) )
 		lbl_time = wx.StaticText( rpanel, label="time:", pos=(5,95) )
-		self.time = wx.StaticText( rpanel, label="", pos=(50,95) )
+		lbl_time_scale = wx.StaticText( rpanel, label="time scale:", pos=(5,125) )
+
+		# time mark
+		self.time = wx.StaticText( rpanel, label="", pos=(5,155) )
 
 		self.txt_scale   = wx.TextCtrl( rpanel, size=(60,-1), pos=(50,5) )
 		self.txt_xoffset = wx.TextCtrl( rpanel, size=(60,-1), pos=(50,35) )
 		self.txt_yoffset = wx.TextCtrl( rpanel, size=(60,-1), pos=(50,65) )
+		self.txt_time_scale = wx.TextCtrl( rpanel, size=(60,-1), pos=(50,95) )
 
 		self.btn_apply = wx.Button( rpanel, label="Apply", pos=(120,35) )
 
