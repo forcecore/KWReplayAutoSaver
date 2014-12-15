@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 import wx
 import sys
+import os
 from kwreplay import time_code2str
-from replayviewer import MapView
+from replayviewer import MapZip
 from chunks import KWReplayWithCommands
 from analyzer import PositionDumper
 from args import Args
@@ -10,9 +11,9 @@ from consts import UNITNAMES, POWERNAMES, UPGRADENAMES
 
 
 
-class MiniMap( MapView ) :
-	def __init__( self, parent, maps, mcmap, size=(200,200), pos=(0,0) ) :
-		super().__init__( parent, maps, mcmap, size=size, pos=pos )
+class MiniMap( wx.Panel ) :
+	def __init__( self, parent, map_zip_fname ) :
+		super().__init__( parent )
 
 		self.t = 0
 		self.posa = None
@@ -24,6 +25,10 @@ class MiniMap( MapView ) :
 		self.x_offset = 0
 		self.y_offset = 0
 		self.make_palette()
+
+		self.mapzip = MapZip( map_zip_fname )
+		self.Bitmap = None
+		self.SetBackgroundColour( (0,0,0) )
 
 		self.Bind( wx.EVT_PAINT, self.OnPaint )
 
@@ -48,6 +53,35 @@ class MiniMap( MapView ) :
 				'#7f667f', # Pink
 			]
 	
+
+
+	# show map preview
+	def load_minimap( self, kwr ) :
+		# Examine the replay, determine what map it is.
+		#print( kwr.map_id ) always says fake map id, useless.
+		#print( kwr.map_name ) depends on language, not good.
+		fname = kwr.map_path # this is one is the best shot.
+		fname = os.path.basename( fname )
+		fname += ".png"
+		#print( fname )
+
+		# file doesn't exist...
+		if not self.mapzip.hasfile( fname ) :
+			# well, try jpg.
+			fname = fname.replace( ".png", ".jpg" )
+
+		# file really doesn't exist...
+		if not self.mapzip.hasfile( fname ) :
+			black = wx.Image( 200, 200 )
+			self.Bitmap = wx.Bitmap( black )
+			self.SetSize( self.Bitmap.GetSize() )
+			return
+
+		# lets load from zip.
+		img = self.mapzip.load( fname )
+		self.Bitmap = wx.Bitmap( img )
+		self.SetSize( self.Bitmap.GetSize() )
+
 
 
 	def calc_scale_factor( self ) :
@@ -160,6 +194,7 @@ class Timeline( wx.Panel ) :
 		# eventsss[pid][t] = events of that player at time t.
 
 		self.pin_spacing = 80 # 80 pixels == one second!
+		self.cycle = 5 #label height cycle
 
 		# the important, paint binding.
 		self.Bind( wx.EVT_PAINT, self.OnPaint )
@@ -229,7 +264,7 @@ class Timeline( wx.Panel ) :
 			x = self.mid + xoffset
 
 			# Draw text & line here.
-			y = cmd.offset%5 * 20 # cycle of 4
+			y = cmd.offset % self.cycle * 20 # cycle of 5
 			y += self.Y - 140
 			self.cmd_desc( dc, cmd, x, y )
 
@@ -278,7 +313,12 @@ class Timeline( wx.Panel ) :
 			dc.SetTextForeground( wx.RED )
 			dc.SetPen( wx.Pen( wx.RED ) )
 
-			if cmd.unit_ty :
+			if not cmd.unit_ty :
+				dc.SetTextForeground( wx.CYAN )
+				dc.SetPen( wx.Pen( wx.CYAN ) )
+				dc.DrawText( "GG?", x-10, y )
+				dc.DrawLine( x, self.Y, x, y+20 )
+			else :
 				if cmd.unit_ty in UNITNAMES :
 					name = UNITNAMES[ cmd.unit_ty ]
 				else :
@@ -311,12 +351,20 @@ class Timeline( wx.Panel ) :
 				dc.DrawLine( x, self.Y, x, y+20 )
 
 
-		elif cmd.cmd_id == 0x34 :
+		elif cmd.cmd_id == 0x34 : # sell
 			dc.SetTextForeground( wx.YELLOW )
 			dc.SetPen( wx.Pen( wx.YELLOW ) )
 
 			dc.DrawText( "sell", x-10, y )
 			dc.DrawLine( x, self.Y, x, y+20 )
+
+
+		elif cmd.cmd_id == 0x91 : # GG!
+			dc.SetTextForeground( wx.CYAN )
+			dc.SetPen( wx.Pen( wx.CYAN ) )
+			dc.DrawText( "GG", x-10, y )
+			dc.DrawLine( x, self.Y, x, y+20 )
+
 
 
 
@@ -405,6 +453,7 @@ class Timeline( wx.Panel ) :
 					self.feed( time, cmd ) # sell
 				elif cmd.cmd_id == 0x91 :
 					cmd.pid = cmd.payload[1]
+					cmd.player_id = cmd.pid # override owner!
 					self.feed( time, cmd )
 
 		#print( self.eventsss )
@@ -443,7 +492,6 @@ class PosViewer( wx.Frame ) :
 		# loc = (x, y) pair.
 
 		self.minimap = None
-		#self.map_bmp = None # remember how it was before drawing anything on it.
 		self.slider = None
 		self.time = None
 		self.do_layout()
@@ -459,7 +507,7 @@ class PosViewer( wx.Frame ) :
 
 		# map view
 		lpanel = wx.Panel( parent, -1 )
-		self.minimap = MiniMap( lpanel, self.MAPS_ZIP, self.args.mcmap, size=(300,300) )
+		self.minimap = MiniMap( lpanel, self.MAPS_ZIP )
 
 		# map control panel
 		rpanel = wx.Panel( parent, -1 )
@@ -562,7 +610,7 @@ class PosViewer( wx.Frame ) :
 		# drawing related things
 		self.minimap.posa = posa
 		self.minimap.kwr = kwr
-		self.minimap.show( kwr, scale=False, watermark=False )
+		self.minimap.load_minimap( kwr )
 		self.minimap.calc_scale_factor()
 
 		# populate the text boxes with the factors.
