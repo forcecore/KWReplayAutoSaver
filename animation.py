@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import wx
+import wx.lib.scrolledpanel
 import sys
 import os
 from kwreplay import time_code2str
@@ -186,15 +187,22 @@ class MiniMap( wx.Panel ) :
 
 
 class Timeline( wx.Panel ) :
-	def __init__( self, parent ) :
-		super().__init__( parent )
+	def __init__( self, scroll_area ) :
+		super().__init__( scroll_area )
+		# self.Parent == scroll_area !
 		self.SetBackgroundColour( (0,0,0) )
 		self.eventsss = None
 		self.t = -1
+		self.kwr = None
+		self.length = 0
+		self.nplayers = 0
+		self.n_active_players = 0
 		# eventsss[pid][t] = events of that player at time t.
 
 		self.pin_spacing = 80 # 80 pixels == one second!
 		self.cycle = 5 #label height cycle
+		self.row_height = 200
+		self.H = 0 # we want the timeline drawing area to be this high.
 
 		# the important, paint binding.
 		self.Bind( wx.EVT_PAINT, self.OnPaint )
@@ -369,13 +377,17 @@ class Timeline( wx.Panel ) :
 
 
 	def draw_player_timeline( self, dc, row, pid ) :
-		self.Y = (row+1) * 200 # 200 pixels high
+		self.Y = (row+1) * self.row_height # self.row_height pixels high
+		dc.SetTextForeground( wx.WHITE )
+		dc.DrawText( self.kwr.players[pid].name, 10, self.Y-170 )
 		self.draw_time_grid( dc, row )
 		self.draw_events( dc, row, pid )
 
 
 
 	def OnPaint( self, evt ) :
+		w, h = self.Parent.GetSize()
+		self.SetSize( (w, self.H) )
 		if not self :
 			return
 		if self.t < 0 :
@@ -387,9 +399,9 @@ class Timeline( wx.Panel ) :
 		self.mid = int( self.w/2 )
 
 		dc.SetTextForeground( wx.WHITE )
-		dc.DrawText( "C/H: Cancel or Hold", 0, 0 )
-		dc.DrawText( "CA: Cancel all", 0, 10 )
-		dc.DrawText( "Q: Queue unit production", 0, 20 )
+		dc.DrawText( "C/H: Cancel or Hold", w-200, 10 )
+		dc.DrawText( "CA: Cancel all", w-200, 20 )
+		dc.DrawText( "Q: Queue unit production", w-200, 30 )
 
 		# draw vertical line at the center.
 		self.draw_midline( dc )
@@ -408,18 +420,15 @@ class Timeline( wx.Panel ) :
 	def feed( self, t, cmd ) :
 		self.eventsss[ cmd.player_id ][ t ].append( cmd )
 
-	# populate eventsss
-	def process( self, kwr_chunks, length ) :
-		self.kwr = kwr_chunks
-		self.length = length
 
-		self.nplayers = len( self.kwr.players )
 
-		self.eventsss = [ None ] * self.nplayers
-		for i in range( len( self.eventsss ) ) :
+	def decode_and_feed( self ) :
+		eventsss = [ None ] * self.nplayers
+		self.eventsss = eventsss
+		for i in range( len( eventsss ) ) :
 			# eventss[pid] = events.
 			eventss = [ [] for i in range( self.length ) ]
-			self.eventsss[ i ] = eventss
+			eventsss[ i ] = eventss
 
 		for chunk in self.kwr.replay_body.chunks :
 			time = int( chunk.time_code/15 )
@@ -456,14 +465,33 @@ class Timeline( wx.Panel ) :
 					cmd.player_id = cmd.pid # override owner!
 					self.feed( time, cmd )
 
-		#print( self.eventsss )
-		#for t in range( len( self.eventsss ) ) :
+		#print( eventsss )
+		#for t in range( len( eventsss ) ) :
 		#	print( "t:", t )
 		#	for pid in range( self.nplayers ) :
-		#		print( self.eventsss[t][pid] )
+		#		print( eventsss[t][pid] )
 		#	print()
+	
+		return eventsss
 
-		# assign "offset" to the commands.
+
+
+	# populate eventsss
+	def process( self, kwr_chunks, length ) :
+		self.kwr = kwr_chunks
+		self.length = length
+		self.nplayers = len( self.kwr.players )
+		self.n_active_players = 0
+
+		# count active players.
+		for player in self.kwr.players :
+			if player.is_player() :
+				self.n_active_players += 1
+
+		# compute eventsss
+		self.eventsss = self.decode_and_feed()
+
+		# assign "offset" to the commands. (label height in timeline)
 		for pid in range( self.nplayers ) :
 			eventss = self.eventsss[ pid ]
 			offset = 0
@@ -471,6 +499,14 @@ class Timeline( wx.Panel ) :
 				for cmd in events :
 					cmd.offset = offset
 					offset += 1
+
+		# Lets get enough canvas, vertically.
+		self.H = self.row_height * self.n_active_players + 50
+		w, h = self.Parent.GetSize()
+		self.SetSize( (w, self.H) )
+
+		# Set parent's scroll info so that the timeline can be shown properly.
+		self.Parent.SetupScrolling()
 
 
 
@@ -540,10 +576,17 @@ class PosViewer( wx.Frame ) :
 		# Map view + controls sizer panel
 		top_sizer = self.create_top_panel( self )
 
-		self.timeline = Timeline( self )
+		# OK... scrollable timeline shit.
+		self.timeline_container = wx.lib.scrolledpanel.ScrolledPanel( self )
+		self.timeline_container.SetBackgroundColour( wx.BLACK )
+		#timeline_sizer = wx.BoxSizer()
+		self.timeline = Timeline( self.timeline_container )
+		#timeline_sizer.Add( self.timeline, 1, wx.EXPAND )
+		#self.timeline_container.SetSizer( timeline_sizer )
+		self.timeline_container.SetupScrolling()
 
 		sizer.Add( top_sizer, 0, wx.EXPAND )
-		sizer.Add( self.timeline, 1, wx.EXPAND )
+		sizer.Add( self.timeline_container, 1, wx.EXPAND )
 		sizer.Add( self.slider, 0, wx.EXPAND )
 		self.SetSizer( sizer )
 
