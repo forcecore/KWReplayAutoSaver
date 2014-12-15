@@ -186,25 +186,129 @@ class MiniMap( wx.Panel ) :
 
 
 
-class Timeline( wx.Panel ) :
-	def __init__( self, scroll_area ) :
-		super().__init__( scroll_area )
-		# self.Parent == scroll_area !
-		self.SetBackgroundColour( (0,0,0) )
-		self.eventsss = None
+class TimelineAnalyzer() :
+	def __init__( self, kwr_chunks, length ) :
 		self.t = -1
-		self.kwr = None
-		self.length = 0
-		self.nplayers = 0
-		self.n_active_players = 0
+		self.length = length
+		self.eventsss = None
+		self.kwr = kwr_chunks
 		# eventsss[pid][t] = events of that player at time t.
 
-		self.pin_spacing = 80 # 80 pixels == one second!
-		self.cycle = 5 #label height cycle
-		self.row_height = 200
-		self.H = 0 # we want the timeline drawing area to be this high.
+		self.process()
 
-		# the important, paint binding.
+
+
+	def feed( self, t, cmd ) :
+		self.eventsss[ cmd.player_id ][ t ].append( cmd )
+
+
+
+	def decode_and_feed( self ) :
+		eventsss = [ None ] * self.nplayers
+		self.eventsss = eventsss
+		for i in range( len( eventsss ) ) :
+			# eventss[pid] = events.
+			eventss = [ [] for i in range( self.length ) ]
+			eventsss[ i ] = eventss
+
+		for chunk in self.kwr.replay_body.chunks :
+			time = int( chunk.time_code/15 )
+			for cmd in chunk.commands :
+				if cmd.cmd_id == 0x31 :
+					cmd.decode_placedown_cmd()
+					self.feed( time, cmd )
+				elif cmd.cmd_id == 0x26 :
+					cmd.decode_skill_targetless()
+					self.feed( time, cmd )
+				elif cmd.cmd_id == 0x27 :
+					cmd.decode_skill_xy()
+					self.feed( time, cmd )
+				elif cmd.cmd_id == 0x28 :
+					cmd.decode_skill_target()
+					self.feed( time, cmd )
+				elif cmd.cmd_id == 0x2B :
+					cmd.decode_upgrade_cmd()
+					self.feed( time, cmd )
+				elif cmd.cmd_id == 0x2D :
+					cmd.decode_queue_cmd()
+					self.feed( time, cmd )
+				elif cmd.cmd_id == 0x2E :
+					# hold/cancel/cancel all production
+					cmd.decode_hold_cmd()
+					self.feed( time, cmd )
+				elif cmd.cmd_id == 0x8A :
+					cmd.decode_skill_2xy()
+					self.feed( time, cmd )
+				elif cmd.cmd_id == 0x34 :
+					self.feed( time, cmd ) # sell
+				elif cmd.cmd_id == 0x91 :
+					cmd.pid = cmd.payload[1]
+					cmd.player_id = cmd.pid # override owner!
+					self.feed( time, cmd )
+
+		#print( eventsss )
+		#for t in range( len( eventsss ) ) :
+		#	print( "t:", t )
+		#	for pid in range( self.nplayers ) :
+		#		print( eventsss[t][pid] )
+		#	print()
+	
+		return eventsss
+
+
+
+	# populate eventsss
+	def process( self ) :
+		self.nplayers = len( self.kwr.players )
+		self.n_active_players = 0
+
+		# count active players.
+		for player in self.kwr.players :
+			if player.is_player() :
+				self.n_active_players += 1
+
+		# compute eventsss
+		self.eventsss = self.decode_and_feed()
+
+		# assign "offset" to the commands. (label height in timeline)
+		for pid in range( self.nplayers ) :
+			eventss = self.eventsss[ pid ]
+			offset = 0
+			for events in eventss :
+				for cmd in events :
+					cmd.offset = offset
+					offset += 1
+
+		# Lets get enough canvas, vertically.
+		#self.H = self.row_height * self.n_active_players + 50
+		#w, h = self.Parent.GetSize()
+		#self.SetSize( (w, self.H) )
+		#self.Parent.SetVirtualSize( self.GetSize() )
+
+		# Set parent's scroll info so that the timeline can be shown properly.
+		#self.Parent.FitInside()
+		#self.Parent.SetupScrolling()
+
+
+
+class Timeline( wx.Panel ) :
+	H = 250 # we want the timeline drawing area to be this high.
+	Y = 200 # Draw time grid at this level.
+	pin_spacing = 80 # 80 pixels == one second!
+	cycle = 5 #label height cycle
+
+	def __init__( self, parent, eventss, length, size=(100,100) ) :
+		super().__init__( parent, size=size )
+		self.SetBackgroundColour( (0,0,0) )
+		#self.nplayers = 0
+		#self.n_active_players = 0
+		self.eventss = eventss
+		self.length = length
+
+		self.t = -1
+		self.player_name = "Noname"
+		self.draw_key = False
+
 		self.Bind( wx.EVT_PAINT, self.OnPaint )
 	
 
@@ -228,8 +332,8 @@ class Timeline( wx.Panel ) :
 
 
 
-	def draw_time_grid( self, dc, row ) :
-		Y = self.Y
+	def draw_time_grid( self, dc ) :
+		Y = Timeline.Y
 
 		pin_spacing = self.pin_spacing
 		pin_len = 5 # 5 pixels.
@@ -255,13 +359,12 @@ class Timeline( wx.Panel ) :
 	
 
 
-	def draw_events( self, dc, row, pid ) :
-		cnt = int( self.mid/self.pin_spacing )
+	def draw_events( self, dc ) :
+		cnt = int( self.mid/Timeline.pin_spacing )
 		t = self.t - cnt
 
 		while t <= self.t + cnt and t < self.length :
-			eventss = self.eventsss[ pid ]
-			self.draw_events_at_second( dc, eventss[t] )
+			self.draw_events_at_second( dc, self.eventss[t] )
 			t += 1
 
 
@@ -376,137 +479,41 @@ class Timeline( wx.Panel ) :
 
 
 
-	def draw_player_timeline( self, dc, row, pid ) :
-		self.Y = (row+1) * self.row_height # self.row_height pixels high
+	def draw_player_timeline( self, dc ) :
 		dc.SetTextForeground( wx.WHITE )
-		dc.DrawText( self.kwr.players[pid].name, 10, self.Y-170 )
-		self.draw_time_grid( dc, row )
-		self.draw_events( dc, row, pid )
+		#dc.DrawText( self.kwr.players[pid].name, 10, self.Y-170 )
+		dc.DrawText( self.player_name, 10, Timeline.Y-170 )
+		self.draw_time_grid( dc )
+		self.draw_events( dc )
 
 
 
 	def OnPaint( self, evt ) :
-		w, h = self.Parent.GetSize()
-		self.SetSize( (w, self.H) )
 		if not self :
 			return
 		if self.t < 0 :
 			return
+
+		w, h = self.Parent.GetSize()
+		self.mid = int( w/2 )
+		self.SetSize( (w, self.H) )
 	
 		dc = wx.PaintDC( self )
 
 		self.w, self.h = dc.GetSize()
 		self.mid = int( self.w/2 )
 
-		dc.SetTextForeground( wx.WHITE )
-		dc.DrawText( "C/H: Cancel or Hold", w-200, 10 )
-		dc.DrawText( "CA: Cancel all", w-200, 20 )
-		dc.DrawText( "Q: Queue unit production", w-200, 30 )
+		if self.draw_key :
+			dc.SetTextForeground( wx.WHITE )
+			dc.DrawText( "C/H: Cancel or Hold", w-200, 10 )
+			dc.DrawText( "CA: Cancel all", w-200, 20 )
+			dc.DrawText( "Q: Queue unit production", w-200, 30 )
 
 		# draw vertical line at the center.
 		self.draw_midline( dc )
-
-		row = 0
-		for pid in range( self.nplayers ) :
-			if not self.kwr.players[ pid ].is_player() :
-				continue
-			self.draw_player_timeline( dc, row, pid )
-			row += 1
+		self.draw_player_timeline( dc )
 
 		del dc
-
-
-
-	def feed( self, t, cmd ) :
-		self.eventsss[ cmd.player_id ][ t ].append( cmd )
-
-
-
-	def decode_and_feed( self ) :
-		eventsss = [ None ] * self.nplayers
-		self.eventsss = eventsss
-		for i in range( len( eventsss ) ) :
-			# eventss[pid] = events.
-			eventss = [ [] for i in range( self.length ) ]
-			eventsss[ i ] = eventss
-
-		for chunk in self.kwr.replay_body.chunks :
-			time = int( chunk.time_code/15 )
-			for cmd in chunk.commands :
-				if cmd.cmd_id == 0x31 :
-					cmd.decode_placedown_cmd()
-					self.feed( time, cmd )
-				elif cmd.cmd_id == 0x26 :
-					cmd.decode_skill_targetless()
-					self.feed( time, cmd )
-				elif cmd.cmd_id == 0x27 :
-					cmd.decode_skill_xy()
-					self.feed( time, cmd )
-				elif cmd.cmd_id == 0x28 :
-					cmd.decode_skill_target()
-					self.feed( time, cmd )
-				elif cmd.cmd_id == 0x2B :
-					cmd.decode_upgrade_cmd()
-					self.feed( time, cmd )
-				elif cmd.cmd_id == 0x2D :
-					cmd.decode_queue_cmd()
-					self.feed( time, cmd )
-				elif cmd.cmd_id == 0x2E :
-					# hold/cancel/cancel all production
-					cmd.decode_hold_cmd()
-					self.feed( time, cmd )
-				elif cmd.cmd_id == 0x8A :
-					cmd.decode_skill_2xy()
-					self.feed( time, cmd )
-				elif cmd.cmd_id == 0x34 :
-					self.feed( time, cmd ) # sell
-				elif cmd.cmd_id == 0x91 :
-					cmd.pid = cmd.payload[1]
-					cmd.player_id = cmd.pid # override owner!
-					self.feed( time, cmd )
-
-		#print( eventsss )
-		#for t in range( len( eventsss ) ) :
-		#	print( "t:", t )
-		#	for pid in range( self.nplayers ) :
-		#		print( eventsss[t][pid] )
-		#	print()
-	
-		return eventsss
-
-
-
-	# populate eventsss
-	def process( self, kwr_chunks, length ) :
-		self.kwr = kwr_chunks
-		self.length = length
-		self.nplayers = len( self.kwr.players )
-		self.n_active_players = 0
-
-		# count active players.
-		for player in self.kwr.players :
-			if player.is_player() :
-				self.n_active_players += 1
-
-		# compute eventsss
-		self.eventsss = self.decode_and_feed()
-
-		# assign "offset" to the commands. (label height in timeline)
-		for pid in range( self.nplayers ) :
-			eventss = self.eventsss[ pid ]
-			offset = 0
-			for events in eventss :
-				for cmd in events :
-					cmd.offset = offset
-					offset += 1
-
-		# Lets get enough canvas, vertically.
-		self.H = self.row_height * self.n_active_players + 50
-		w, h = self.Parent.GetSize()
-		self.SetSize( (w, self.H) )
-
-		# Set parent's scroll info so that the timeline can be shown properly.
-		self.Parent.SetupScrolling()
 
 
 
@@ -529,6 +536,7 @@ class PosViewer( wx.Frame ) :
 
 		self.minimap = None
 		self.slider = None
+		self.timelines = []
 		self.time = None
 		self.do_layout()
 		self.event_bindings()
@@ -564,6 +572,7 @@ class PosViewer( wx.Frame ) :
 		sizer.Add( rpanel, 1, wx.EXPAND )
 		#panel.SetSizer( sizer )
 		return sizer
+	
 
 
 
@@ -577,16 +586,15 @@ class PosViewer( wx.Frame ) :
 		top_sizer = self.create_top_panel( self )
 
 		# OK... scrollable timeline shit.
-		self.timeline_container = wx.lib.scrolledpanel.ScrolledPanel( self )
-		self.timeline_container.SetBackgroundColour( wx.BLACK )
-		#timeline_sizer = wx.BoxSizer()
-		self.timeline = Timeline( self.timeline_container )
-		#timeline_sizer.Add( self.timeline, 1, wx.EXPAND )
-		#self.timeline_container.SetSizer( timeline_sizer )
-		self.timeline_container.SetupScrolling()
+		self.timelines_panel = wx.lib.scrolledpanel.ScrolledPanel( self )
+		self.timelines_panel.SetBackgroundColour( wx.BLACK )
+		self.timeline_sizer = wx.BoxSizer( wx.VERTICAL )
+		self.timelines_panel.SetSizer( self.timeline_sizer )
+		self.timelines_panel.SetAutoLayout( 1 )
+		self.timelines_panel.SetupScrolling()
 
 		sizer.Add( top_sizer, 0, wx.EXPAND )
-		sizer.Add( self.timeline_container, 1, wx.EXPAND )
+		sizer.Add( self.timelines_panel, 1, wx.EXPAND )
 		sizer.Add( self.slider, 0, wx.EXPAND )
 		self.SetSizer( sizer )
 
@@ -610,8 +618,9 @@ class PosViewer( wx.Frame ) :
 		t = evt.GetPosition()
 		self.time.SetLabel( time_code2str( t ) )
 		self.minimap.draw_positions( t )
-		self.timeline.t = t
-		self.timeline.Refresh()
+		for timeline in self.timelines :
+			timeline.t = t
+			timeline.Refresh()
 	
 
 
@@ -643,7 +652,25 @@ class PosViewer( wx.Frame ) :
 		self.time.SetLabel( "00:00:00" )
 
 		# pass the events to the timeline class.
-		self.timeline.process( self.kwr, self.length )
+		ta = TimelineAnalyzer( self.kwr, self.length )
+		for pid in range( len( self.kwr.players ) ) :
+			player = self.kwr.players[ pid ]
+			if not player.is_player() :
+				continue
+
+			eventss = ta.eventsss[ pid ]
+
+			w, h = self.timelines_panel.GetSize()
+
+			timeline = Timeline( self.timelines_panel, eventss, self.length,
+					size=(w, Timeline.H) )
+
+			timeline.t = 0
+			timeline.player_name = player.name
+			
+			self.timelines.append( timeline )
+			self.timeline_sizer.Add( timeline, 0, wx.ALIGN_LEFT )
+		self.timelines[0].draw_key = True
 
 		# analyze positions
 		posa = PositionDumper( kwr )
@@ -661,9 +688,6 @@ class PosViewer( wx.Frame ) :
 		self.txt_yoffset.SetValue( str( self.minimap.y_offset ) )
 		self.txt_scale.SetValue( str( self.minimap.scale ) )
 
-		#self.map_bmp = self.minimap.GetBitmap()
-		# At this point, the original state will be captured in the overlay.
-		#odc.Clear()
 
 
 
@@ -673,18 +697,7 @@ def main() :
 		fname = sys.argv[1]
 
 	kw = KWReplayWithCommands( fname=fname, verbose=False )
-	#kw.replay_body.dump_commands()
 
-	#ana = APMAnalyzer( kw )
-	#ana.plot( 10 )
-	# or ana.emit_apm_csv( 10, file=sys.stdout )
-
-	#res = ResourceAnalyzer( kw )
-	#res.calc()
-	#res.plot()
-
-	#pos = PositionDumper( kw )
-	#pos.dump_csv()
 	app = wx.App()
 	
 	# debug settings
