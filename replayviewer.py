@@ -4,12 +4,12 @@ from kwreplay import Player, KWReplay
 from watcher import Watcher
 from chunks import KWReplayWithCommands
 from gnuplot import Gnuplot
+from animation import TimelineViewer
+from mapzip import MapZip
 import sys
 import os
-import io
 import time
 import datetime
-import zipfile
 import subprocess
 import hashlib
 import wx
@@ -144,36 +144,6 @@ class ReplayItems() :
 		ip = m.hexdigest()
 		#print( ip )
 		return ip
-
-
-
-class MapZip() :
-	def __init__( self, fname ) :
-		self.fname = fname
-		if not os.path.isfile( fname ) :
-			self.zipf = None
-			self.namelist = []
-		else :
-			self.zipf = zipfile.ZipFile( fname, 'r' )
-			self.namelist = self.zipf.namelist()
-	
-	def hasfile( self, fname ) :
-		return fname in self.namelist
-
-	# load fname and return as wx.Image
-	def load( self, fname ) :
-		assert self.hasfile( fname )
-		zs = self.zipf.open( fname ) # open stream
-
-		# but zs doesn't support seek() operation.
-		# read onto a buffer to support seek().
-		s = io.BytesIO( zs.read() )
-
-		img = wx.Image()
-		img.LoadFile( s )
-		s.close()
-		zs.close()
-		return img
 
 
 
@@ -1309,7 +1279,21 @@ class ReplayViewer( wx.Frame ) :
 		ana.print_unit_distribution()
 		f.close()
 		sys.stdout = tmp
+	
 
+
+	def on_timeline( self, evt ) :
+		# Check if replay is selected.
+		fname = self.get_selected_replay()
+		if not fname :
+			# error message is shown by get_selected_replay.
+			return
+
+		kwr_chunks = KWReplayWithCommands( fname=fname, verbose=False )
+		tlv = TimelineViewer( self, maps_zip=self.MAPS_ZIP )
+		tlv.load( kwr_chunks )
+		tlv.Show()
+	
 
 
 	def event_bindings( self ) :
@@ -1340,6 +1324,11 @@ class ReplayViewer( wx.Frame ) :
 		plot_res_menu_item = analysis_menu.Append( wx.NewId(), "Plot &Resource Spent",
 				"Analyze the replay and calculate resource spent of each player" )
 		analysis_menu.Bind( wx.EVT_MENU, self.on_plot_res, plot_res_menu_item )
+
+		# draw time line
+		timeline_menu_item = analysis_menu.Append( wx.NewId(), "Show &Timeline",
+				"Show timeline along with movements on the minimap" )
+		analysis_menu.Bind( wx.EVT_MENU, self.on_timeline, timeline_menu_item )
 
 		# dump build order
 		build_order_menu_item = analysis_menu.Append( wx.NewId(), "Dump &Build Order",

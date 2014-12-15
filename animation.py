@@ -4,7 +4,7 @@ import wx.lib.scrolledpanel
 import sys
 import os
 from kwreplay import time_code2str
-from replayviewer import MapZip
+from mapzip import MapZip
 from chunks import KWReplayWithCommands
 from analyzer import PositionDumper
 from args import Args
@@ -517,11 +517,10 @@ class Timeline( wx.Panel ) :
 
 
 
-class PosViewer( wx.Frame ) :
-	def __init__( self, parent, args, maps_zip='maps.zip' ) :
+class TimelineViewer( wx.Frame ) :
+	def __init__( self, parent, maps_zip='maps.zip' ) :
 		super().__init__( parent, title='Replay Movement Viewer', size=(500,500) )
 		self.parent = parent
-		self.args = args
 		self.MAPS_ZIP = maps_zip
 
 		self.kwr = None
@@ -700,13 +699,9 @@ def main() :
 
 	app = wx.App()
 	
-	# debug settings
-	CONFIGF = 'config.ini'
-	args = Args( CONFIGF )
-
-	frame = PosViewer( None, args )
+	frame = TimelineViewer( None )
 	frame.load( kw )
-	frame.Layout() # do layout again.
+	#frame.Layout() # do layout again.
 	frame.Show( True )
 	app.MainLoop()
 
