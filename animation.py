@@ -383,8 +383,8 @@ class Timeline( wx.Panel ) :
 
 	def cmd_desc( self, dc, cmd, x, y ) :
 		if cmd.cmd_id == 0x31 :
-			dc.SetTextForeground( wx.BLUE )
-			dc.SetPen( wx.Pen( wx.BLUE ) )
+			dc.SetTextForeground( wx.CYAN )
+			dc.SetPen( wx.Pen( wx.CYAN ) )
 
 			if cmd.building_type in UNITNAMES :
 				name = UNITNAMES[ cmd.building_type ]
@@ -425,8 +425,8 @@ class Timeline( wx.Panel ) :
 			dc.SetPen( wx.Pen( wx.RED ) )
 
 			if not cmd.unit_ty :
-				dc.SetTextForeground( wx.CYAN )
-				dc.SetPen( wx.Pen( wx.CYAN ) )
+				dc.SetTextForeground( "#9a0eea" )
+				dc.SetPen( wx.Pen( "#9a0eea" ) ) # violet
 				dc.DrawText( "GG?", x-10, y )
 				dc.DrawLine( x, self.Y, x, y+20 )
 			else :
@@ -471,8 +471,8 @@ class Timeline( wx.Panel ) :
 
 
 		elif cmd.cmd_id == 0x91 : # GG!
-			dc.SetTextForeground( wx.CYAN )
-			dc.SetPen( wx.Pen( wx.CYAN ) )
+			dc.SetTextForeground( "#9a0eea" )
+			dc.SetPen( wx.Pen( "#9a0eea" ) ) # violet
 			dc.DrawText( "GG", x-10, y )
 			dc.DrawLine( x, self.Y, x, y+20 )
 
