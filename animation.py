@@ -12,6 +12,28 @@ from consts import UNITNAMES, POWERNAMES, UPGRADENAMES
 
 
 
+UNIT_COLORS = [
+		'#FF0000', # R
+		'#0000FF', # B
+		'#00FF00', # G
+		'#FFFF00', # Y
+		'#ff7f00', # Orange
+		'#00ffff', # Cyan
+		'#ff7fff', # Pink
+	]
+
+BLDG_COLORS = [
+		'#7f0000', # R
+		'#00007f', # B
+		'#007f00', # G
+		'#7f7f00', # Y
+		'#7f3f00', # Orange
+		'#007f7f', # Cyan
+		'#7f667f', # Pink
+	]
+	
+
+
 class MiniMap( wx.Panel ) :
 	def __init__( self, parent, map_zip_fname ) :
 		super().__init__( parent )
@@ -25,7 +47,6 @@ class MiniMap( wx.Panel ) :
 		self.scale = 0 # scale factor VS pos and image pixels.
 		self.x_offset = 0
 		self.y_offset = 0
-		self.make_palette()
 
 		self.mapzip = MapZip( map_zip_fname )
 		self.Bitmap = None
@@ -33,27 +54,6 @@ class MiniMap( wx.Panel ) :
 
 		self.Bind( wx.EVT_PAINT, self.OnPaint )
 
-	def make_palette( self ) :
-		self.colors = [
-				'#FF0000', # R
-				'#0000FF', # B
-				'#00FF00', # G
-				'#FFFF00', # Y
-				'#ff7f00', # Orange
-				'#00ffff', # Cyan
-				'#ff7fff', # Pink
-			]
-
-		self.bldg_colors = [
-				'#7f0000', # R
-				'#00007f', # B
-				'#007f00', # G
-				'#7f7f00', # Y
-				'#7f6600', # Orange
-				'#007f7f', # Cyan
-				'#7f667f', # Pink
-			]
-	
 
 
 	# show map preview
@@ -166,7 +166,7 @@ class MiniMap( wx.Panel ) :
 				player = self.kwr.players[ pid ]
 				if not player.is_player() :
 					continue
-				self.draw_building( dc, cmd.x, cmd.y, self.bldg_colors[pid] )
+				self.draw_building( dc, cmd.x, cmd.y, BLDG_COLORS[pid] )
 
 
 		# Draw movement dots
@@ -181,10 +181,10 @@ class MiniMap( wx.Panel ) :
 
 				if cmd.cmd_id == 0x8A : # wormhole
 					#print( "0x%08X" % cmd.cmd_id )
-					self.draw_dot( dc, cmd.x1, cmd.y1, self.colors[pid] )
-					self.draw_dot( dc, cmd.x2, cmd.y2, self.colors[pid] )
+					self.draw_dot( dc, cmd.x1, cmd.y1, UNIT_COLORS[pid] )
+					self.draw_dot( dc, cmd.x2, cmd.y2, UNIT_COLORS[pid] )
 				else :
-					self.draw_dot( dc, cmd.x, cmd.y, self.colors[pid] )
+					self.draw_dot( dc, cmd.x, cmd.y, UNIT_COLORS[pid] )
 
 		del dc
 		#self.SetBitmap( bmp )
@@ -312,6 +312,7 @@ class Timeline( wx.Panel ) :
 
 		self.t = -1
 		self.player_name = "Noname"
+		self.pid = 0 # player ID
 		self.draw_key = False
 
 		self.Bind( wx.EVT_PAINT, self.OnPaint )
@@ -498,7 +499,7 @@ class Timeline( wx.Panel ) :
 
 
 	def draw_player_timeline( self, dc ) :
-		dc.SetTextForeground( wx.WHITE )
+		dc.SetTextForeground( UNIT_COLORS[ self.pid ] )
 		#dc.DrawText( self.kwr.players[pid].name, 10, self.Y-170 )
 		dc.DrawText( self.player_name, 10, Timeline.Y-170 )
 		self.draw_time_grid( dc )
@@ -690,6 +691,7 @@ class TimelineViewer( wx.Frame ) :
 					size=(w, Timeline.H) )
 
 			timeline.t = 0
+			timeline.pid = self.kwr.players.index( player )
 			timeline.player_name = player.name
 			
 			self.timelines.append( timeline )
