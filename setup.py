@@ -83,7 +83,7 @@ autosaver = Target(
     # comments = "Some Comments",
     # internal_name = "spam",
 
-    script="autosaver.py", # path of the main script
+    script="autosaver.pyw", # path of the main script
 
     # Allows to specify the basename of the executable, if different from 'autosaver'
     # dest_base = "autosaver",

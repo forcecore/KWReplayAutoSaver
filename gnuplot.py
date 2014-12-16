@@ -2,8 +2,14 @@
 import sys
 import os
 import subprocess
+import tempfile
+from multiprocessing import Process
+
+
 
 class Gnuplot() :
+	temp_files = [] # for deletion, if anyone cares.
+
 	def __init__( self ) :
 		self.gnuplot_path = Gnuplot.find_gnuplot()
 		#self.linestyle_id = 0
@@ -14,7 +20,9 @@ class Gnuplot() :
 	
 	def open( self ) :
 		assert self.gnuplot_path, "gnuplot not found"
-		self.f = subprocess.Popen( [self.gnuplot_path, "-persistent"], shell=False, stdin=subprocess.PIPE )
+		self.f = tempfile.NamedTemporaryFile( delete=False )
+		#self.f = subprocess.Popen( [self.gnuplot_path, "-p"], shell=False, stdin=subprocess.PIPE )
+		self.write( 'set term wxt\n' )
 	
 	def set_style( self, style ) :
 		self.style = style
@@ -54,12 +62,22 @@ class Gnuplot() :
 			self.write( 'e\n' )
 
 	def close( self ) :
-		self.f.stdin.close()
-		del self.f
+		#self.write( "exit\n" )
+		#self.f.stdin.close()
+		#del self.f
+		#p = Process( target=gnuplot_forked, args=( self.gnuplot_path, self.f.name ) )
+		#p.start()
+		self.f.close()
+		subprocess.Popen( [self.gnuplot_path, self.f.name], shell=False )
+		Gnuplot.temp_files.append( self.f.name )
+		# launch gnuplot will get rid of the tmp file afterwards.
+		# Tempfile, on win7, is here:
+		# C:\Users\USERID\AppData\Local\Temp
 	
 	def write( self, cmd ) :
-		self.f.stdin.write( bytes( cmd, "UTF-8" ) )
-		self.f.stdin.flush()
+		#self.f.stdin.write( bytes( cmd, "UTF-8" ) )
+		#self.f.stdin.flush()
+		self.f.write( bytes( cmd, "UTF-8" ) )
 	
 	def find_gnuplot() :
 		is_win32 = (sys.platform == 'win32')
@@ -76,19 +94,35 @@ class Gnuplot() :
 				if not os.path.isfile( gnuplot ) :
 					return None
 				else :
-					# I want pgnuplot.
+					# I want to try pgnuplot, gnuplot ...
+					# until it is neat.
 					path = os.path.dirname( gnuplot )
-					gnuplot = os.path.join( path, "gnuplot.exe" ) # piped gnuplot!
+					gnuplot = os.path.join( path, "wgnuplot.exe" ) # piped gnuplot!
 					return gnuplot
 			except FileNotFoundError :
 				return None
 
 		return None
 
-if __name__ == "__main__" :
+
+
+def debug_main() :
 	plt = Gnuplot()
 	print( "found gnuplot:", plt.gnuplot_path )
 	plt.open()
 	plt.write('set xrange [0:10]; set yrange [-2:2]\n')
 	plt.write('plot sin(x)\n')
-	#plt.close()
+	plt.close()
+
+	# then delete Gnuplot.temp_files...
+
+
+
+def gnuplot_forked( gnuplot, fname ) :
+	subprocess.call( [gnuplot, fname] )
+	os.unlink( fname )
+
+
+
+if __name__ == "__main__" :
+	debug_main()

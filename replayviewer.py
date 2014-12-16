@@ -1306,6 +1306,10 @@ class ReplayViewer( wx.Frame ) :
 
 
 	def on_exit( self, evt ) :
+		# remove gnuplot temp files
+		for fname in Gnuplot.temp_files :
+			os.unlink( fname )
+
 		par = self.Parent
 		self.Close()
 		if par :
