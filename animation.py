@@ -109,8 +109,14 @@ class MiniMap( wx.Panel ) :
 		W = bmp.GetWidth()
 		H = bmp.GetHeight()
 
-		fx = W/X
-		fy = H/Y
+		if X == 0 :
+			fx = 1
+		else :
+			fx = W/X
+		if Y == 0 :
+			fy = 1
+		else :
+			fy = H/Y
 
 		self.scale = min( fx, fy )
 
@@ -569,7 +575,7 @@ class Timeline( wx.Panel ) :
 
 class TimelineViewer( wx.Frame ) :
 	def __init__( self, parent, maps_zip='maps.zip' ) :
-		super().__init__( parent, title='Replay Movement Viewer', size=(500,500) )
+		super().__init__( parent, title='Replay Movement Viewer', size=(800,600) )
 		self.parent = parent
 		self.MAPS_ZIP = maps_zip
 
