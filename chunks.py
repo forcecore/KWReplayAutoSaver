@@ -204,7 +204,6 @@ class Command :
 		cmdlen = CMDLENS[ self.cmd_id ]
 
 		if cmdlen > 0 :
-			print( "cmd_id: 0x%02X" % self.cmd_id )
 			self.split_fixed_len( f, cmdlen )
 		# more var len commands
 		elif cmdlen < 0 :
