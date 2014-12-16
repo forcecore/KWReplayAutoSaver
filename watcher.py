@@ -21,6 +21,9 @@ class Watcher :
 		self.verbose = verbose
 		self.last_replay = fname
 		self.sig = self.get_file_signature( fname )
+		prefix, self.ext = os.path.splitext( fname )
+	
+
 
 	def get_file_signature( self, fname ) :
 		if not os.path.isfile( fname ) :
@@ -75,19 +78,20 @@ class Watcher :
 	###
 	def do_renaming( self, fname, add_username=True,
 			add_faction=False, add_vs_info=False,
-			custom_date_format=None ) :
+			custom_date_format=None  ) :
 		# where the replay dir is.
 		path = os.path.dirname( fname )
 
 		# Latch the replay file to a tmp file.
-		tmpf = os.path.join( path, "tmp.kwr" ) # using folder where the replay is better
+		# using folder where the replay is better
+		tmpf = os.path.join( path, "tmp" + self.ext )
 		shutil.copyfile( self.last_replay, tmpf )
 
 		r = KWReplay( fname=tmpf )
 		# analyze the replay and deduce its name
 		newf = Watcher.calc_name( r, add_username=add_username,
 				add_faction=add_faction, add_vs_info=add_vs_info,
-				custom_date_format=custom_date_format )
+				custom_date_format=custom_date_format, ext=self.ext )
 		newf = os.path.join( path, newf )
 
 		os.replace( tmpf, newf ) # rename, silently overwrite if needed.
@@ -101,7 +105,7 @@ class Watcher :
 	# analyze the replay and deduce its name
 	def calc_name( r, add_username=True,
 			add_faction=False, add_vs_info=False,
-			custom_date_format=None ) :
+			custom_date_format=None, ext=".kwr" ) :
 		if custom_date_format == None :
 			newf = '[' + r.decode_timestamp( r.timestamp ) + ']'
 		else :
@@ -116,7 +120,9 @@ class Watcher :
 		if add_username :
 			newf += " " + Watcher.player_list( r, add_faction=add_faction )
 
-		newf += ".KWReplay" # don't forget the extension!
+		#newf += ".KWReplay" # don't forget the extension!
+		# more generalized RA3replay, cnc3replay extension is computed now.
+		newf += ext # don't forget the extension!
 
 		# sanitize the names.
 		newf = Watcher.sanitize_name( newf )
@@ -278,7 +284,8 @@ class Watcher :
 
 
 def main() :
-	watcher = Watcher( "최종 리플레이.KWReplay", verbose=True )
+	#watcher = Watcher( "최종 리플레이.KWReplay", verbose=True )
+	watcher = Watcher( "tw/last.CNC3Replay", verbose=True )
 	# monitor file size change.
 	print( watcher.sig )
 	print( "Started monitoring" )
