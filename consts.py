@@ -30,6 +30,7 @@ CMDLENS = {
 	0x11: -2,
 	0x12: -2,
 	0x17: -2,
+	0x1F: 0, # var len, with FF crawl.
 
 	0x27: -34,
 	0x29: 28,

@@ -399,6 +399,8 @@ class Timeline( wx.Panel ) :
 				t += mult
 				x += mult * pin_spacing
 				continue
+			if t > self.length :
+				break
 			self.draw_time_pin( dc, t, x, Y, pin_len )
 			t += mult
 			x += mult *pin_spacing
@@ -409,7 +411,9 @@ class Timeline( wx.Panel ) :
 		cnt = int( self.mid/Timeline.pin_spacing )
 		t = self.t - cnt
 
-		while t <= self.t + cnt and t < self.length :
+		assert self.length <= len( self.eventss )
+
+		while t <= self.t + cnt and t < self.length and t >= 0 :
 			self.draw_events_at_second( dc, self.eventss[t] )
 			t += 1
 

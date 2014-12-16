@@ -223,6 +223,8 @@ class Command :
 
 			elif self.cmd_id == 0x0E :
 				self.split_0x00( f ) # same as 0x00, creep until FF.
+			elif self.cmd_id == 0x1F :
+				self.split_0x00( f ) # same as 0x00, creep until FF.
 			elif self.cmd_id == 0x2D :
 				#print( "split_cmd.ncmd:", ncmd )
 				self.split_production_cmd( f )
