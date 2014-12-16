@@ -196,6 +196,7 @@ class Command :
 		if not self.cmd_id in CMDLENS :
 			print( "Unknown command:" )
 			print( "0x%02X" % self.cmd_id )
+			print( "Please input command length, in consts.py:" )
 			print_bytes( f.getbuffer() )
 			print()
 			assert 0
@@ -203,6 +204,7 @@ class Command :
 		cmdlen = CMDLENS[ self.cmd_id ]
 
 		if cmdlen > 0 :
+			print( "cmd_id: 0x%02X" % self.cmd_id )
 			self.split_fixed_len( f, cmdlen )
 		# more var len commands
 		elif cmdlen < 0 :
@@ -615,8 +617,8 @@ class Chunk :
 
 
 
-	# Currently, I can't decode very well.
-	# I only extract what I can... T.T
+	# I split commands, before decoding anything.
+	# Not on the fly. It makes command decoding/hacking much easier.
 	def split_commands( self, ncmd, payload ) :
 		f = io.BytesIO( payload )
 		#print( "COMMANDS payload:", payload )
@@ -626,9 +628,13 @@ class Chunk :
 			self.commands.append( c )
 			c.split_command( f, ncmd )
 
+			# If you see error here, it means, command length specification
+			# in consts.py is wrong. You need to work out the format of the
+			# command.
 			terminator = read_byte( f )
-			#terminator = 0xFF
+
 			if terminator != 0xFF :
+				# or if you reach here, again, command length is wrong.
 				print( "Decode error" )
 				print( "ncmd:", ncmd )
 				print( "cmd_id: 0x%02X" % c.cmd_id )
@@ -809,6 +815,7 @@ class KWReplayWithCommands( KWReplay ) :
 			print()
 	
 	def loadFromFile( self, fname ) :
+		self.guess_game( fname )
 		f = open( fname, 'rb' )
 		self.loadFromStream( f )
 		self.replay_body = ReplayBody( f )

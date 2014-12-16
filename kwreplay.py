@@ -8,6 +8,7 @@
 
 import struct # bin file enc/dec
 import sys
+import os
 import re
 import io
 import codecs
@@ -215,7 +216,10 @@ class Player :
 
 
 class KWReplay :
-	def __init__( self, fname=None, verbose=False ) :
+	def __init__( self, fname=None, verbose=False, game=None ) :
+		self.game = game
+		# game == "TW" for Tiberium Wars
+
 		# These are Kane's Wrath constants
 		self.MAGIC_SIZE = 18
 		self.U1_SIZE = 33
@@ -238,6 +242,8 @@ class KWReplay :
 		self.map_id = ""
 		self.map_path = ""
 		self.mc = "" # map CRC
+
+		self.mod_info = None # only in RA3/TW
 
 		self.replay_saver = 0
 		self.player_cnt = 0
@@ -307,7 +313,25 @@ class KWReplay :
 	
 
 
+	def guess_game( self, fname ) :
+		if self.game == None :
+			# Guess game replay type from the extension.
+			# Defaults to KW.
+			prefix, ext = os.path.splitext( fname )
+			ext = ext.lower()
+
+			if ext == ".cnc3replay" :
+				self.game = "TW"
+			else :
+				self.game = "KW"
+
+		if self.verbose :
+			print( "Replay for game:", self.game )
+
+
+
 	def loadFromFile( self, fname ) :
+		self.guess_game( fname )
 		f = open( fname, 'rb' )
 		self.loadFromStream( f )
 		f.close()
@@ -366,6 +390,9 @@ class KWReplay :
 		offset = read_uint32( f )
 		str_repl_length = read_uint32( f ) # always == 8
 		repl_magic = read_cstr( f, str_repl_length )
+
+		if self.game == "TW" :
+			self.mod_info = read_cstr( f, 22 )
 
 		if self.verbose :
 			print( "-- replay magic:" )
