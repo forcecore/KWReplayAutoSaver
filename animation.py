@@ -326,7 +326,73 @@ class Timeline( wx.Panel ) :
 	
 
 
+	def on_move_up( self, evt ) :
+		self.move_timeline( -1 )
+
+	def on_move_down( self, evt ) :
+		self.move_timeline( 1 )
+
+	def move_timeline( self, offset ) :
+		# offset == +1 or -1.
+		# +1 moves it down, -1 moves it up.
+		timelines_panel = self.GetParent()
+		sizer = timelines_panel.GetSizer()
+		timelines = sizer.GetChildren()
+		index = -1
+		for timeline in timelines :
+			if timeline.GetWindow() == self :
+				index = timelines.index( timeline )
+				break
+		assert index >= 0
+
+		new_pos = index + offset
+		if new_pos < 0 :
+			# you can't move up when you are at the top.
+			return
+		if new_pos >= sizer.GetItemCount() :
+			# you can't move down when you are at the bottom.
+			return
+
+		affected = timelines[ new_pos ].GetWindow() # remember the affected one.
+		sizer.Detach( self )
+		sizer.Insert( new_pos, self )
+
+		if new_pos == 0 :
+			# move this job
+			self.draw_key = True
+			affected.draw_key = False
+
+		# Since the windows swapped pos, we need to do Layout again.
+		# Calling Refresh() won't do.
+		timelines_panel.Layout()
+		timelines_panel.Refresh()
+
+	
+
 	def on_right_click( self, evt ) :
+		menu = wx.Menu()
+
+		# move up
+		item = wx.MenuItem( menu, wx.ID_ANY, "Move &up" )
+		menu.Bind( wx.EVT_MENU, self.on_move_up, id=item.GetId() )
+		menu.Append( item )
+
+		# move down
+		item = wx.MenuItem( menu, wx.ID_ANY, "Move &down" )
+		menu.Bind( wx.EVT_MENU, self.on_move_down, id=item.GetId() )
+		menu.Append( item )
+
+		# export build order
+		item = wx.MenuItem( menu, wx.ID_ANY, "Save &build order of this player" )
+		menu.Bind( wx.EVT_MENU, self.on_bo_dump, id=item.GetId() )
+		menu.Append( item )
+
+		self.PopupMenu( menu, evt.GetPosition() )
+		menu.Destroy() # prevent memory leak
+
+
+
+	def on_bo_dump( self, evt ) :
 		diag = wx.FileDialog( self, "Save build order as text", "", "",
 			"Text File (*.txt)|*.txt",
 			wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT )
@@ -656,12 +722,22 @@ class TimelineViewer( wx.Frame ) :
 		sizer.Add( self.timelines_panel, 1, wx.EXPAND )
 		sizer.Add( self.slider, 0, wx.EXPAND )
 		self.SetSizer( sizer )
+	
+
+
+	def on_size( self, evt ) :
+		for timeline in self.timelines :
+			timeline.Refresh()
+		evt.Skip()
+		# OK, if this gets heavy, then I can move on to EVT_IDLE instead.
+		# But before that... I'm just redrawing all the time.
 
 
 
 	def event_bindings( self ) :
 		self.slider.Bind( wx.EVT_SCROLL, self.on_scroll )
 		self.btn_apply.Bind( wx.EVT_BUTTON, self.on_apply )
+		self.Bind( wx.EVT_SIZE, self.on_size )
 	
 
 
