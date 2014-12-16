@@ -298,7 +298,26 @@ class FactorySim() :
 		else :
 			# queue the entries to the factory.
 			if evt.fivex :
-				cnt = 5
+				# these units, when 5x'ed, they are subject to
+				# limit of the airfields.
+				# Well, the limit may limit them to 2x when the airfield
+				# is half full, but oh well, this is only an estimation.
+				if evt.unit_ty in [ 
+						0x6AA59D16, # Nod vertigo
+						0x393E446C, # MoK vertigo
+						0xB587039F, # GDI orca
+						0xB3363EA3, # GDI firehawk
+						0x6BD7B8AB, # ST orca
+						0x1348CA0A, # ST FH
+						0x37F0A5F5, # Zorca
+						0x12E1C8C8, # ZCM FH
+						0xF6E707D5, # SC storm rider
+						0x1DF82E16, # R17 storm rider
+						0xECA08561 # T59 storm rider
+						] :
+					cnt = 4
+				else :
+					cnt = 5
 			else :
 				cnt = 1
 			for i in range( cnt ) :
