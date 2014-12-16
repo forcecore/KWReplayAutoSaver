@@ -413,7 +413,10 @@ class Timeline( wx.Panel ) :
 
 		assert self.length <= len( self.eventss )
 
-		while t <= self.t + cnt and t < self.length and t >= 0 :
+		while t <= self.t + cnt and t < self.length :
+			if t < 0 :
+				t += 1
+				continue
 			self.draw_events_at_second( dc, self.eventss[t] )
 			t += 1
 
