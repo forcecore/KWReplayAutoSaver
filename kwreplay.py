@@ -322,6 +322,11 @@ class KWReplay :
 
 			if ext == ".cnc3replay" :
 				self.game = "TW"
+			elif ext == ".ra3replay" :
+				self.game = "RA3"
+				self.MAGIC_SIZE = 17
+				self.U1_SIZE = 31
+				self.U2_SIZE = 20
 			else :
 				self.game = "KW"
 
@@ -391,7 +396,7 @@ class KWReplay :
 		str_repl_length = read_uint32( f ) # always == 8
 		repl_magic = read_cstr( f, str_repl_length )
 
-		if self.game == "TW" :
+		if self.game == "TW" or self.game == "RA3" :
 			self.mod_info = read_cstr( f, 22 )
 
 		if self.verbose :
