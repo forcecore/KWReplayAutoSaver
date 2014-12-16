@@ -113,8 +113,10 @@ class ReplayItems() :
 			if not os.path.isfile( os.path.join( path, f ) ) :
 				continue
 
-			# must be a kwreplay file.
-			if not f.lower().endswith( ".kwreplay" ) :
+			# must be a C&C file.
+			dummy, ext = os.path.splitext( f )
+			ext = ext.lower()
+			if not ext in [ ".kwreplay", ".ra3replay", ".cnc3replay" ] :
 				continue
 
 			fs.append( f )
@@ -629,6 +631,7 @@ class ReplayList( wx.ListCtrl ) :
 		rep_name = self.GetItem( pos, 0 ).GetText()
 		fname = os.path.join( self.path, rep_name )
 		self.ctx_old_name = fname
+		ext = os.path.splitext( fname )[1]
 
 		# generate some predefined replay renamings
 		kwr = KWReplay( fname=self.ctx_old_name )
@@ -637,22 +640,22 @@ class ReplayList( wx.ListCtrl ) :
 		# I'm keeping it.
 		self.names.append( Watcher.calc_name( kwr,
 				add_username=False, add_faction=False, add_vs_info=False,
-				custom_date_format=self.args.custom_date_format ) )
+				custom_date_format=self.args.custom_date_format, ext=ext ) )
 		#self.names.append( Watcher.calc_name( kwr,
 		#		add_username=False, add_faction=True, custom_date_format=self.args.custom_date_format ) )
 		# add_faction is meaningless without add_username, duh!
 		self.names.append( Watcher.calc_name( kwr,
 				add_username=True, add_faction=False, add_vs_info=False,
-				custom_date_format=self.args.custom_date_format ) )
+				custom_date_format=self.args.custom_date_format, ext=ext ) )
 		self.names.append( Watcher.calc_name( kwr,
 				add_username=True, add_faction=True, add_vs_info=False,
-				custom_date_format=self.args.custom_date_format ) )
+				custom_date_format=self.args.custom_date_format, ext=ext ) )
 		self.names.append( Watcher.calc_name( kwr,
 				add_username=True, add_faction=False, add_vs_info=True,
-				custom_date_format=self.args.custom_date_format ) )
+				custom_date_format=self.args.custom_date_format, ext=ext ) )
 		self.names.append( Watcher.calc_name( kwr,
 				add_username=True, add_faction=True, add_vs_info=True,
-				custom_date_format=self.args.custom_date_format ) )
+				custom_date_format=self.args.custom_date_format, ext=ext ) )
 
 		# make context menu
 		menu = wx.Menu()
@@ -737,9 +740,11 @@ class ReplayList( wx.ListCtrl ) :
 	# canonicalize it.
 	# pos = rep_list entry position to update
 	def rename_with_stem( self, pos, old_name, rep_name ) :
+		old_ext = os.path.splitext( old_name )[1]
+
 		# Add extension if not exists
-		if not rep_name.lower().endswith( ".kwreplay" ) :
-			rep_name += ".KWReplay"
+		if not rep_name.lower().endswith( old_ext ) :
+			rep_name += old_ext
 
 		# sanitize invalid char
 		rep_name = Watcher.sanitize_name( rep_name )
@@ -804,9 +809,11 @@ class ReplayList( wx.ListCtrl ) :
 			old_name = it.fname
 			old_name = os.path.join( self.path, old_name )
 
+			ext = os.path.splitext( old_name )[1]
+
 			rep_name = Watcher.calc_name( it.kwr, add_username=au, add_faction=af,
 					add_vs_info=av,
-					custom_date_format=self.args.custom_date_format )
+					custom_date_format=self.args.custom_date_format, ext=ext )
 
 			self.rename_with_stem( index, old_name, rep_name )
 
@@ -848,13 +855,15 @@ class ReplayList( wx.ListCtrl ) :
 		old_stem = self.GetItem( pos, 0 ).GetText()
 		# if valid, the edit is accepted and updated by some update function.
 
+		old_ext = os.path.splitext( old_stem )[1]
+
 		stem = event.GetText() # newly edited text
 		if old_stem == stem :
 			# user pressed esc or something
 			return
 
-		if not stem.lower().endswith( ".kwreplay" ) :
-			stem += ".KWReplay"
+		if not stem.lower().endswith( old_ext ) :
+			stem += old_ext
 
 		# Check for invalid char
 		sanitized = Watcher.sanitize_name( stem )
