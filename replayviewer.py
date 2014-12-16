@@ -1308,7 +1308,9 @@ class ReplayViewer( wx.Frame ) :
 	def on_exit( self, evt ) :
 		par = self.Parent
 		self.Close()
-		par.tray_icon.on_exit( evt )
+		if par :
+			# I (the developer) run the replay viewer only sometimes haha
+			par.tray_icon.on_exit( evt )
 	
 
 
