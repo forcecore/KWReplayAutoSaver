@@ -316,7 +316,34 @@ class Timeline( wx.Panel ) :
 		self.draw_key = False
 
 		self.Bind( wx.EVT_PAINT, self.OnPaint )
+		self.Bind( wx.EVT_RIGHT_UP, self.on_right_click )
 	
+
+
+	def on_right_click( self, evt ) :
+		diag = wx.FileDialog( self, "Save build order as text", "", "",
+			"Text File (*.txt)|*.txt",
+			wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT )
+		diag.SetFilename( self.player_name + ".txt" )
+		
+		if diag.ShowModal() != wx.ID_OK :
+			return None
+
+		ofname = diag.GetPath()
+		diag.Destroy()
+
+		# in time order, no need to worry!
+		tmp = sys.stdout # intercept stdout temporarily.
+		f = open( ofname, "w" )
+		sys.stdout = f
+		print( "Build order dump of", self.player_name, file=f )
+		print( file=f )
+		for events in self.eventss :
+			for cmd in events :
+				cmd.print_known()
+		f.close()
+		sys.stdout = tmp
+
 
 
 	def draw_midline( self, dc ) :
