@@ -70,7 +70,7 @@ def time_code2str( tc ) :
 
 
 class Player :
-	faction_tab = [
+	kw_faction_tab = [
 		'Rnd', 'Obs', 'PostCommentator',
 		'f3', 'f4', 'GDI',
 		'ST', 'ZCM', 'Nod',
@@ -78,30 +78,59 @@ class Player :
 		'R17', 'T59'
 	]
 
+	cnc3_faction_tab = [
+		'Rnd', 'Obs', 'PostCommentator',
+		'f3', 'f4', 'GDI',
+		'Nod', 'Sc'
+	]
+
+	ra3_faction_tab = [
+		'Obs', 'E', 'PostCommentator',
+		'A', 'f4', 'f5',
+		'Rnd', 'S'
+	]
+
 	ai_personality_tab = [
 		'Rnd_pers', 'invalid',
 		'Balanced', 'Rusher', 'Turtle', 'Guerilla', 'Streamroller'
 	]
 
-	color_tab = [
+	kw_color_tab = [
 		'Rnd_color', 'Blue', 'Yellow',
 		'Green', 'Orange', 'Pink',
 		'Purple', 'Red', 'Cyan'
 	]
 
-	def decode_color( color ) :
+	ra3_color_tab = [
+		'Rnd_color', 'Blue', 'Yellow',
+		'Green', 'Orange', 'Pink',
+		'Purple', 'Red', 'Cyan'
+	]
+
+	def decode_color( self ) :
 		try :
-			return Player.color_tab[ color + 1 ]
+			if self.game == "RA3" :
+				color_tab = Player.ra3_color_tab
+			else :
+				color_tab = Player.kw_color_tab
+
+			return color_tab[ self.color + 1 ]
 		except IndexError :
 			return "Unknown"
 
 	def decode_ai_personality( pers ) :
 		return Player.ai_personality_tab[ pers + 2 ]
 
-	def decode_faction( fact ) :
-		return Player.faction_tab[ fact-1 ]
+	def decode_faction( self ) :
+		faction_tab = Player.kw_faction_tab
+		if self.game == "RA3" :
+			faction_tab = Player.ra3_faction_tab
+		elif self.game == "CNC3" :
+			faction_tab = Player.cnc3_faction_tab
 
-	def __init__( self ) :
+		return faction_tab[ self.faction-1 ]
+
+	def __init__( self, game="KW" ) :
 		self.is_ai = False
 		#self.id = "" # gamespy ID, which we will abandon.
 		self.name = ""
@@ -113,6 +142,7 @@ class Player :
 		self.clan = "" # human only
 		self.color = ""
 		self.handicap = 0
+		self.game = game
 	
 	def decode_human( self, data ) :
 #형중주한 vs 정우영찬
@@ -137,7 +167,10 @@ class Player :
 		self.name = self.name[1:]
 	
 	def is_observer( self ) :
-		return self.faction == 2
+		if self.game == "RA3" :
+			return self.faction == 1
+		else :
+			return self.faction == 2
 
 	def is_commentator( self ) :
 		if self.name == "post Commentator" :
@@ -207,8 +240,9 @@ class Player :
 		return self
 
 	def __str__( self ) :
-		props = [ self.name, Player.decode_color( self.color ),
-			Player.decode_faction( self.faction ), "team" + str( self.team ) ]
+		props = [ self.name, self.decode_color(),
+			self.decode_faction(), "team" + str( self.team ) ]
+
 		if self.is_ai :
 			props.append( Player.decode_ai_personality( self.ai_personality ) )
 		return " ".join( props )
@@ -218,7 +252,7 @@ class Player :
 class KWReplay :
 	def __init__( self, fname=None, verbose=False, game=None ) :
 		self.game = game
-		# game == "TW" for Tiberium Wars
+		# game == "CNC3" for Tiberium Wars
 
 		# These are Kane's Wrath constants
 		self.MAGIC_SIZE = 18
@@ -321,7 +355,7 @@ class KWReplay :
 			ext = ext.lower()
 
 			if ext == ".cnc3replay" :
-				self.game = "TW"
+				self.game = "CNC3"
 			elif ext == ".ra3replay" :
 				self.game = "RA3"
 				self.MAGIC_SIZE = 17
@@ -396,7 +430,7 @@ class KWReplay :
 		str_repl_length = read_uint32( f ) # always == 8
 		repl_magic = read_cstr( f, str_repl_length )
 
-		if self.game == "TW" or self.game == "RA3" :
+		if self.game == "CNC3" or self.game == "RA3" :
 			self.mod_info = read_cstr( f, 22 )
 
 		if self.verbose :
@@ -491,7 +525,7 @@ class KWReplay :
 
 
 	def decode_header_player( self, p ) :
-		player = Player()
+		player = Player( game=self.game )
 		player = player.decode( p )
 		return player
 

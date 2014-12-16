@@ -346,8 +346,8 @@ class PlayerList( wx.ListCtrl ) :
 				team = str( p.team )
 			pos = self.InsertItem( index, team )
 			self.SetItem( pos, 1, p.name )
-			self.SetItem( pos, 2, Player.decode_faction( p.faction ) )
-			self.SetItem( pos, 3, Player.decode_color( p.color ) )
+			self.SetItem( pos, 2, p.decode_faction() )
+			self.SetItem( pos, 3, p.decode_color() )
 
 			# Lets see if this player is a hit.
 			props = [ p.name.lower(), p.ip ]
