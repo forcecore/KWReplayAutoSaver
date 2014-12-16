@@ -79,8 +79,9 @@ class Args :
 		# It is asserted that some kind of wx.App() instance is initialized by
 		# the user of this class.
 		diag = wx.FileDialog( None, "Open the last replay file", "", "",
-			"Kane's Wrath Replays (*.KWReplay)|*.KWReplay",
-			wx.FD_OPEN | wx.FD_FILE_MUST_EXIST )
+			"Kane's Wrath Replays (*.KWReplay)|*.KWReplay" +
+			"|Tiberium Wars Replays (*.CNC3Replay)|*.CNC3Replay" +
+			"|RA3 Replays (*.RA3Replay)|*.RA3Replay", wx.FD_OPEN | wx.FD_FILE_MUST_EXIST )
 		
 		if diag.ShowModal() == wx.ID_OK :
 			# if dialog set properly, set it.
