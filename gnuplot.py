@@ -73,7 +73,7 @@ class Gnuplot() :
 		if not is_win32:
 			subprocess.Popen( [self.gnuplot_path, "-p", self.f.name], shell=False )
 		else :
-			subprocess.Popen( [self.gnuplot_path, self.f.name], shell=False )
+			subprocess.Popen( [self.gnuplot_path, "-p", self.f.name], shell=False )
 			Gnuplot.temp_files.append( self.f.name )
 			# launch gnuplot will get rid of the tmp file afterwards.
 			# Tempfile, on win7, is here:
