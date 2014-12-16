@@ -202,7 +202,7 @@ class Watcher :
 		if not add_faction :
 			return p.name
 		else :
-			return p.name + " (" + Player.decode_faction( p.faction ) + ")"
+			return p.name + " (" + p.decode_faction() + ")"
 	
 	def teams_to_strs( teams, add_faction ) :
 		result = []
@@ -273,6 +273,12 @@ class Watcher :
 		return ps
 
 	def get_replay_saver( r ) :
+		if r.replay_saver < 0 :
+			return None
+		if r.replay_saver >= len( r.players ) :
+			return None
+		# Well, epic_scorp.kwr in cornercases generates this error.
+		# Replay saver is not a valid player! How on Earth did that happen?
 		return r.players[ r.replay_saver ]
 
 	###
