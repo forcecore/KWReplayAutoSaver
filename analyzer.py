@@ -563,16 +563,14 @@ class ResourceAnalyzer() :
 
 
 	def plot_unit_distribution( self ) :
-		plt = Gnuplot()
-		plt.open()
-
 		color = 1
 		for i in range( self.nplayers ) :
 			player = self.kwr.players[i]
 			if not player.is_player() :
 				continue
 
-			plt.write( 'set term wxt %d\n' % (color-1) )
+			plt = Gnuplot()
+			plt.open()
 
 			histo = self.units[ i ]
 
@@ -615,7 +613,7 @@ class ResourceAnalyzer() :
 
 			color += 1
 
-		plt.close()
+			plt.close()
 
 
 

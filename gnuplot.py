@@ -22,7 +22,7 @@ class Gnuplot() :
 		assert self.gnuplot_path, "gnuplot not found"
 		self.f = tempfile.NamedTemporaryFile( delete=False )
 		#self.f = subprocess.Popen( [self.gnuplot_path, "-p"], shell=False, stdin=subprocess.PIPE )
-		self.write( 'set term wxt\n' )
+		#self.write( 'set term wxt\n' ) causes error, depending on qt/wx...
 	
 	def set_style( self, style ) :
 		self.style = style
@@ -68,11 +68,16 @@ class Gnuplot() :
 		#p = Process( target=gnuplot_forked, args=( self.gnuplot_path, self.f.name ) )
 		#p.start()
 		self.f.close()
-		subprocess.Popen( [self.gnuplot_path, self.f.name], shell=False )
-		Gnuplot.temp_files.append( self.f.name )
-		# launch gnuplot will get rid of the tmp file afterwards.
-		# Tempfile, on win7, is here:
-		# C:\Users\USERID\AppData\Local\Temp
+
+		is_win32 = (sys.platform == 'win32')
+		if not is_win32:
+			subprocess.Popen( [self.gnuplot_path, "-p", self.f.name], shell=False )
+		else :
+			subprocess.Popen( [self.gnuplot_path, self.f.name], shell=False )
+			Gnuplot.temp_files.append( self.f.name )
+			# launch gnuplot will get rid of the tmp file afterwards.
+			# Tempfile, on win7, is here:
+			# C:\Users\USERID\AppData\Local\Temp
 	
 	def write( self, cmd ) :
 		#self.f.stdin.write( bytes( cmd, "UTF-8" ) )
