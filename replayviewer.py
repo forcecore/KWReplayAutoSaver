@@ -1305,6 +1305,13 @@ class ReplayViewer( wx.Frame ) :
 	
 
 
+	def on_exit( self, evt ) :
+		par = self.Parent
+		self.Close()
+		par.tray_icon.on_exit( evt )
+	
+
+
 	def event_bindings( self ) :
 		self.refresh_btn.Bind( wx.EVT_BUTTON, self.on_refresh_btnClick )
 
@@ -1371,6 +1378,13 @@ class ReplayViewer( wx.Frame ) :
 		dump_dist_menu_item = analysis_menu.Append( wx.NewId(), "Dump Unit Distribution",
 				"Dump unit distribution to file" )
 		analysis_menu.Bind( wx.EVT_MENU, self.on_dump_dist, dump_dist_menu_item )
+
+		# Sep.
+		analysis_menu.AppendSeparator()
+
+		exit_menu_item = analysis_menu.Append( wx.NewId(), "E&xit program (including tray icon)",
+				"Exits the program completely" )
+		analysis_menu.Bind( wx.EVT_MENU, self.on_exit, exit_menu_item )
 
 		self.SetMenuBar( menubar )
 

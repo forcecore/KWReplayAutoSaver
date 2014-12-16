@@ -14,7 +14,7 @@ class Gnuplot() :
 	
 	def open( self ) :
 		assert self.gnuplot_path, "gnuplot not found"
-		self.f = subprocess.Popen( [self.gnuplot_path, "-persistent"], stdin=subprocess.PIPE )
+		self.f = subprocess.Popen( [self.gnuplot_path, "-persistent"], shell=False, stdin=subprocess.PIPE )
 	
 	def set_style( self, style ) :
 		self.style = style
@@ -54,6 +54,7 @@ class Gnuplot() :
 			self.write( 'e\n' )
 
 	def close( self ) :
+		self.f.stdin.close()
 		del self.f
 	
 	def write( self, cmd ) :

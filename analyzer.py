@@ -592,6 +592,8 @@ class ResourceAnalyzer() :
 				plt.write( str(cnt) + "\n" )
 			plt.write( 'e\n' )
 
+			plt.close()
+
 			color += 1
 
 
@@ -712,6 +714,7 @@ class ResourceAnalyzer() :
 
 		plt.legend( labels )
 		plt.show()
+		plt.close()
 	
 
 
@@ -851,6 +854,7 @@ class APMAnalyzer() :
 		plt.legend( labels )
 
 		plt.show()
+		plt.close()
 
 
 

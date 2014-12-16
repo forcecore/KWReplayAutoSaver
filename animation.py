@@ -12,6 +12,28 @@ from consts import UNITNAMES, POWERNAMES, UPGRADENAMES
 
 
 
+UNIT_COLORS = [
+		'#FF0000', # R
+		'#0066ff', # B, cos pure blue 0000FF sucks
+		'#00FF00', # G
+		'#FFFF00', # Y
+		'#ff7f00', # Orange
+		'#00ffff', # Cyan
+		'#ff7fff', # Pink
+	]
+
+BLDG_COLORS = [
+		'#7f0000', # R
+		'#00007f', # B
+		'#007f00', # G
+		'#7f7f00', # Y
+		'#7f3f00', # Orange
+		'#007f7f', # Cyan
+		'#7f667f', # Pink
+	]
+	
+
+
 class MiniMap( wx.Panel ) :
 	def __init__( self, parent, map_zip_fname ) :
 		super().__init__( parent )
@@ -25,7 +47,6 @@ class MiniMap( wx.Panel ) :
 		self.scale = 0 # scale factor VS pos and image pixels.
 		self.x_offset = 0
 		self.y_offset = 0
-		self.make_palette()
 
 		self.mapzip = MapZip( map_zip_fname )
 		self.Bitmap = None
@@ -33,27 +54,6 @@ class MiniMap( wx.Panel ) :
 
 		self.Bind( wx.EVT_PAINT, self.OnPaint )
 
-	def make_palette( self ) :
-		self.colors = [
-				'#FF0000', # R
-				'#0000FF', # B
-				'#00FF00', # G
-				'#FFFF00', # Y
-				'#ff7f00', # Orange
-				'#00ffff', # Cyan
-				'#ff7fff', # Pink
-			]
-
-		self.bldg_colors = [
-				'#7f0000', # R
-				'#00007f', # B
-				'#007f00', # G
-				'#7f7f00', # Y
-				'#7f6600', # Orange
-				'#007f7f', # Cyan
-				'#7f667f', # Pink
-			]
-	
 
 
 	# show map preview
@@ -125,7 +125,7 @@ class MiniMap( wx.Panel ) :
 	def draw_building( self, dc, x, y, color ) :
 		x = int( self.scale * x ) + self.x_offset
 		y = dc.Y - int( self.scale * y ) + self.y_offset
-		dc.SetPen( wx.Pen( color ) )
+		dc.SetPen( wx.Pen( wx.BLACK ) )
 		dc.SetBrush( wx.Brush( color ) )
 		dc.DrawCircle( x, y, 3 )
 
@@ -166,7 +166,7 @@ class MiniMap( wx.Panel ) :
 				player = self.kwr.players[ pid ]
 				if not player.is_player() :
 					continue
-				self.draw_building( dc, cmd.x, cmd.y, self.bldg_colors[pid] )
+				self.draw_building( dc, cmd.x, cmd.y, BLDG_COLORS[pid] )
 
 
 		# Draw movement dots
@@ -181,10 +181,10 @@ class MiniMap( wx.Panel ) :
 
 				if cmd.cmd_id == 0x8A : # wormhole
 					#print( "0x%08X" % cmd.cmd_id )
-					self.draw_dot( dc, cmd.x1, cmd.y1, self.colors[pid] )
-					self.draw_dot( dc, cmd.x2, cmd.y2, self.colors[pid] )
+					self.draw_dot( dc, cmd.x1, cmd.y1, UNIT_COLORS[pid] )
+					self.draw_dot( dc, cmd.x2, cmd.y2, UNIT_COLORS[pid] )
 				else :
-					self.draw_dot( dc, cmd.x, cmd.y, self.colors[pid] )
+					self.draw_dot( dc, cmd.x, cmd.y, UNIT_COLORS[pid] )
 
 		del dc
 		#self.SetBitmap( bmp )
@@ -299,7 +299,7 @@ class TimelineAnalyzer() :
 class Timeline( wx.Panel ) :
 	H = 250 # we want the timeline drawing area to be this high.
 	Y = 200 # Draw time grid at this level.
-	pin_spacing = 80 # 80 pixels == one second!
+	pin_spacing = 40 # 80 pixels == one second!
 	cycle = 5 #label height cycle
 
 	def __init__( self, parent, eventss, length, size=(100,100) ) :
@@ -312,6 +312,7 @@ class Timeline( wx.Panel ) :
 
 		self.t = -1
 		self.player_name = "Noname"
+		self.pid = 0 # player ID
 		self.draw_key = False
 
 		self.Bind( wx.EVT_PAINT, self.OnPaint )
@@ -357,14 +358,23 @@ class Timeline( wx.Panel ) :
 		mid = self.mid
 		x = self.w - pin_spacing * int( self.w / pin_spacing )
 		t = self.t - int( mid/pin_spacing )
+
+		# But, to draw time pins, we need to check if we can fit those number labels.
+		(tw, th) = dc.GetTextExtent( "00:00" )
+		if tw >= Timeline.pin_spacing :
+			# OK, how many pins can we fit in them?
+			mult = int( tw / Timeline.pin_spacing ) + 1
+		else :
+			mult = 1
+
 		while x < self.w :
 			if t < 0 :
-				t += 1
-				x += pin_spacing
+				t += mult
+				x += mult * pin_spacing
 				continue
 			self.draw_time_pin( dc, t, x, Y, pin_len )
-			x += pin_spacing
-			t += 1
+			t += mult
+			x += mult *pin_spacing
 	
 
 
@@ -489,7 +499,7 @@ class Timeline( wx.Panel ) :
 
 
 	def draw_player_timeline( self, dc ) :
-		dc.SetTextForeground( wx.WHITE )
+		dc.SetTextForeground( UNIT_COLORS[ self.pid ] )
 		#dc.DrawText( self.kwr.players[pid].name, 10, self.Y-170 )
 		dc.DrawText( self.player_name, 10, Timeline.Y-170 )
 		self.draw_time_grid( dc )
@@ -567,16 +577,16 @@ class TimelineViewer( wx.Frame ) :
 		lbl_scale = wx.StaticText( rpanel, label="Scale:", pos=(5,5) )
 		lbl_xoffset = wx.StaticText( rpanel, label="x offset:", pos=(5,35) )
 		lbl_yoffset = wx.StaticText( rpanel, label="y offset:", pos=(5,65) )
-		lbl_time = wx.StaticText( rpanel, label="time:", pos=(5,95) )
-		lbl_time_scale = wx.StaticText( rpanel, label="time scale:", pos=(5,125) )
+		lbl_time_scale = wx.StaticText( rpanel, label="pixels/s", pos=(75,100) )
 
 		# time mark
-		self.time = wx.StaticText( rpanel, label="", pos=(5,155) )
+		lbl_time = wx.StaticText( rpanel, label="time:", pos=(5,155) )
+		self.time = wx.StaticText( rpanel, label="", pos=(50,155) )
 
 		self.txt_scale   = wx.TextCtrl( rpanel, size=(60,-1), pos=(50,5) )
 		self.txt_xoffset = wx.TextCtrl( rpanel, size=(60,-1), pos=(50,35) )
 		self.txt_yoffset = wx.TextCtrl( rpanel, size=(60,-1), pos=(50,65) )
-		self.txt_time_scale = wx.TextCtrl( rpanel, size=(60,-1), pos=(50,95) )
+		self.txt_time_scale = wx.TextCtrl( rpanel, size=(60,-1), pos=(5,95) )
 
 		self.btn_apply = wx.Button( rpanel, label="Apply", pos=(120,35) )
 
@@ -622,7 +632,10 @@ class TimelineViewer( wx.Frame ) :
 		self.minimap.scale = float( self.txt_scale.GetValue() )
 		self.minimap.x_offset = float( self.txt_xoffset.GetValue() )
 		self.minimap.y_offset = float( self.txt_yoffset.GetValue() )
+		Timeline.pin_spacing = int( self.txt_time_scale.GetValue() )
 		self.minimap.Refresh()
+		for timeline in self.timelines :
+			timeline.Refresh()
 
 
 
@@ -678,6 +691,7 @@ class TimelineViewer( wx.Frame ) :
 					size=(w, Timeline.H) )
 
 			timeline.t = 0
+			timeline.pid = self.kwr.players.index( player )
 			timeline.player_name = player.name
 			
 			self.timelines.append( timeline )
@@ -699,7 +713,7 @@ class TimelineViewer( wx.Frame ) :
 		self.txt_xoffset.SetValue( str( self.minimap.x_offset ) )
 		self.txt_yoffset.SetValue( str( self.minimap.y_offset ) )
 		self.txt_scale.SetValue( str( self.minimap.scale ) )
-
+		self.txt_time_scale.SetValue( str( Timeline.pin_spacing ) )
 
 
 
