@@ -1,3 +1,5 @@
+The replay tool itself is released as MIT License:
+
 The MIT License (MIT)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,3 +20,16 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+
+
+The replay tool is built on
+Python 3.4, wx.Python and wxWidgets.
+
+License of Python 3.4:
+https://docs.python.org/3/license.html
+
+License of wxWidgets:
+https://www.wxwidgets.org/about/licence/
+
+License of wxPython: (as a wrapper, uses the same license as wxWidgets)
+https://www.wxwidgets.org/about/licence/
