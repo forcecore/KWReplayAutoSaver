@@ -691,18 +691,51 @@ class ReplayList( wx.ListCtrl ) :
 			os.remove( fname ) # delete the file
 			self.ctx_old_name = None
 
+
+
 	def open_containing_folder( self, event ) :
 		# not relying wxPython!
 		cmd = 'explorer /select,"%s"' % (self.ctx_old_name)
 		#print( cmd )
 		subprocess.Popen( cmd )
-	
+
+
+
+	# use cnc3reader.exe to repair the replay.
+	def repair_replay( self, event ) :
+		cnt = self.GetSelectedItemCount()
+		pos = self.GetFocusedItem()
+		if pos < 0 :
+			return
+		kwr = self.get_related_replay( pos ).kwr
+
+		if kwr.game == "KW" :
+			game_flag = "-k"
+		elif kwr.game == "CNC3" :
+			game_flag = "-w"
+		elif kwr.game == "RA3" :
+			game_flag = "-r"
+		else :
+			msg = "Unable to determine game type"
+			wx.MessageBox( msg, "Error", wx.OK|wx.ICON_ERROR )
+			return
+
+		# cnc3 reader doesn't seem to work for me...
+		subprocess.call( ['cnc3reader.exe', game_flag,
+			'-g', self.ctx_old_name,
+			"-F", "fixed_" + self.ctx_old_name ],
+			shell=True )
+
+
+
 	# Generate the context menu when rep_list is right clicked.
 	def on_RightClick( self, event ) :
 		cnt = self.GetSelectedItemCount()
 		pos = event.GetIndex()
 		if pos < 0 :
 			return
+
+		kwr = self.get_related_replay( pos ).kwr
 
 		# get the replay file name
 		# handled by "select" event: EVT_LIST_ITEM_SELECTED
@@ -715,7 +748,6 @@ class ReplayList( wx.ListCtrl ) :
 		ext = os.path.splitext( fname )[1]
 
 		# generate some predefined replay renamings
-		kwr = KWReplay( fname=self.ctx_old_name )
 		self.names = []
 		# having only date seems silly but for people with custom date format, it may be useful.
 		# I'm keeping it.
@@ -769,6 +801,10 @@ class ReplayList( wx.ListCtrl ) :
 		if cnt == 1 :
 			item = wx.MenuItem( menu, -1, "&Open containing folder" )
 			menu.Bind( wx.EVT_MENU, self.open_containing_folder, id=item.GetId() )
+			menu.Append( item )
+
+			item = wx.MenuItem( menu, -1, "Repair replay" )
+			menu.Bind( wx.EVT_MENU, self.repair_replay, id=item.GetId() )
 			menu.Append( item )
 
 			item = wx.MenuItem( menu, -1, "&Play" )

@@ -89,7 +89,7 @@ class KWReplayRepair( KWReplayWithCommands ) :
 		try :
 			self.loadFromStream( f ) # This one goes through header.
 		except :
-			print( "The replay is beyond repair!" )
+			print( "The replay is beyond repair! Even the header is corrupt." )
 			sys.exit( 1 )
 
 		print( "Header reading passed." )
