@@ -686,10 +686,14 @@ class TimelineViewer( wx.Frame ) :
 		lbl_time = wx.StaticText( rpanel, label="time:", pos=(5,155) )
 		self.time = wx.StaticText( rpanel, label="", pos=(50,155) )
 
-		self.txt_scale   = wx.TextCtrl( rpanel, size=(60,-1), pos=(50,5) )
-		self.txt_xoffset = wx.TextCtrl( rpanel, size=(60,-1), pos=(50,35) )
-		self.txt_yoffset = wx.TextCtrl( rpanel, size=(60,-1), pos=(50,65) )
-		self.txt_time_scale = wx.TextCtrl( rpanel, size=(60,-1), pos=(5,95) )
+		self.txt_scale   = wx.TextCtrl( rpanel, size=(60,-1),
+				pos=(50,5), style=wx.TE_PROCESS_ENTER )
+		self.txt_xoffset = wx.TextCtrl( rpanel, size=(60,-1),
+				pos=(50,35), style=wx.TE_PROCESS_ENTER )
+		self.txt_yoffset = wx.TextCtrl( rpanel, size=(60,-1),
+				pos=(50,65), style=wx.TE_PROCESS_ENTER )
+		self.txt_time_scale = wx.TextCtrl( rpanel, size=(60,-1),
+				pos=(5,95), style=wx.TE_PROCESS_ENTER )
 
 		self.btn_apply = wx.Button( rpanel, label="Apply", pos=(120,35) )
 
@@ -738,6 +742,12 @@ class TimelineViewer( wx.Frame ) :
 		self.slider.Bind( wx.EVT_SCROLL, self.on_scroll )
 		self.btn_apply.Bind( wx.EVT_BUTTON, self.on_apply )
 		self.Bind( wx.EVT_SIZE, self.on_size )
+
+		# text box enter keys
+		self.txt_scale.Bind( wx.EVT_TEXT_ENTER, self.on_apply )
+		self.txt_xoffset.Bind( wx.EVT_TEXT_ENTER, self.on_apply )
+		self.txt_yoffset.Bind( wx.EVT_TEXT_ENTER, self.on_apply )
+		self.txt_time_scale.Bind( wx.EVT_TEXT_ENTER, self.on_apply )
 	
 
 
