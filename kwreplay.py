@@ -14,6 +14,16 @@ import io
 import codecs
 import datetime
 import time
+import hashlib
+
+
+
+def encrypt( ip ) :
+	m = hashlib.md5()
+	m.update( ip.encode() )
+	ip = m.hexdigest()
+	#print( ip )
+	return ip
 
 
 
@@ -153,7 +163,7 @@ class Player :
 #['Hjskang',       '932E722A', '8094', 'TT', '-1',  '2', '-1', '-1', '0', '1', '-1', '']
 #['H마크오브루루', '932E836F', '8094', 'TT', '-1',  '9',  '5',  '0', '0', '1', '-1', '']
 #['H최      자',   '932E7D34', '8094', 'TT', '-1', '13',  '1',  '3', '0', '1', '-1', '']
-		self.ip = data[1]
+		self.ip = encrypt( data[1] )
 		unknown = data[2]
 		self.tt_or_ft = data[3]
 		self.color = data[4]

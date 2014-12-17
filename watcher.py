@@ -2,6 +2,7 @@
 # -*- coding: utf8 -*-
 import os, time, shutil, datetime
 from kwreplay import KWReplay, Player
+from args import Args
 
 
 
@@ -199,10 +200,15 @@ class Watcher :
 				Watcher.player_to_str( Watcher.find_a_nonsaver_player( humans, saver ), add_faction )
 	
 	def player_to_str( p, add_faction ) :
+		name = p.name
+		aka = Args.args.get_aka( p.ip )
+		if aka :
+			name = aka
+
 		if not add_faction :
-			return p.name
+			return name
 		else :
-			return p.name + " (" + p.decode_faction() + ")"
+			return name + " (" + p.decode_faction() + ")"
 	
 	def teams_to_strs( teams, add_faction ) :
 		result = []

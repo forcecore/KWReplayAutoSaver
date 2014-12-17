@@ -11,7 +11,6 @@ import os
 import time
 import datetime
 import subprocess
-import hashlib
 import wx
 import analyzer
 import webbrowser
@@ -135,25 +134,7 @@ class ReplayItems() :
 			i.kwr = KWReplay( fname=full_name )
 			self.append( i )
 
-		self.touchup_ips()
-
-	# for privacy reasons I don't want IP to show up directly on screen.
-	# hash 'em.
-	def touchup_ips( self ) :
-		for item in self.items :
-			kwr = item.kwr
-			for player in kwr.players :
-				if not player.is_ai : # is human
-					player.ip = self.encrypt( player.ip )
 	
-	def encrypt( self, ip ) :
-		m = hashlib.md5()
-		m.update( ip.encode() )
-		ip = m.hexdigest()
-		#print( ip )
-		return ip
-
-
 
 class MapView( wx.StaticBitmap ) :
 	# maps: mapzip file name
