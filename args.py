@@ -15,7 +15,14 @@ import io
 ### (config written back when program exits)
 ###
 class Args :
+	args = None
+
 	def __init__( self, fname ) :
+		# Yeah global variable!
+		# Cos one program can have only one configuration duh...
+		# I'm tired of copying args to everywhere.
+		Args.args = self
+
 		#self.dirty = False # Has non-saved + changed options?
 		self.cfg_fname = fname # for saving to disk on exit.
 
@@ -27,7 +34,9 @@ class Args :
 		self.mcmap = dict() # map crc to 1.02+R dict.
 
 		self.cfg = self.load_from_file( fname )
-	
+
+
+
 	def __str__( self ) :
 		s = io.StringIO()
 		print( "last_replay:", self.last_replay, file=s )
@@ -38,27 +47,44 @@ class Args :
 		print( "mcmap:", self.mcmap, file=s )
 		return s.getvalue()
 
-	def set_var( self, key, val ) :
+
+
+	def set_var( self, key, val, section='options' ) :
 		self.__dict__[ key ] = val # set self var.
 		if key == 'custom_date_format' :
 			val = val.replace( "%", "%%" )
 			# The % symbols all mess up setting this variable. :(
-		self.cfg[ 'options' ][ key ] = str( val ) # set it in cfg.
+		self.cfg[ section ][ key ] = str( val ) # set it in cfg.
 	
+
+
+	def remove_var( self, key, section='options' ) :
+		if not self.cfg.has_section( section ) :
+			return
+
+		if not key in self.cfg[ section ] :
+			return
+
+		self.cfg.remove_option( section, key )
+
+
+
 	# get variable.
 	# returns default if not in cfg.
-	def get_var( self, key, default=None ) :
-		if not self.cfg.has_section( 'options' ) :
-			self.cfg.add_section( 'options' )
+	def get_var( self, key, default=None, section='options' ) :
+		if not self.cfg.has_section( section ) :
+			self.cfg.add_section( section )
 			return default
 
-		if not key in self.cfg[ 'options' ] :
+		if not key in self.cfg[ section ] :
 			return default
 
-		return self.cfg[ 'options' ][ key ]
+		return self.cfg[ section ][ key ]
+	
+
 
 	# Same as get var (actually uses get_var) but converts them to bool
-	def get_bool( self, key, default=None ) :
+	def get_bool( self, key, default=None, section='options' ) :
 		# awwwwwwww this is so confusing.
 		# So, if I invoke get_var with no default value, then I should get
 		# 'None' when section or key doesn't exist.
@@ -71,7 +97,20 @@ class Args :
 		if val == None :
 			return default
 		else :
-			return self.cfg.getboolean( 'options', key )
+			return self.cfg.getboolean( section, key )
+	
+
+
+	def get_aka( self, uid ) :
+		return self.get_var( uid, section='akas' )
+	
+	def remove_aka( self, uid ) :
+		return self.remove_var( uid, section='akas' )
+	
+	def set_aka( self, uid, aka ) :
+		return self.set_var( uid, aka, section='akas' )
+
+
 
 	# Make user to choose the last replay file.
 	def set_last_replay( self ) :
@@ -95,7 +134,9 @@ class Args :
 				exit( 1 )
 
 		diag.Destroy()
-	
+
+
+
 	def load_from_file( self, fname ) :
 		self.cfg = configparser.ConfigParser()
 		self.cfg.optionxform = str # make it case sensitive.
@@ -105,6 +146,7 @@ class Args :
 		# Note that, read_dict() must come before read()
 		defaults = {
 				'102mc': {
+						'15':'R10c',
 						'14':'R10b',
 						'13':'R10',
 						'11':'R9',
@@ -113,7 +155,7 @@ class Args :
 						'B':'R6'
 					}
 			}
-		self.cfg.read_dict( defaults )
+		self.cfg.read_dict( defaults ) # please call this before cfg.read()!!
 
 		self.cfg.read( fname )
 
@@ -129,20 +171,34 @@ class Args :
 		if self.custom_date_format == None :
 			self.custom_date_format = "[%Y-%m-%dT%H%M]"
 
-		self.cfg = self.load_mc( self.cfg ) # please call this before cfg.read()!!
+		# Loads CRC values for 1.02+ maps
+		self.cfg = self.load_section( self.cfg, '102mc' )
+
+		# player name also known as...
+		self.cfg = self.load_section( self.cfg, 'akas' )
 
 		return self.cfg
 
-	# Loads CRC values for 1.02+ maps
-	def load_mc( self, cfg ) :
-		section = cfg[ '102mc' ]
+
+
+	def load_section( self, cfg, section_name ) :
+		if not cfg.has_section( section_name ) :
+			# just quit.
+			return cfg
+
+		section = cfg[ section_name ]
 		for option in section :
 			self.mcmap[ option ] = section[ option ]
 			#print( option, section[ option ] )
+
 		return cfg
-	
+
+
+
 	def save( self ) :
 		self.save_to_file( self.cfg_fname )
+
+
 
 	def save_to_file( self, fname ) :
 		f = open( fname, 'w' )
