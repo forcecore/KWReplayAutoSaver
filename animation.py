@@ -3,6 +3,7 @@ import wx
 import wx.lib.scrolledpanel
 import sys
 import os
+from args import Args
 from kwreplay import time_code2str
 from mapzip import MapZip
 from chunks import KWReplayWithCommands
@@ -846,7 +847,7 @@ class TimelineViewer( wx.Frame ) :
 
 			timeline.t = 0
 			timeline.pid = self.kwr.players.index( player )
-			timeline.player_name = player.name
+			timeline.player_name = Args.args.akaed_name( player )
 			
 			self.timelines.append( timeline )
 			self.timeline_sizer.Add( timeline, 0, wx.ALIGN_LEFT )
@@ -895,6 +896,7 @@ def main() :
 
 	kw = KWReplayWithCommands( fname=fname, verbose=False )
 
+	args = Args( 'config.ini' )
 	app = wx.App()
 	
 	frame = TimelineViewer( None )

@@ -338,10 +338,7 @@ class PlayerList( wx.ListCtrl ) :
 				team = str( p.team )
 			pos = self.InsertItem( index, team )
 
-			name = p.name
-			aka = Args.args.get_aka( p.ip )
-			if aka :
-				name = aka + "    (" + p.name + ")"
+			name = Args.args.akaed_name( p )
 			self.SetItem( pos, 1, name )
 			self.SetItem( pos, 2, p.decode_faction() )
 			self.SetItem( pos, 3, p.decode_color() )
@@ -349,6 +346,7 @@ class PlayerList( wx.ListCtrl ) :
 
 			# Lets see if this player is a hit.
 			props = [ p.name.lower(), p.ip ]
+			aka = Args.args.get_aka( p.ip )
 			if aka :
 				props.append( aka )
 			if fil and filter_hit( fil, props ) :
@@ -1007,6 +1005,7 @@ class ReplayViewer( wx.Frame ) :
 		diag = wx.FileDialog( None, "Select Folder", "", "",
 			"Any File (*.*)|*.*",
 			wx.FD_OPEN )
+		diag.SetDirectory( self.rep_list.path )
 		diag.SetFilename( anyf )
 		
 		if diag.ShowModal() == wx.ID_OK :
@@ -1488,6 +1487,8 @@ def main() :
 	frame = ReplayViewer( None )
 	frame.Show( True )
 	app.MainLoop()
+
+	args.save()
 
 if __name__ == "__main__" :
 	main()

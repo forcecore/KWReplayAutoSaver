@@ -200,11 +200,7 @@ class Watcher :
 				Watcher.player_to_str( Watcher.find_a_nonsaver_player( humans, saver ), add_faction )
 	
 	def player_to_str( p, add_faction ) :
-		name = p.name
-		aka = Args.args.get_aka( p.ip )
-		if aka :
-			name = aka
-
+		name = Args.args.aka_xor_name( p )
 		if not add_faction :
 			return name
 		else :

@@ -109,7 +109,22 @@ class Args :
 	
 	def set_aka( self, uid, aka ) :
 		return self.set_var( uid, aka, section='akas' )
-
+	
+	def akaed_name( self, p ) :
+		name = p.name
+		aka = self.get_aka( p.ip )
+		if aka :
+			return aka + "    (" + name + ")"
+		else :
+			return name
+	
+	def aka_xor_name( self, p ) :
+		aka = self.get_aka( p.ip )
+		if aka :
+			return aka
+		else :
+			return p.name
+	
 
 
 	# Make user to choose the last replay file.
