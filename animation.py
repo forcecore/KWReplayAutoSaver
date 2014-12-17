@@ -735,6 +735,32 @@ class TimelineViewer( wx.Frame ) :
 		evt.Skip()
 		# OK, if this gets heavy, then I can move on to EVT_IDLE instead.
 		# But before that... I'm just redrawing all the time.
+	
+
+
+	def on_timelines_key_down( self, evt ) :
+		def mv( offset ) :
+			val = self.slider.GetValue() + offset
+			if val < 0 :
+				val = 0
+			if val > self.slider.GetMax() :
+				val = self.slider.GetMax()
+			self.slider.SetValue( val )
+			evt = wx.ScrollEvent()
+			evt.SetPosition( val )
+			self.on_scroll( evt )
+
+		key_code = evt.GetKeyCode()
+		if key_code == wx.WXK_UP :
+			pass
+		elif key_code == wx.WXK_DOWN :
+			pass
+		elif key_code == wx.WXK_LEFT :
+			mv( -1 )
+		elif key_code == wx.WXK_RIGHT :
+			mv( 1 )
+		else :
+			evt.Skip()
 
 
 
@@ -748,7 +774,7 @@ class TimelineViewer( wx.Frame ) :
 		self.txt_xoffset.Bind( wx.EVT_TEXT_ENTER, self.on_apply )
 		self.txt_yoffset.Bind( wx.EVT_TEXT_ENTER, self.on_apply )
 		self.txt_time_scale.Bind( wx.EVT_TEXT_ENTER, self.on_apply )
-	
+
 
 
 	def on_apply( self, evt ) :
@@ -790,15 +816,7 @@ class TimelineViewer( wx.Frame ) :
 
 
 
-	def load( self, kwr ) :
-		self.kwr = kwr
-		assert len( kwr.replay_body.chunks ) > 0
-		# +1 second so that we can see the END of the replay.
-		self.length = int( kwr.replay_body.chunks[-1].time_code/15 ) + 1
-		self.slider.SetMax( self.length )
-		self.slider.SetValue( 0 )
-		self.time.SetLabel( "00:00:00" )
-
+	def make_timelines( self ) :
 		# pass the events to the timeline class.
 		ta = TimelineAnalyzer( self.kwr, self.length )
 		for pid in range( len( self.kwr.players ) ) :
@@ -819,7 +837,23 @@ class TimelineViewer( wx.Frame ) :
 			
 			self.timelines.append( timeline )
 			self.timeline_sizer.Add( timeline, 0, wx.ALIGN_LEFT )
-		self.timelines[0].draw_key = True
+
+			# arrow keys on the time line
+			timeline.Bind( wx.EVT_KEY_DOWN, self.on_timelines_key_down )
+		self.timelines[0].draw_key = True # key drawing job is on this one.
+
+
+
+	def load( self, kwr ) :
+		self.kwr = kwr
+		assert len( kwr.replay_body.chunks ) > 0
+		# +1 second so that we can see the END of the replay.
+		self.length = int( kwr.replay_body.chunks[-1].time_code/15 ) + 1
+		self.slider.SetMax( self.length )
+		self.slider.SetValue( 0 )
+		self.time.SetLabel( "00:00:00" )
+
+		self.make_timelines()
 
 		# analyze positions
 		posa = PositionDumper( kwr )
