@@ -20,12 +20,17 @@ import urllib.parse
 KWICO='KW.ico'
 
 def calc_props( kwr ) :
+	args = Args.args
+
 	props = []
 	props.append( kwr.map_name.lower() ) # map name
 	props.append( kwr.desc.lower() ) # desc
 	for player in kwr.players :
 		props.append( player.name.lower() )
 		props.append( player.ip )
+		aka = args.get_aka( player.ip )
+		if aka :
+			props.append( aka )
 	
 	# lowercase everything!
 	for (i, prop) in enumerate( props ) :
@@ -210,14 +215,14 @@ class MapView( wx.StaticBitmap ) :
 		dc.SetFont( font )
 
 		(tw, th) = dc.GetTextExtent( txt )
-		# but our text is 45 deg rotated.
-		# we need to compute 45deg rotation!
+		# but our text is 15 deg rotated.
+		# we need to compute 15deg rotation!
 		# oh, I was being too smart. don't need to these.
 		#(tw, th) = ( tw/1.414, tw/1.424 + th/1.414 )
 
 		# draw text, centered.
 		(w, h) = dc.GetSize()
-		dc.DrawRotatedText( txt, int((w-tw)/2), int((h+th)/2), 45 )
+		dc.DrawRotatedText( txt, int((w-tw)/2), int((h+th)/2), 15 )
 		#dc.DrawText( txt, int((w-tw)/2), int((h-th)/2) )
 
 		img = bmp.ConvertToImage()
@@ -339,7 +344,7 @@ class PlayerList( wx.ListCtrl ) :
 		# Check if we have any filter.
 		fil = self.frame.filter_text.GetValue()
 
-		for p in kwr.players :
+		for pid, p in enumerate( kwr.players ) :
 			# p is the Player class. You are quite free to do anything!
 			if p.name == "post Commentator" :
 				# don't need to see this guy
@@ -351,12 +356,20 @@ class PlayerList( wx.ListCtrl ) :
 			else :
 				team = str( p.team )
 			pos = self.InsertItem( index, team )
-			self.SetItem( pos, 1, p.name )
+
+			name = p.name
+			aka = self.frame.args.get_aka( p.ip )
+			if aka :
+				name = aka + "    (" + p.name + ")"
+			self.SetItem( pos, 1, name )
 			self.SetItem( pos, 2, p.decode_faction() )
 			self.SetItem( pos, 3, p.decode_color() )
+			self.SetItemData( pos, pid ) # remember pid of this guy.
 
 			# Lets see if this player is a hit.
 			props = [ p.name.lower(), p.ip ]
+			if aka :
+				props.append( aka )
 			if fil and filter_hit( fil, props ) :
 				self.SetItemBackgroundColour( pos, wx.YELLOW )
 	
@@ -369,32 +382,35 @@ class PlayerList( wx.ListCtrl ) :
 			return None
 
 		pos = self.GetFocusedItem()
-		name = self.GetItem( pos, 1 ).GetText()
+		pid = self.GetItemData( pos )
 
 		# from the replay, find the player to retrieve uid (=ip)
-		uid = None
-		for player in self.kwr.players :
-			if player.name == name :
-				return (player, player.ip)
-
-		if not uid :
+		player = self.kwr.players[ pid ]
+		if player.is_ai :
 			msg = "This player is AI!"
 			wx.MessageBox( msg, "Error", wx.OK|wx.ICON_ERROR )
+			return None
 
-		return None
+		return (player, player.ip)
 
 
 
 	# find replays involving a player, by context menu.
 	def find_player( self, event ) :
-		player, uid = self.get_uid_of_selected()
+		result = self.get_uid_of_selected()
+		if not result :
+			return
+		player, uid = result
 		if uid :
 			self.frame.find_player( player.name, uid ) # the frame will do the rest.
 	
 
 
 	def search_shatabrick( self, evt ) :
-		player, uid = self.get_uid_of_selected()
+		result = self.get_uid_of_selected()
+		if not result :
+			return
+		player, uid = result
 
 		if uid :
 			if player.game == "KW" :
@@ -420,6 +436,33 @@ class PlayerList( wx.ListCtrl ) :
 
 
 
+	def edit_aka( self, event ) :
+		args = self.frame.args
+		result = self.get_uid_of_selected()
+		if not result :
+			return
+		player, uid = result
+		aka = args.get_aka( uid )
+
+		# Show edit dialog.
+		dlg = wx.TextEntryDialog( self, "This player is also known as..." )
+		if aka :
+			dlg.SetValue( aka )
+		dlg.ShowModal()
+		result = dlg.GetValue()
+		dlg.Destroy()
+
+		if aka and (not result) : # had aka and user input was "".
+			msg = "Remove AKA for this player?"
+			yn = wx.MessageBox( msg, "Remove AKA?",
+					wx.ICON_QUESTION|wx.YES|wx.NO_DEFAULT|wx.NO )
+			if yn == wx.YES :
+				args.remove_aka( uid )
+		else :
+			args.set_aka( uid, result )
+
+
+
 	# create context menu
 	def on_item_righ_click( self, event ) :
 		# right clickable on empty space. prevent that.
@@ -439,9 +482,9 @@ class PlayerList( wx.ListCtrl ) :
 		menu.Append( item )
 
 		# create/edit AKA for this player
-		#item = wx.MenuItem( menu, wx.ID_ANY, "Create AKA for this player" )
-		#menu.Bind( wx.EVT_MENU, self.edit_aka, id=item.GetId() )
-		#menu.Append( item )
+		item = wx.MenuItem( menu, wx.ID_ANY, "Create/Edit &AKA for this player" )
+		menu.Bind( wx.EVT_MENU, self.edit_aka, id=item.GetId() )
+		menu.Append( item )
 
 		self.PopupMenu( menu, event.GetPoint() )
 		menu.Destroy() # prevent memory leak
