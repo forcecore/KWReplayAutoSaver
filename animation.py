@@ -752,9 +752,10 @@ class TimelineViewer( wx.Frame ) :
 
 		key_code = evt.GetKeyCode()
 		if key_code == wx.WXK_UP :
-			pass
+			self.timelines_panel.LineUp()
 		elif key_code == wx.WXK_DOWN :
-			pass
+			self.timelines_panel.LineDown()
+			wx.PostEvent( self.timelines_panel, evt )
 		elif key_code == wx.WXK_LEFT :
 			mv( -1 )
 		elif key_code == wx.WXK_RIGHT :
