@@ -580,7 +580,7 @@ class Timeline( wx.Panel ) :
 				if cmd.cancel_all :
 					dc.DrawText( "CA " + name, x-10, y )
 				else :
-					dc.DrawText( "C/H" + name, x-10, y )
+					dc.DrawText( "C/H " + name, x-10, y )
 
 				dc.DrawLine( x, self.Y, x, y+20 )
 
