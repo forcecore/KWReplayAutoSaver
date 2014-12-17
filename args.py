@@ -103,7 +103,16 @@ class Args :
 		# List default options here.
 		# Currently, it only specifies map CRC settings.
 		# Note that, read_dict() must come before read()
-		defaults = { '102mc': { '11':'R9', 'F':'R8', 'D':'R7', 'B':'R6' } }
+		defaults = {
+				'102mc': {
+						'14':'R10b',
+						'13':'R10',
+						'11':'R9',
+						'F':'R8',
+						'D':'R7',
+						'B':'R6'
+					}
+			}
 		self.cfg.read_dict( defaults )
 
 		self.cfg.read( fname )
