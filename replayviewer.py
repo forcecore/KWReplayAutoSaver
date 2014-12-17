@@ -358,7 +358,7 @@ class PlayerList( wx.ListCtrl ) :
 			pos = self.InsertItem( index, team )
 
 			name = p.name
-			aka = self.frame.args.get_aka( p.ip )
+			aka = Args.args.get_aka( p.ip )
 			if aka :
 				name = aka + "    (" + p.name + ")"
 			self.SetItem( pos, 1, name )
@@ -437,7 +437,7 @@ class PlayerList( wx.ListCtrl ) :
 
 
 	def edit_aka( self, event ) :
-		args = self.frame.args
+		args = Args.args
 		result = self.get_uid_of_selected()
 		if not result :
 			return
@@ -506,7 +506,7 @@ class PlayerList( wx.ListCtrl ) :
 #		self.replay_item = None
 
 class ReplayList( wx.ListCtrl ) :
-	def __init__( self, parent, frame, args ) :
+	def __init__( self, parent, frame ) :
 		super().__init__( parent, size=(-1,200),
 				style=wx.LC_REPORT|wx.LC_EDIT_LABELS )
 		self.InsertColumn( 0, 'Name' )
@@ -523,7 +523,6 @@ class ReplayList( wx.ListCtrl ) :
 
 		self.event_bindings()
 
-		self.args = args
 		self.frame = frame
 		self.replay_items = None # This is shared with frame, beware!
 		self.path = None
@@ -743,22 +742,22 @@ class ReplayList( wx.ListCtrl ) :
 		# I'm keeping it.
 		self.names.append( Watcher.calc_name( kwr,
 				add_username=False, add_faction=False, add_vs_info=False,
-				custom_date_format=self.args.custom_date_format, ext=ext ) )
+				custom_date_format=Args.args.custom_date_format, ext=ext ) )
 		#self.names.append( Watcher.calc_name( kwr,
 		#		add_username=False, add_faction=True, custom_date_format=self.args.custom_date_format ) )
 		# add_faction is meaningless without add_username, duh!
 		self.names.append( Watcher.calc_name( kwr,
 				add_username=True, add_faction=False, add_vs_info=False,
-				custom_date_format=self.args.custom_date_format, ext=ext ) )
+				custom_date_format=Args.args.custom_date_format, ext=ext ) )
 		self.names.append( Watcher.calc_name( kwr,
 				add_username=True, add_faction=True, add_vs_info=False,
-				custom_date_format=self.args.custom_date_format, ext=ext ) )
+				custom_date_format=Args.args.custom_date_format, ext=ext ) )
 		self.names.append( Watcher.calc_name( kwr,
 				add_username=True, add_faction=False, add_vs_info=True,
-				custom_date_format=self.args.custom_date_format, ext=ext ) )
+				custom_date_format=Args.args.custom_date_format, ext=ext ) )
 		self.names.append( Watcher.calc_name( kwr,
 				add_username=True, add_faction=True, add_vs_info=True,
-				custom_date_format=self.args.custom_date_format, ext=ext ) )
+				custom_date_format=Args.args.custom_date_format, ext=ext ) )
 
 		# make context menu
 		menu = wx.Menu()
@@ -916,7 +915,7 @@ class ReplayList( wx.ListCtrl ) :
 
 			rep_name = Watcher.calc_name( it.kwr, add_username=au, add_faction=af,
 					add_vs_info=av,
-					custom_date_format=self.args.custom_date_format, ext=ext )
+					custom_date_format=Args.args.custom_date_format, ext=ext )
 
 			self.rename_with_stem( index, old_name, rep_name )
 
@@ -988,10 +987,9 @@ class ReplayList( wx.ListCtrl ) :
 
 
 class ReplayViewer( wx.Frame ) :
-	def __init__( self, parent, args ) :
+	def __init__( self, parent ) :
 		super().__init__( parent, title='Replay Info Viewer', size=(1024,800) )
-		self.args = args
-		path = os.path.dirname( args.last_replay )
+		path = os.path.dirname( Args.args.last_replay )
 
 		self.MAPS_ZIP = 'maps.zip' # the name of the zip file that has map previews
 		self.do_layout()
@@ -1072,7 +1070,7 @@ class ReplayViewer( wx.Frame ) :
 		panel = wx.Panel( parent )
 
 		self.player_list = PlayerList( panel, frame=self )
-		self.map_view = MapView( panel, self.MAPS_ZIP, self.args.mcmap, size=(200,200) )
+		self.map_view = MapView( panel, self.MAPS_ZIP, Args.args.mcmap, size=(200,200) )
 		self.map_view.SetMinSize( (200, 200) )
 
 		# sizer code
@@ -1101,7 +1099,7 @@ class ReplayViewer( wx.Frame ) :
 		# for splitter box resizing...
 		bottom_panel = wx.Panel( splitter, size=(500,500) )
 
-		self.rep_list = ReplayList( bottom_panel, self, self.args )
+		self.rep_list = ReplayList( bottom_panel, self )
 
 		# description editing
 		# creates self.desc_text, self.modify_btn also.
@@ -1506,7 +1504,7 @@ def main() :
 	CONFIGF = 'config.ini'
 	args = Args( CONFIGF )
 
-	frame = ReplayViewer( None, args )
+	frame = ReplayViewer( None )
 	frame.Show( True )
 	app.MainLoop()
 
