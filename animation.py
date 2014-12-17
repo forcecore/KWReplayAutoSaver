@@ -738,28 +738,40 @@ class TimelineViewer( wx.Frame ) :
 	
 
 
-	def on_timelines_key_down( self, evt ) :
-		def mv( offset ) :
-			val = self.slider.GetValue() + offset
-			if val < 0 :
-				val = 0
-			if val > self.slider.GetMax() :
-				val = self.slider.GetMax()
-			self.slider.SetValue( val )
-			evt = wx.ScrollEvent()
-			evt.SetPosition( val )
-			self.on_scroll( evt )
+	def mv_time( self, offset ) :
+		val = self.slider.GetValue() + offset
+		if val < 0 :
+			val = 0
+		if val > self.slider.GetMax() :
+			val = self.slider.GetMax()
+		self.slider.SetValue( val )
+		evt = wx.ScrollEvent()
+		evt.SetPosition( val )
+		self.on_scroll( evt )
 
+
+
+	def on_timeline_mousewheel( self, evt ) :
+		delta = evt.GetWheelRotation()
+		if delta > 0 :
+			self.mv_time( -2 )
+		else :
+			self.mv_time( 2 )
+
+	def on_timeline_key_down( self, evt ) :
 		key_code = evt.GetKeyCode()
 		if key_code == wx.WXK_UP :
-			self.timelines_panel.LineUp()
+			self.timelines_panel.ScrollLines( -3 )
 		elif key_code == wx.WXK_DOWN :
-			self.timelines_panel.LineDown()
-			wx.PostEvent( self.timelines_panel, evt )
+			self.timelines_panel.ScrollLines( 3 )
 		elif key_code == wx.WXK_LEFT :
-			mv( -1 )
+			self.mv_time( -1 )
 		elif key_code == wx.WXK_RIGHT :
-			mv( 1 )
+			self.mv_time( 1 )
+		elif key_code == wx.WXK_PAGEUP :
+			self.mv_time( -10 )
+		elif key_code == wx.WXK_PAGEDOWN :
+			self.mv_time( 10 )
 		else :
 			evt.Skip()
 
@@ -840,7 +852,8 @@ class TimelineViewer( wx.Frame ) :
 			self.timeline_sizer.Add( timeline, 0, wx.ALIGN_LEFT )
 
 			# arrow keys on the time line
-			timeline.Bind( wx.EVT_KEY_DOWN, self.on_timelines_key_down )
+			timeline.Bind( wx.EVT_KEY_DOWN, self.on_timeline_key_down )
+			timeline.Bind( wx.EVT_MOUSEWHEEL, self.on_timeline_mousewheel )
 		self.timelines[0].draw_key = True # key drawing job is on this one.
 
 
