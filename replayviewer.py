@@ -15,6 +15,7 @@ import hashlib
 import wx
 import analyzer
 import webbrowser
+import urllib.parse
 
 KWICO='KW.ico'
 
@@ -308,7 +309,10 @@ class selected( object ) :
 		else :
 			return self.index
 
+
+
 class PlayerList( wx.ListCtrl ) :
+
 	def __init__( self, parent, frame=None ) :
 		super().__init__( parent, size=(600,200),
 				style=wx.LC_REPORT|wx.LC_SINGLE_SEL )
@@ -325,7 +329,9 @@ class PlayerList( wx.ListCtrl ) :
 		#self.SetMinSize( (600, 200) )
 
 		self.event_bindings()
-	
+
+
+
 	def populate( self, kwr ) :
 		self.kwr = kwr # remember the replated replay
 		self.DeleteAllItems()
@@ -353,13 +359,15 @@ class PlayerList( wx.ListCtrl ) :
 			props = [ p.name.lower(), p.ip ]
 			if fil and filter_hit( fil, props ) :
 				self.SetItemBackgroundColour( pos, wx.YELLOW )
+	
 
-	# find replays involving a player, by context menu.
-	def find_player( self, event ) :
+
+	def get_uid_of_selected( self ) :
 		# retrieve name then pass them to frame to do the
 		# rest of the job. ('cos player list knows not much)
 		if self.GetSelectedItemCount() == 0 :
-			return
+			return None
+
 		pos = self.GetFocusedItem()
 		name = self.GetItem( pos, 1 ).GetText()
 
@@ -367,15 +375,50 @@ class PlayerList( wx.ListCtrl ) :
 		uid = None
 		for player in self.kwr.players :
 			if player.name == name :
-				uid = player.ip
-				break
+				return (player, player.ip)
 
 		if not uid :
-			msg = "Searching replays with AI is not supported!"
+			msg = "This player is AI!"
 			wx.MessageBox( msg, "Error", wx.OK|wx.ICON_ERROR )
-			return
 
-		self.frame.find_player( name, uid ) # the frame will do the rest.
+		return None
+
+
+
+	# find replays involving a player, by context menu.
+	def find_player( self, event ) :
+		player, uid = self.get_uid_of_selected()
+		if uid :
+			self.frame.find_player( player.name, uid ) # the frame will do the rest.
+	
+
+
+	def search_shatabrick( self, evt ) :
+		player, uid = self.get_uid_of_selected()
+
+		if uid :
+			if player.game == "KW" :
+				game1 = "kw"
+				game2 = game1
+			elif player.game == "CNC3" :
+				game1 = "tw"
+				game2 = game1
+			elif player.game == "RA3" :
+				game1 = "ra3"
+				game2 = "ra"
+			else :
+				wx.MessageBox( msg, "Invalid game replay", wx.OK|wx.ICON_ERROR )
+
+			nick_encoded = urllib.parse.quote( player.name )
+				
+			url = "http://www.shatabrick.com/" + game1
+			url += "/index.php?g=" + game2
+			url += "&a=s&s=f&Searchnick=" + nick_encoded
+
+			# launch browser!
+			webbrowser.open( url )
+
+
 
 	# create context menu
 	def on_item_righ_click( self, event ) :
@@ -384,15 +427,32 @@ class PlayerList( wx.ListCtrl ) :
 			return
 
 		menu = wx.Menu()
-		item = wx.MenuItem( menu, wx.ID_ANY, "Find replays involving this player" )
+
+		# find this guy
+		item = wx.MenuItem( menu, wx.ID_ANY, "&Find replays involving this player" )
 		menu.Bind( wx.EVT_MENU, self.find_player, id=item.GetId() )
 		menu.Append( item )
+
+		# find this guy on shatabrick.com
+		item = wx.MenuItem( menu, wx.ID_ANY, "&Search this player on shatabrick.com" )
+		menu.Bind( wx.EVT_MENU, self.search_shatabrick, id=item.GetId() )
+		menu.Append( item )
+
+		# create/edit AKA for this player
+		#item = wx.MenuItem( menu, wx.ID_ANY, "Create AKA for this player" )
+		#menu.Bind( wx.EVT_MENU, self.edit_aka, id=item.GetId() )
+		#menu.Append( item )
+
 		self.PopupMenu( menu, event.GetPoint() )
 		menu.Destroy() # prevent memory leak
-	
+
+
+
 	def event_bindings( self ) :
 		self.Bind( wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_item_righ_click )
-	
+
+
+
 # I guess I don't have to inherit this,
 # Python's dynamicness can handle this alright...
 # having just one extra var of replay_item...
