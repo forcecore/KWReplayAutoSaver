@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import sys
+from args import Args
 from gnuplot import Gnuplot
 from chunks import KWReplayWithCommands, Command
 from consts import UNITCOST, POWERCOST, UPGRADECOST, UNITNAMES
@@ -550,7 +551,7 @@ class ResourceAnalyzer() :
 			player = self.kwr.players[i]
 			if not player.is_player() :
 				continue
-			print( player.name )
+			print( Args.args.aka_xor_name( player ) )
 
 			histo = self.units[ i ]
 			for unit, cnt in histo.items() :
@@ -577,7 +578,7 @@ class ResourceAnalyzer() :
 			plt.write( 'set style fill solid\n' )
 			plt.write( 'set key off\n' )
 			plt.write( 'set boxwidth 0.5\n' )
-			plt.write( 'set title "%s"\n' % player.name )
+			plt.write( 'set title "%s"\n' % Args.args.akaed_name( player ) )
 
 			n_kinds = len( histo )
 			plt.write( 'set xrange[-1:%d]\n' % n_kinds )
@@ -729,7 +730,7 @@ class ResourceAnalyzer() :
 			ts, costs = pair
 
 			plt.plot( ts, costs )
-			labels.append( player.name )
+			labels.append( Args.args.aka_xor_name( player ) )
 
 		plt.legend( labels )
 		plt.show()
@@ -757,7 +758,7 @@ class ResourceAnalyzer() :
 
 			xss.append( ts )
 			yss.append( costs )
-			players.append( player.name )
+			players.append( Args.args.akaed_name( player ) )
 
 		print( "t,$$$ spent", file=file )
 		merge_lines( file, players, xss, yss )
@@ -827,7 +828,7 @@ class APMAnalyzer() :
 		for player in self.kwr.players :
 			if not player.is_player() :
 				continue
-			print( '"' + player.name + '"', end=",", file=file )
+			print( '"' + Args.args.akaed_name( player) + '"', end=",", file=file )
 		print( file=file )
 
 		for t in range( len( counts_at_second ) ) :
@@ -865,7 +866,7 @@ class APMAnalyzer() :
 				continue
 
 			plt.plot( ts, apmss[ i ] )
-			labels.append( player.name )
+			labels.append( Args.args.aka_xor_name( player ) )
 
 		# touch up label of the curve
 
