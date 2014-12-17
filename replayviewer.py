@@ -113,8 +113,8 @@ class ReplayItems() :
 			if not os.path.isfile( os.path.join( path, f ) ) :
 				continue
 
-			# must be a C&C file.
-			dummy, ext = os.path.splitext( f )
+			# must be a C&C replay file.
+			ext = os.path.splitext( f )[1]
 			ext = ext.lower()
 			if not ext in [ ".kwreplay", ".ra3replay", ".cnc3replay" ] :
 				continue
@@ -743,7 +743,7 @@ class ReplayList( wx.ListCtrl ) :
 		old_ext = os.path.splitext( old_name )[1]
 
 		# Add extension if not exists
-		if not rep_name.lower().endswith( old_ext ) :
+		if not rep_name.lower().endswith( old_ext.lower() ) :
 			rep_name += old_ext
 
 		# sanitize invalid char
@@ -862,7 +862,7 @@ class ReplayList( wx.ListCtrl ) :
 			# user pressed esc or something
 			return
 
-		if not stem.lower().endswith( old_ext ) :
+		if not stem.lower().endswith( old_ext.lower() ) :
 			stem += old_ext
 
 		# Check for invalid char
