@@ -139,7 +139,7 @@ class AutoSaverAppIcon( wx.adv.TaskBarIcon ) :
 	
 	def open_replay_viewer( self ) :
 		# parent pointer looks wonky but it works!
-		replay_viewer = ReplayViewer( wx.GetApp().TopWindow, self.args )
+		replay_viewer = ReplayViewer( wx.GetApp().TopWindow )
 		replay_viewer.Show( True )
 
 	def on_left_dclick( self, event ) :

@@ -744,7 +744,7 @@ class ReplayList( wx.ListCtrl ) :
 				add_username=False, add_faction=False, add_vs_info=False,
 				custom_date_format=Args.args.custom_date_format, ext=ext ) )
 		#self.names.append( Watcher.calc_name( kwr,
-		#		add_username=False, add_faction=True, custom_date_format=self.args.custom_date_format ) )
+		#		add_username=False, add_faction=True, custom_date_format=Args.args.custom_date_format ) )
 		# add_faction is meaningless without add_username, duh!
 		self.names.append( Watcher.calc_name( kwr,
 				add_username=True, add_faction=False, add_vs_info=False,
