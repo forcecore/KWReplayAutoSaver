@@ -6,6 +6,7 @@ from chunks import KWReplayWithCommands
 from gnuplot import Gnuplot
 from animation import TimelineViewer
 from mapzip import MapZip
+import io
 import sys
 import os
 import time
@@ -15,8 +16,11 @@ import wx
 import analyzer
 import webbrowser
 import urllib.parse
+import repair
 
 KWICO='KW.ico'
+
+
 
 def calc_props( kwr ) :
 	args = Args.args
@@ -708,23 +712,49 @@ class ReplayList( wx.ListCtrl ) :
 		if pos < 0 :
 			return
 		kwr = self.get_related_replay( pos ).kwr
+		fname = self.ctx_old_name
 
 		if kwr.game == "KW" :
-			game_flag = "-k"
+			ext = "Kane's Wrath Replay (*.KWReplay)|*.KWReplay"
 		elif kwr.game == "CNC3" :
-			game_flag = "-w"
+			ext = "Tiberium Wars Replay (*.CNC3Replay)|*.CNC3Replay"
 		elif kwr.game == "RA3" :
-			game_flag = "-r"
+			ext = "Red Alert 3(*.RA3Replay)|*.RA3Replay"
 		else :
 			msg = "Unable to determine game type"
 			wx.MessageBox( msg, "Error", wx.OK|wx.ICON_ERROR )
 			return
 
-		# cnc3 reader doesn't seem to work for me...
-		subprocess.call( ['cnc3reader.exe', game_flag,
-			'-g', self.ctx_old_name,
-			"-F", "fixed_" + self.ctx_old_name ],
-			shell=True )
+		# Get ofname
+		diag = wx.FileDialog( self, "Repair Replay As...", "", "", ext,
+			wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT )
+		path, basename = os.path.split( fname )
+		diag.SetDirectory( path )
+		diag.SetFilename( "repaired_" + basename )
+		
+		if diag.ShowModal() != wx.ID_OK :
+			return None
+
+		ofname = diag.GetPath()
+		diag.Destroy()
+
+		tmp1 = sys.stdout # intercept stdout temporarily.
+		tmp2 = sys.stderr # intercept stdout temporarily.
+		f = io.StringIO()
+		sys.stdout = f
+		sys.stderr = f
+
+		# repair the replay
+		fixer = repair.KWReplayRepair()
+		fixer.repair( fname, ofname, game=kwr.game )
+
+		msg = f.getvalue()
+		f.close()
+		sys.stdout = tmp1
+		sys.stderr = tmp2
+
+		# Show output from the repair.
+		wx.MessageBox( msg, "Repair Log", wx.OK )
 
 
 

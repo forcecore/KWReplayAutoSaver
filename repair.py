@@ -4,6 +4,7 @@ import sys
 import io
 import shutil
 import struct
+import traceback
 from chunks import KWReplayWithCommands, uint42int, print_bytes, ReplayBody
 from kwreplay import KWReplay, read_byte, read_uint32, read_float, \
 	read_cstr, time_code2str, read_tb_str
@@ -26,9 +27,9 @@ class HealingReplayBody( ReplayBody ) :
 			while True :
 				pos = f.tell()
 				chunk = self.read_chunk( f )
-				chunk.pos = pos
 				if chunk == None :
 					break
+				chunk.pos = pos
 				self.chunks.append( chunk )
 				good_chunk_cnt += 1
 		except struct.error :
@@ -53,7 +54,7 @@ class KWReplayRepair( KWReplayWithCommands ) :
 	def read_footer( self, buf ) :
 		end = len( buf )
 		footer_len = uint42int( buf[ end-4:end ] )
-		if len( data_len ) > 16*8 :
+		if footer_len > 16*8 :
 			print( "footer too long. Probably bad." )
 			return False
 
@@ -64,6 +65,7 @@ class KWReplayRepair( KWReplayWithCommands ) :
 		check = self.check_magic( footer_data, footer_len )
 		if check :
 			print( "Footer seems good" )
+			print( "Not repairing." )
 		else :
 			print( "Bad footer" )
 			print()
@@ -87,7 +89,7 @@ class KWReplayRepair( KWReplayWithCommands ) :
 		self.final_time_code = read_uint32( stream )
 
 		data_len = footer_len - self.FOOTER_MAGIC_SIZE - 8
-		if len( data_len ) > 16*8 :
+		if data_len > 16*8 :
 			print( "footer too long. Probably bad." )
 			return False
 
@@ -109,9 +111,8 @@ class KWReplayRepair( KWReplayWithCommands ) :
 	
 
 
-	def repair( self, fname, game="KW" ) :
+	def repair( self, fname, ofname, game="KW" ) :
 		self.game = game
-		self.fname = fname
 
 		f = open( fname, "rb" )
 		buf = f.read()
@@ -120,13 +121,15 @@ class KWReplayRepair( KWReplayWithCommands ) :
 		# Let's check footer.
 		try :
 			check = self.read_footer( buf )
-			if check and (not self.force) :
+			if check :
 				print( "The replay seems good." )
-				print( "Only repairing when forced to do so." )
-				return
-		except :
-			print( "The footer is corrupt." )
-			pass
+				if self.force :
+					print( "Forced repair is set." )
+				else :
+					return
+		except Exception as e:
+			print( "The footer is corrupt as follows:" )
+			traceback.print_exc()
 	
 		print( "Attempting repair" )
 
@@ -145,7 +148,6 @@ class KWReplayRepair( KWReplayWithCommands ) :
 
 		# attempt repair
 		prefix, fname = os.path.split( fname )
-		ofname = os.path.join( prefix, "fixed_" + fname )
 
 		f = open( ofname, "wb" )
 
@@ -182,6 +184,7 @@ class KWReplayRepair( KWReplayWithCommands ) :
 		self.write_uint32( f, footer_len )
 
 		f.close()
+		print( "Repaired. Hopefully." )
 
 
 
@@ -190,7 +193,7 @@ def main() :
 	fine = "1.KWReplay"
 	too_bad = "corrupt/fsck.KWReplay" # just make or copy any file that is not replay.
 	kwr = KWReplayRepair()
-	kwr.repair( corrupt )
+	kwr.repair( corrupt, "out.KWReplay" )
 
 
 
@@ -200,7 +203,7 @@ def mass_test() :
 		fname = prefix + str(i) + ".KWReplay"
 		print( fname )
 		kwr = KWReplayRepair()
-		kwr.repair( fname )
+		kwr.repair( fname, ofname )
 
 
 
