@@ -12,6 +12,7 @@ from args import Args
 from consts import UNITNAMES, POWERNAMES, UPGRADENAMES
 
 
+CANCEL_ALL = -1
 
 UNIT_COLORS = [
 		'#FF0000', # R
@@ -270,34 +271,41 @@ class TimelineAnalyzer() :
 
 
 	def merge_productions_in_sec( self, events ) :
-		return
-		queues = []
-		for cmd in events :
-			if cmd.cmd_id == 0x2D : # queue
-				queues.append( cmd )
-			elif cmd.cmd_id == 0x2E : # hold/cancel
-				holds.append( cmd )
+		merged = [] # merged events
 
-		# merge queue.
-		# Well, I don't care about efficiency.
-		# Humans can't generate too many events in one sec.
-		# I want short code...
-		# We keep merging until we can't.
+		# Let's define cnt for cancels.
+		for evt in events :
+			if evt.cmd_id == 0x2E :
+				# cnt of 0 = hold. >0 is cancel
+				# and... um... cancel all is obviously cancel all.
+				# prev.cnt == CANCEL_ALL
+				evt.cnt = 0
 
-		# merge builds.
-		merged = True
-		while merged :
-			merged = False
-			for i, cmd1 in enumerate( queues ) :
-				# we can only merge adjacent cmds.
-				j = i+1
-				if j < len( queues ) :
-					cmd2 = queues[ j ]
-					if cmd1.cmd_id != 0x2D or cmd2.cmd_id != 0x2D :
-						continue
+		for evt in events :
+			if len( merged ) == 0 :
+				merged.append( evt )
+				continue
 
-					if cmd1.unit_ty == cmd2.unit_ty :
+			prev = merged[-1]
+
+			if prev.cmd_id != evt.cmd_id :
+				merged.append( evt )
+				continue
+
+			if evt.cmd_id == 0x2D : # queue
+				if evt.unit_ty == prev.unit_ty :
+					prev.cnt += evt.cnt
+			elif evt.cmd_id == 0x2E : # hold/cancel
+				if evt.unit_ty == prev.unit_ty :
+					if evt.cancel_all :
+						evt.cnt = CANCEL_ALL
+						prev.cnt = CANCEL_ALL
+					elif prev.cnt == CANCEL_ALL :
 						pass
+					else :
+						prev.cnt += 1
+
+		return merged
 
 
 
@@ -325,7 +333,7 @@ class TimelineAnalyzer() :
 		self.eventsss = self.decode_and_feed()
 
 		# merge queue and holds
-		#self.merge_productions( self.eventsss )
+		self.merge_productions( self.eventsss )
 
 		# assign "offset" to the commands. (label height in timeline)
 		for pid in range( self.nplayers ) :
@@ -622,10 +630,14 @@ class Timeline( wx.Panel ) :
 				else :
 					name = "unit 0x%08X" % cmd.unit_ty
 
-				if cmd.cancel_all :
+				if cmd.cnt == CANCEL_ALL :
 					dc.DrawText( "CA " + name, x-10, y )
-				else :
+				elif cmd.cnt == 0 or cmd.cnt == 1 :
 					dc.DrawText( "C/H " + name, x-10, y )
+				elif cmd.cnt > 1 :
+					dc.DrawText( str(cmd.cnt) + "x C/H " + name, x-10, y )
+				else :
+					assert 0, "strange, U shouldnt get here"
 
 				dc.DrawLine( x, self.Y, x, y+20 )
 
