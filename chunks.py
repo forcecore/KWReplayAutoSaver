@@ -288,7 +288,30 @@ class Command :
 		else :
 			self.factory = uint42int( data[ 1:5 ] )
 			self.unit_ty = uint42int( data[ 8:12 ] ) # This one is pretty sure
-			self.fivex = data[ 17 ]
+			self.cnt = 1 # how many queued?
+			fivex = data[ 17 ]
+			if fivex :
+				if self.unit_ty in [ 
+						0x6AA59D16, # Nod vertigo
+						0x393E446C, # MoK vertigo
+						0xB587039F, # GDI orca
+						0xB3363EA3, # GDI firehawk
+						0x6BD7B8AB, # ST orca
+						0x1348CA0A, # ST FH
+						0x37F0A5F5, # Zorca
+						0x12E1C8C8, # ZCM FH
+						0xF6E707D5, # SC storm rider
+						0x1DF82E16, # R17 storm rider
+						0xECA08561 # T59 storm rider
+						] :
+					self.cnt = 4
+					# Actually, fivex just tells us that it is
+					# shift + click on the unit produciton button.
+					# For normal units, it is definitely 5x.
+					# But for these air units, it could be
+					# 1 ~ 4, depending on the space left on the landing pad.
+				else :
+					self.cnt = 5
 
 
 
@@ -307,8 +330,8 @@ class Command :
 		if not self.unit_ty :
 			print( "End of game?" )
 		else :
-			if self.fivex > 0 :
-				print( "5x ", end="" )
+			if self.cnt > 1 :
+				print( str(self.cnt) + "x ", end="" )
 			if self.unit_ty in UNITNAMES :
 				#print( "Production of %s from 0x%08X" % (UNITNAMES[produced], produced_by) )
 				print( "queue %s" % (UNITNAMES[self.unit_ty]) )

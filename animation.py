@@ -266,6 +266,48 @@ class TimelineAnalyzer() :
 		#	print()
 	
 		return eventsss
+	
+
+
+	def merge_productions_in_sec( self, events ) :
+		return
+		queues = []
+		for cmd in events :
+			if cmd.cmd_id == 0x2D : # queue
+				queues.append( cmd )
+			elif cmd.cmd_id == 0x2E : # hold/cancel
+				holds.append( cmd )
+
+		# merge queue.
+		# Well, I don't care about efficiency.
+		# Humans can't generate too many events in one sec.
+		# I want short code...
+		# We keep merging until we can't.
+
+		# merge builds.
+		merged = True
+		while merged :
+			merged = False
+			for i, cmd1 in enumerate( queues ) :
+				# we can only merge adjacent cmds.
+				j = i+1
+				if j < len( queues ) :
+					cmd2 = queues[ j ]
+					if cmd1.cmd_id != 0x2D or cmd2.cmd_id != 0x2D :
+						continue
+
+					if cmd1.unit_ty == cmd2.unit_ty :
+						pass
+
+
+
+	def merge_productions( self, eventsss ) :
+		# eventsss[ pid ] = eventss
+		# eventss[t] = events in that second.
+		for eventss in eventsss :
+			for t, events in enumerate( eventss ) :
+				events = self.merge_productions_in_sec( events )
+				eventss[ t ] = events
 
 
 
@@ -281,6 +323,9 @@ class TimelineAnalyzer() :
 
 		# compute eventsss
 		self.eventsss = self.decode_and_feed()
+
+		# merge queue and holds
+		#self.merge_productions( self.eventsss )
 
 		# assign "offset" to the commands. (label height in timeline)
 		for pid in range( self.nplayers ) :
@@ -558,8 +603,8 @@ class Timeline( wx.Panel ) :
 				else :
 					name = "unit 0x%08X" % cmd.unit_ty
 
-				if cmd.fivex :
-					dc.DrawText( "5x Q " + name, x-10, y )
+				if cmd.cnt > 1 :
+					dc.DrawText( str(cmd.cnt) + "x Q " + name, x-10, y )
 				else :
 					dc.DrawText( "Q " + name, x-10, y )
 
