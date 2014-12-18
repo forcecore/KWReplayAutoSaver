@@ -303,10 +303,10 @@ class TimelineAnalyzer() :
 				continue
 
 			if evt.cmd_id == 0x2D : # queue
-				if evt.unit_ty == prev.unit_ty :
+				if evt.unit_ty and evt.unit_ty == prev.unit_ty :
 					prev.cnt += evt.cnt
 			elif evt.cmd_id == 0x2E : # hold/cancel
-				if evt.unit_ty == prev.unit_ty :
+				if evt.unit_ty and evt.unit_ty == prev.unit_ty :
 					if evt.cancel_all :
 						evt.cnt = CANCEL_ALL
 						prev.cnt = CANCEL_ALL
@@ -369,7 +369,7 @@ class TimelineAnalyzer() :
 class Timeline( wx.Panel ) :
 	H = 250 # we want the timeline drawing area to be this high.
 	Y = 200 # Draw time grid at this level.
-	pin_spacing = 40 # 80 pixels == one second!
+	pin_spacing = 10 # 10 pixels == one second!
 	cycle = 5 #label height cycle
 
 
