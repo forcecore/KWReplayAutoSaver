@@ -143,6 +143,8 @@ class MiniMap( wx.Panel ) :
 		self.t = t
 		self.Refresh()
 
+
+
 	def OnPaint( self, evt ) :
 		if not self :
 			return
@@ -151,22 +153,33 @@ class MiniMap( wx.Panel ) :
 		if self.posa == None :
 			return
 
-		bmp = self.Bitmap # internal data! careful not to modify this!
-
 		#self.unit_view.show( self.kwr, scale=False ) # remove previous dots.
 		#self.minimap.SetBitmap( self.map_bmp )
 		#self.SetBitmap( self.bmp )
 		dc = wx.PaintDC( self )
+		self.draw_on_dc( dc, self.t )
+		del dc
+	
+
+
+	# draw map at t, as bmp and return it.
+	def bitmap( self, t ) :
+		w, h = self.GetSize()
+		bmp = wx.Bitmap( w, h )
+		dc = wx.MemoryDC( bitmap=bmp )
+		self.draw_on_dc( dc, t )
+		del dc
+		return bmp
+
+
+
+	def draw_on_dc( self, dc, t ) :
+		bmp = self.Bitmap # internal data! careful not to modify this!
 		dc.DrawBitmap( bmp, 0, 0 )
-		#trans_brush = wx.Brush( wx.BLACK, style=wx.BRUSHSTYLE_TRANSPARENT )
-		#dc.SetBackground( trans_brush )
-		#dc.Clear()
-		#bmp = wx.Bitmap( self.map_bmp )
-		#dc = wx.MemoryDC( bmp )
 		null, dc.Y = bmp.GetSize()
 
 		# draw buildings
-		for i in range( 0, self.t ) :
+		for i in range( 0, t ) :
 			commands = self.posa.structures[ i ]
 
 			for cmd in commands :
@@ -178,7 +191,7 @@ class MiniMap( wx.Panel ) :
 
 
 		# Draw movement dots
-		for i in range( max( 0, self.t-10 ), self.t ) :
+		for i in range( max( 0, t-10 ), t ) :
 			commands = self.posa.commands[ i ]
 
 			for cmd in commands :
@@ -193,9 +206,6 @@ class MiniMap( wx.Panel ) :
 					self.draw_dot( dc, cmd.x2, cmd.y2, UNIT_COLORS[pid] )
 				else :
 					self.draw_dot( dc, cmd.x, cmd.y, UNIT_COLORS[pid] )
-
-		del dc
-		#self.SetBitmap( bmp )
 
 
 
@@ -362,6 +372,61 @@ class Timeline( wx.Panel ) :
 	pin_spacing = 40 # 80 pixels == one second!
 	cycle = 5 #label height cycle
 
+
+
+	def draw_time_pin( dc, t, x, Y, pin_len ) :
+		dc.DrawLine( x, Y, x, Y-pin_len )
+		time_label = time_code2str(t)
+		# space conservation trick
+		if time_label.startswith( "00:" ) :
+			time_label = time_label[3:]
+		dc.DrawText( time_label, x, Y+5 )
+	
+
+
+	def calc_grid_mult( dc ) :
+		(tw, th) = dc.GetTextExtent( "00:00" )
+		if tw >= Timeline.pin_spacing :
+			# OK, how many pins can we fit in them?
+			mult = int( tw / Timeline.pin_spacing ) + 1
+		else :
+			mult = 1
+		return mult
+
+
+	
+	def draw_time_grid( dc, Y, mid_t, end_time ) :
+		w, h = dc.GetSize()
+		mid = int( w/2 )
+
+		pin_spacing = Timeline.pin_spacing
+		pin_len = 5 # 5 pixels.
+		
+		dc.SetPen( wx.Pen( wx.WHITE ) )
+		dc.SetTextForeground( wx.WHITE )
+
+		# major time line
+		dc.DrawLine( 0, Y, w-1, Y )
+
+		# grids
+		x = w - pin_spacing * int( w / pin_spacing )
+		t = mid_t - int( mid/pin_spacing )
+
+		# But, to draw time pins, we need to check if we can fit those number labels.
+		mult = Timeline.calc_grid_mult( dc )
+		while x < w :
+			if t < 0 :
+				t += mult
+				x += mult * pin_spacing
+				continue
+			if t > end_time :
+				break
+			Timeline.draw_time_pin( dc, t, x, Y, pin_len )
+			t += mult
+			x += mult *pin_spacing
+	
+
+
 	def __init__( self, parent, eventss, length, size=(100,100) ) :
 		super().__init__( parent, size=size )
 		self.SetBackgroundColour( (0,0,0) )
@@ -482,54 +547,6 @@ class Timeline( wx.Panel ) :
 		while y < self.h :
 			dc.DrawLine( x, y, x, y + line_len )
 			y += line_spacing
-	
-
-	
-	def draw_time_pin( self, dc, t, x, Y, pin_len ) :
-		dc.DrawLine( x, Y, x, Y-pin_len )
-		time_label = time_code2str(t)
-		# space conservation trick
-		if time_label.startswith( "00:" ) :
-			time_label = time_label[3:]
-		dc.DrawText( time_label, x, Y+5 )
-
-
-
-	def draw_time_grid( self, dc ) :
-		Y = Timeline.Y
-
-		pin_spacing = self.pin_spacing
-		pin_len = 5 # 5 pixels.
-		
-		dc.SetPen( wx.Pen( wx.WHITE ) )
-		dc.SetTextForeground( wx.WHITE )
-
-		# major time line
-		dc.DrawLine( 0, Y, self.w-1, Y )
-
-		# grids
-		mid = self.mid
-		x = self.w - pin_spacing * int( self.w / pin_spacing )
-		t = self.t - int( mid/pin_spacing )
-
-		# But, to draw time pins, we need to check if we can fit those number labels.
-		(tw, th) = dc.GetTextExtent( "00:00" )
-		if tw >= Timeline.pin_spacing :
-			# OK, how many pins can we fit in them?
-			mult = int( tw / Timeline.pin_spacing ) + 1
-		else :
-			mult = 1
-
-		while x < self.w :
-			if t < 0 :
-				t += mult
-				x += mult * pin_spacing
-				continue
-			if t > self.length :
-				break
-			self.draw_time_pin( dc, t, x, Y, pin_len )
-			t += mult
-			x += mult *pin_spacing
 	
 
 
@@ -663,12 +680,11 @@ class Timeline( wx.Panel ) :
 		dc.SetTextForeground( UNIT_COLORS[ self.pid ] )
 		#dc.DrawText( self.kwr.players[pid].name, 10, self.Y-170 )
 		dc.DrawText( self.player_name, 10, Timeline.Y-170 )
-		self.draw_time_grid( dc )
 		self.draw_events( dc )
 	
 
 
-	def draw_on_dc( self, dc ) :
+	def draw_on_dc( self, dc, midline=True ) :
 		self.w, self.h = dc.GetSize()
 		self.mid = int( self.w/2 )
 
@@ -679,7 +695,9 @@ class Timeline( wx.Panel ) :
 			dc.DrawText( "Q: Queue unit production", self.w-200, 30 )
 
 		# draw vertical line at the center.
-		self.draw_midline( dc )
+		if midline :
+			self.draw_midline( dc )
+		Timeline.draw_time_grid( dc, Timeline.Y, self.t, self.length )
 		self.draw_player_timeline( dc )
 
 
@@ -839,7 +857,115 @@ class TimelineViewer( wx.Frame ) :
 	
 
 
+	def make_map_line( self, w, minimap, scaled_size ) :
+		mw, mh = scaled_size
+
+		margin = 10
+		timeline_h = 25
+		H = margin + mh + margin + timeline_h # top, bottom margin and timeline space.
+		Y = H-timeline_h
+		mid = int( w/2 )
+		end_time = self.length
+		mid_t = int( end_time / 2 )
+
+		bmp = wx.Bitmap( w, H )
+		dc = wx.MemoryDC( bitmap=bmp )
+		dc.SetBackground( wx.Brush( wx.BLACK ) )
+		dc.Clear()
+
+		pin_spacing = Timeline.pin_spacing
+		
+		dc.SetPen( wx.Pen( wx.WHITE ) )
+		dc.SetTextForeground( wx.WHITE )
+
+		# font
+		small = wx.Font( 9, wx.FONTFAMILY_SWISS, # sans serif
+				wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD )
+		dc.SetFont( small )
+		Timeline.draw_time_grid( dc, Y, mid_t, self.length )
+
+		# draw many maps hhhhh
+		x = w - pin_spacing * int( w / pin_spacing )
+		t = mid_t - int( mid/pin_spacing )
+
+		# calc multiplier of grid location.
+		mult = Timeline.calc_grid_mult( dc )
+
+		# we put this code here, otherwise
+		# we have to do this increment thing on every continue.
+		t -= mult
+		x -= mult * pin_spacing
+		start_x_lb = 0
+		while x < w :
+			t += mult
+			x += mult * pin_spacing
+
+			# Don't draw off the limits.
+			if t < 0 :
+				continue
+			if t > end_time :
+				break
+
+			# OK, we are in the limits. But can we draw the map
+			# without getting clipped?
+
+			start_x = x - int(mw/2)
+			start_y = margin
+
+			if start_x < start_x_lb :
+				continue
+
+			# scale to fit
+			map_at_t = minimap.bitmap( t )
+			img = map_at_t.ConvertToImage()
+			img = img.Scale( mw, mh )
+			map_at_t = wx.Bitmap( img )
+
+			dc.DrawBitmap( map_at_t, start_x, start_y )
+			start_x_lb = start_x + mw + 10
+
+			# with map drawn, draw line.
+			dc.SetPen( wx.Pen( wx.WHITE ) )
+			dc.DrawLine( x, margin+mh+1, x, margin+mh+margin )
+
+		del dc
+		return bmp
+	
+
+
+	def draw_timeline( self, width, timeline ) :
+		# font
+		small = wx.Font( 9, wx.FONTFAMILY_SWISS, # sans serif
+				wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD )
+
+		old_t = timeline.t
+		timeline.t = int( self.length / 2 )
+
+		b = wx.Bitmap( width, Timeline.H )
+		memdc = wx.MemoryDC( bitmap=b )
+		memdc.SetBackground( wx.Brush( wx.BLACK ) )
+		memdc.Clear()
+
+		# lets draw with small font.
+		memdc.SetFont( small )
+
+		timeline.draw_on_dc( memdc, midline=False )
+		del memdc
+
+		timeline.t = old_t
+
+		return b
+
+
+
 	def on_export( self, evt ) :
+		diag = wx.FileDialog( self, "Export timeline as PNG...", "", "",
+			"Portable Network Graphics (*.png)|*.png",
+			wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT )
+
+		if diag.ShowModal() != wx.ID_OK :
+			return
+
 		# get timelines, in current order.
 		timelines = []
 		sizer = self.timelines_panel.GetSizer()
@@ -848,42 +974,33 @@ class TimelineViewer( wx.Frame ) :
 			timelines.append( child.GetWindow() )
 
 		# calc width.
-		width = timelines[0].length * Timeline.pin_spacing
+		margin = 20*Timeline.pin_spacing  # *2 for both sides.
+		width = timelines[0].length * Timeline.pin_spacing + margin
 
 		# calc height
 		height = len( timelines ) * Timeline.H
 
+		# map line = bitmap is returned.
+		map_line = self.make_map_line( width, self.minimap, (200,200) )
+		mw, mh = map_line.GetSize()
+
+		height += mh
+
 		# allocate bitmap
 		bmp = wx.Bitmap( width, height )
 		dc = wx.MemoryDC( bitmap=bmp )
-
-		# font
-		small = wx.Font( 9, wx.FONTFAMILY_SWISS, # sans serif
-				wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD )
+		dc.DrawBitmap( map_line, 0, 0 )
 
 		# Draw on them.
 		for i, timeline in enumerate( timelines ) :
-			old_t = timeline.t
-			timeline.t = int( self.length / 2 )
-
-			b = wx.Bitmap( width, Timeline.H )
-			memdc = wx.MemoryDC( bitmap=b )
-			memdc.SetBackground( wx.Brush( wx.BLACK ) )
-			memdc.Clear()
-
-			# lets draw with small font.
-			memdc.SetFont( small )
-
-			timeline.draw_on_dc( memdc )
-			del memdc
-
-			timeline.t = old_t
-			
-			dc.DrawBitmap( b, 0, i*Timeline.H )
+			b = self.draw_timeline( width, timeline )
+			dc.DrawBitmap( b, 0, mh+i*Timeline.H )
 			del b
 
 		del dc
-		bmp.SaveFile( "tmp.png", type=wx.BITMAP_TYPE_PNG )
+
+		bmp.SaveFile( diag.GetPath(), type=wx.BITMAP_TYPE_PNG )
+		diag.Destroy
 	
 
 
@@ -1013,6 +1130,10 @@ def main() :
 	frame.load( kw )
 	#frame.Layout() # do layout again.
 	frame.Show( True )
+
+	# export debug
+	#frame.on_export( None )
+	#frame.Close()
 
 	app.MainLoop()
 
