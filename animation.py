@@ -607,7 +607,7 @@ class Timeline( wx.Panel ) :
 			if cmd.upgrade in UPGRADENAMES :
 				name = UPGRADENAMES[ cmd.upgrade ]
 			else :
-				name = "upgrade 0x%08X" % cmd.power
+				name = "upgrade 0x%08X" % cmd.upgrade
 			dc.DrawText( name, x-10, y )
 
 			dc.DrawLine( x, self.Y, x, y+20 )
