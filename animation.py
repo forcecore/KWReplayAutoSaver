@@ -665,6 +665,22 @@ class Timeline( wx.Panel ) :
 		dc.DrawText( self.player_name, 10, Timeline.Y-170 )
 		self.draw_time_grid( dc )
 		self.draw_events( dc )
+	
+
+
+	def draw_on_dc( self, dc ) :
+		self.w, self.h = dc.GetSize()
+		self.mid = int( self.w/2 )
+
+		if self.draw_key :
+			dc.SetTextForeground( wx.WHITE )
+			dc.DrawText( "C/H: Cancel or Hold", self.w-200, 10 )
+			dc.DrawText( "CA: Cancel all", self.w-200, 20 )
+			dc.DrawText( "Q: Queue unit production", self.w-200, 30 )
+
+		# draw vertical line at the center.
+		self.draw_midline( dc )
+		self.draw_player_timeline( dc )
 
 
 
@@ -679,20 +695,7 @@ class Timeline( wx.Panel ) :
 		self.SetSize( (w, self.H) )
 	
 		dc = wx.PaintDC( self )
-
-		self.w, self.h = dc.GetSize()
-		self.mid = int( self.w/2 )
-
-		if self.draw_key :
-			dc.SetTextForeground( wx.WHITE )
-			dc.DrawText( "C/H: Cancel or Hold", w-200, 10 )
-			dc.DrawText( "CA: Cancel all", w-200, 20 )
-			dc.DrawText( "Q: Queue unit production", w-200, 30 )
-
-		# draw vertical line at the center.
-		self.draw_midline( dc )
-		self.draw_player_timeline( dc )
-
+		self.draw_on_dc( dc )
 		del dc
 
 
@@ -741,8 +744,8 @@ class TimelineViewer( wx.Frame ) :
 		lbl_time_scale = wx.StaticText( rpanel, label="pixels/s", pos=(75,100) )
 
 		# time mark
-		lbl_time = wx.StaticText( rpanel, label="time:", pos=(5,155) )
-		self.time = wx.StaticText( rpanel, label="", pos=(50,155) )
+		lbl_time = wx.StaticText( rpanel, label="time:", pos=(5,185) )
+		self.time = wx.StaticText( rpanel, label="", pos=(50,185) )
 
 		self.txt_scale   = wx.TextCtrl( rpanel, size=(60,-1),
 				pos=(50,5), style=wx.TE_PROCESS_ENTER )
@@ -754,6 +757,7 @@ class TimelineViewer( wx.Frame ) :
 				pos=(5,95), style=wx.TE_PROCESS_ENTER )
 
 		self.btn_apply = wx.Button( rpanel, label="Apply", pos=(120,35) )
+		self.btn_export = wx.Button( rpanel, label="Export Time+Map as Image", pos=(5,125) )
 
 		sizer.Add( lpanel, 0 )
 		sizer.Add( rpanel, 1, wx.EXPAND )
@@ -832,12 +836,61 @@ class TimelineViewer( wx.Frame ) :
 			self.mv_time( 10 )
 		else :
 			evt.Skip()
+	
 
+
+	def on_export( self, evt ) :
+		# get timelines, in current order.
+		timelines = []
+		sizer = self.timelines_panel.GetSizer()
+		children = sizer.GetChildren()
+		for child in children :
+			timelines.append( child.GetWindow() )
+
+		# calc width.
+		width = timelines[0].length * Timeline.pin_spacing
+
+		# calc height
+		height = len( timelines ) * Timeline.H
+
+		# allocate bitmap
+		bmp = wx.Bitmap( width, height )
+		dc = wx.MemoryDC( bitmap=bmp )
+
+		# font
+		small = wx.Font( 9, wx.FONTFAMILY_SWISS, # sans serif
+				wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD )
+
+		# Draw on them.
+		for i, timeline in enumerate( timelines ) :
+			old_t = timeline.t
+			timeline.t = int( self.length / 2 )
+
+			b = wx.Bitmap( width, Timeline.H )
+			memdc = wx.MemoryDC( bitmap=b )
+			memdc.SetBackground( wx.Brush( wx.BLACK ) )
+			memdc.Clear()
+
+			# lets draw with small font.
+			memdc.SetFont( small )
+
+			timeline.draw_on_dc( memdc )
+			del memdc
+
+			timeline.t = old_t
+			
+			dc.DrawBitmap( b, 0, i*Timeline.H )
+			del b
+
+		del dc
+		bmp.SaveFile( "tmp.png", type=wx.BITMAP_TYPE_PNG )
+	
 
 
 	def event_bindings( self ) :
 		self.slider.Bind( wx.EVT_SCROLL, self.on_scroll )
 		self.btn_apply.Bind( wx.EVT_BUTTON, self.on_apply )
+		self.btn_export.Bind( wx.EVT_BUTTON, self.on_export )
 		self.Bind( wx.EVT_SIZE, self.on_size )
 
 		# text box enter keys
@@ -960,7 +1013,9 @@ def main() :
 	frame.load( kw )
 	#frame.Layout() # do layout again.
 	frame.Show( True )
+
 	app.MainLoop()
+
 
 if __name__ == "__main__" :
 	main()
