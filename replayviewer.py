@@ -17,6 +17,7 @@ import analyzer
 import webbrowser
 import urllib.parse
 import repair
+import traceback
 
 KWICO='KW.ico'
 
@@ -1445,10 +1446,28 @@ class ReplayViewer( wx.Frame ) :
 			# error message is shown by get_selected_replay.
 			return
 
-		kwr_chunks = KWReplayWithCommands( fname=fname, verbose=False )
-		tlv = TimelineViewer( self, maps_zip=self.MAPS_ZIP )
-		tlv.load( kwr_chunks )
-		tlv.Show()
+		so = sys.stdout # intercept stdout temporarily.
+		se = sys.stderr
+		f = io.StringIO()
+		sys.stdout = f
+		sys.stderr = f
+
+		try :
+			kwr_chunks = KWReplayWithCommands( fname=fname, verbose=False )
+			tlv = TimelineViewer( self, maps_zip=self.MAPS_ZIP )
+			tlv.load( kwr_chunks )
+			tlv.Show()
+		except :
+			traceback.print_exc()
+
+			msg = "An error occured. Please send this replay file to the auther!\n\n"
+			msg += f.getvalue()
+			msg += "\n"
+			wx.MessageBox( msg, "Error", wx.OK|wx.ICON_ERROR )
+
+		sys.stderr = se
+		sys.stdout = so
+		f.close()
 	
 
 
