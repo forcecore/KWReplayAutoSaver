@@ -236,6 +236,8 @@ class Command :
 				self.split_placedown_cmd( f )
 			elif self.cmd_id == 0x36 :
 				self.split_var_len2( f, 1, 4 )
+			elif self.cmd_id == 0x7F :
+				self.split_0x00( f ) # same as 0x00, creep until FF.
 			elif self.cmd_id == 0x8B :
 				self.split_chunk1_uuid( f )
 			else :
@@ -655,18 +657,20 @@ class Chunk :
 			# If you see error here, it means, command length specification
 			# in consts.py is wrong. You need to work out the format of the
 			# command.
-			terminator = read_byte( f )
-
-			if terminator != 0xFF :
+			try :
+				terminator = read_byte( f )
+				if terminator != 0xFF :
+					raise IOError
+			except :
 				# or if you reach here, again, command length is wrong.
 				print( "Decode error" )
 				print( "ncmd:", ncmd )
 				print( "cmd_id: 0x%02X" % c.cmd_id )
 				print( "Payload:" )
 				print_bytes( payload )
-				print( "TERMINATOR: 0x%02X" % terminator )
-				print( f.read() )
-			assert terminator == 0xFF
+				#print( "TERMINATOR: 0x%02X" % terminator )
+				#print( f.read() )
+				assert 0, "Command terminator not 0xFF"
 
 
 

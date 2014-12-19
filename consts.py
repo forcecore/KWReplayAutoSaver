@@ -59,7 +59,9 @@ CMDLENS = {
 	0x77: 3,
 	0x7A: 29,
 	0x7E: 12,
-	0x7F: 12,
+	#7F 2A 10 01 00 00 00 00 00 00 00 FF 
+	#7F 00 00 8B 7F 00 00 F4 7D 00 00 06 6D 00 00 D7 69 00 00 7F 69 00 00 FF
+	0x7F: 0, # 7F is a varlen command. FF seek it seems
 	0x87: 8,
 	0x89: 8,
 	0x8A: 53, # skill with 2xy designation. (wormhole)
