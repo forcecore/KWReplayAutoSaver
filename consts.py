@@ -24,12 +24,12 @@ CMDLENS = {
 	0x0C: 0,
 	0x0D: 0,
 
-	0x0E: 0, # really rare command... short+nolen. assume 0x00
+	0x0E: 0, # really rare command... short+nolen. assume crawl to FF.
 	0x0F: -2,
 	0x10: -2,
 	0x11: -2,
 	0x12: -2,
-	#0x13: -2, # ???
+	0x13: 24, # ??? rare too. Definitely not splitable with -2.
 	0x17: -2,
 	0x1F: 0, # var len, with FF crawl.
 
