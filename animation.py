@@ -92,6 +92,37 @@ class MiniMap( wx.Panel ) :
 
 
 
+	def get_margins( self, bmp ) :
+		# Well. lets count black pixels, to calc real width/height.
+		dc = wx.MemoryDC( bitmap=bmp )
+		W, H = dc.GetSize()
+		ymid = int( H/2 )
+		xmid = int( W/2 )
+
+		# x direction.
+		xmar = 0
+		for x in range( W ) :
+			color = dc.GetPixel( x, ymid ).Get()
+			color = color[0:3]
+			if max( color ) < 5 :
+				xmar += 1
+
+		# y direction
+		ymar = 0
+		for y in range( H ) :
+			color = dc.GetPixel( xmid, y ).Get()
+			color = color[0:3]
+			if max( color ) < 5 :
+				ymar += 1
+		del dc
+
+		xmar = int( xmar/2 )
+		ymar = int( ymar/2 )
+
+		return (xmar, -ymar)
+
+
+
 	def calc_scale_factor( self ) :
 		# get X and Y.
 		X = 0
@@ -111,6 +142,16 @@ class MiniMap( wx.Panel ) :
 		W = bmp.GetWidth()
 		H = bmp.GetHeight()
 
+		xmar, ymar = self.get_margins( bmp )
+
+		W -= 2*xmar
+		H -= 2*ymar
+		self.x_offset = xmar
+		self.y_offset = ymar
+
+		assert W > 0
+		assert H > 0
+
 		if X == 0 :
 			fx = 1
 		else :
@@ -121,6 +162,7 @@ class MiniMap( wx.Panel ) :
 			fy = H/Y
 
 		self.scale = min( fx, fy )
+
 
 
 	def draw_dot( self, dc, x, y, color ) :
