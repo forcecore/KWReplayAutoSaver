@@ -149,8 +149,15 @@ class MiniMap( wx.Panel ) :
 		self.x_offset = xmar
 		self.y_offset = ymar
 
-		assert W > 0
-		assert H > 0
+		assert W >= 0
+		assert H >= 0
+
+		if W == 0 : # all black! == unknown map.
+			W = bmp.GetWidth()
+			self.x_offset = 0
+		if H == 0 : # all black! == unknown map.
+			H = bmp.GetWidth()
+			self.y_offset = 0
 
 		if X == 0 :
 			fx = 1
