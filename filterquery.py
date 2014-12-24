@@ -43,7 +43,7 @@ class FilterQuery :
 				while operator_stack[-1] != "(" :
 					# there SHOULD be a ( in the stack already.
 					# Otherwise, it is a syntax error.
-					tokens.append( operator_stack.pop() )
+					result.append( operator_stack.pop() )
 				lpar = operator_stack.pop()
 				assert lpar == "("
 			elif not tok.lower() in operators : # operand
