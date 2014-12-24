@@ -6,6 +6,7 @@ from chunks import KWReplayWithCommands
 from gnuplot import Gnuplot
 from animation import TimelineViewer
 from mapzip import MapZip
+from filterquery import FilterQuery 
 import io
 import sys
 import os
@@ -42,6 +43,8 @@ def calc_props( kwr ) :
 
 	return props
 
+
+
 # Returns True on some condition hit.
 # Used for filtering replays.
 def filter_hit( filter, props ) :
@@ -49,19 +52,25 @@ def filter_hit( filter, props ) :
 		# either filter == None or empty string!
 		return True
 
-	# lower case filter
-	words = filter.lower().split()
+	so = sys.stdout # intercept stdout temporarily.
+	se = sys.stderr
+	f = io.StringIO()
+	sys.stdout = f
+	sys.stderr = f
 
-	# This is incorrect!
-	#for word in words :
-	#	if word in props :
-	#		return True
+	try :
+		return filter.match( props )
+	except :
+		if filter.postfix :
+			print( filter.postfix )
+		traceback.print_exc()
 
-	for prop in props :
-		for word in words :
-			if word in prop :
-				return True
-	return False
+		msg = "Error in query!\n\n"
+		msg += f.getvalue()
+		msg += "\n"
+		wx.MessageBox( msg, "Error", wx.OK|wx.ICON_ERROR )
+
+	return True
 
 
 
@@ -331,6 +340,7 @@ class PlayerList( wx.ListCtrl ) :
 
 		# Check if we have any filter.
 		fil = self.frame.filter_text.GetValue()
+		fil = FilterQuery( fil )
 
 		for pid, p in enumerate( kwr.players ) :
 			# p is the Player class. You are quite free to do anything!
@@ -356,7 +366,7 @@ class PlayerList( wx.ListCtrl ) :
 			aka = Args.args.get_aka( p.ip )
 			if aka :
 				props.append( aka )
-			if fil and filter_hit( fil, props ) :
+			if fil and len( fil.postfix ) > 0 and filter_hit( fil, props ) :
 				self.SetItemBackgroundColour( pos, wx.YELLOW )
 	
 
@@ -1226,7 +1236,7 @@ class ReplayViewer( wx.Frame ) :
 	
 	def on_filter_applyClick( self, event ) :
 		fil = self.filter_text.GetValue()
-		#fil = FilterQuery( fil )
+		fil = FilterQuery( fil )
 		self.rep_list.populate( self.rep_list.replay_items, filter=fil )
 
 

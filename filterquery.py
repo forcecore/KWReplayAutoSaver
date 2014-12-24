@@ -7,18 +7,67 @@ import string
 # https://cloud.google.com/appengine/docs/python/search/query_strings
 class FilterQuery :
 	def __init__( self, qstring ) :
-		self.tree = self.compile( qstring )
+		self.postfix = self.compile( qstring )
+		if 0 :
+			print( qstring )
+			print( self.postfix )
+			print()
+	
+
+
+	# see if the replay is a hit to query.
+	def match( self, props ) :
+		if len( self.postfix ) == 0 :
+			# empty query.
+			return True
+
+		operand_stack = []
+
+		U = set( props ) # the whole set
+
+		for item in self.postfix :
+			if item == "not" :
+				operand = operand_stack.pop()
+				operand = U - operand # new inverted set
+				operand_stack.append( operand )
+			elif item == "and" :
+				op1 = operand_stack.pop()
+				op2 = operand_stack.pop()
+				operand = op1 & op2
+				operand_stack.append( operand )
+			elif item == "or" :
+				op1 = operand_stack.pop()
+				op2 = operand_stack.pop()
+				operand = op1 | op2
+				operand_stack.append( operand )
+			else : # string
+				if item.startswith( "\"" ) and item.endswith( "\"" ) :
+					item = item[1:-1]
+				hits = set()
+				for prop in props :
+					if prop.find( item ) >= 0 :
+						hits.add( prop )
+				operand_stack.append( hits )
+				print( operand_stack )
+
+		assert len( operand_stack ) >= 1
+
+		# if you just search gdi nod, then they automatically imply OR.
+		# So, if any of the operand in the stack has len > 0, it is a hit.
+		for operand in operand_stack :
+			if len( operand ) > 0 :
+				return True
+		return False
 
 
 
 	def compile( self, qstring ) :
 		tokens = self.tokenize( qstring )
-		print( tokens )
-
+		# smaller case conversion.
+		for i, tok in enumerate( tokens ) :
+			tokens[ i ] = tok.lower()
 		postfix = self.to_postfix( tokens )
-		print( postfix )
-
-		print()
+		return postfix
 
 
 
@@ -46,11 +95,11 @@ class FilterQuery :
 					result.append( operator_stack.pop() )
 				lpar = operator_stack.pop()
 				assert lpar == "("
-			elif not tok.lower() in operators : # operand
+			elif not tok in operators : # operand
 				result.append( tok )
 			else :
 				while len( operator_stack ) > 0 and \
-						operators.index( operator_stack[-1].lower() ) >= operators.index( tok.lower() ) :
+						operators.index( operator_stack[-1] ) >= operators.index( tok ) :
 					result.append( operator_stack.pop() )
 				operator_stack.append( tok )
 
@@ -155,6 +204,11 @@ def main() :
 	fq = FilterQuery( "1 AND 1 OR 3" )
 	fq = FilterQuery( "(1 OR 1) AND 3" )
 	fq = FilterQuery( "1 OR (1 AND 3)" )
+	fq = FilterQuery( "gdi and not nod" )
+	fq = FilterQuery( "not gdi and nod" )
+	fq = FilterQuery( "not gdi or nod" )
+	fq = FilterQuery( "(not gdi) or nod" )
+	fq = FilterQuery( "not (gdi or nod)" )
 
 
 
