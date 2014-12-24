@@ -410,10 +410,14 @@ class PlayerList( wx.ListCtrl ) :
 				wx.MessageBox( msg, "Invalid game replay", wx.OK|wx.ICON_ERROR )
 
 			nick_encoded = urllib.parse.quote( player.name )
-				
-			url = "http://www.shatabrick.com/" + game1
+
+			#http://www.shatabrick.com/cco/kw/index.php?g=kw&a=sp&name=masterleaf
+			#http://www.shatabrick.com/cco/tw/index.php?g=tw&a=h&Searchnick=amanoob
+			#http://www.shatabrick.com/cco/ra3/index.php?g=ra&a=sp&name=worstnoob
+
+			url = "http://www.shatabrick.com/cco/" + game1
 			url += "/index.php?g=" + game2
-			url += "&a=s&s=f&Searchnick=" + nick_encoded
+			url += "&a=sp&name=" + nick_encoded
 
 			# launch browser!
 			webbrowser.open( url )
