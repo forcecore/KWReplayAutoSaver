@@ -63,6 +63,8 @@ def filter_hit( filter, props ) :
 				return True
 	return False
 
+
+
 # Not just the replay class, this class is for ease of management in rep_list.
 class ReplayItem() :
 	def __init__( self ) :
@@ -1224,6 +1226,7 @@ class ReplayViewer( wx.Frame ) :
 	
 	def on_filter_applyClick( self, event ) :
 		fil = self.filter_text.GetValue()
+		#fil = FilterQuery( fil )
 		self.rep_list.populate( self.rep_list.replay_items, filter=fil )
 
 
