@@ -15,6 +15,55 @@ class FilterQuery :
 		tokens = self.tokenize( qstring )
 		print( tokens )
 
+		postfix = self.to_postfix( tokens )
+		print( postfix )
+
+		print()
+
+
+
+	# http://en.wikipedia.org/wiki/Shunting-yard_algorithm
+	# infix -> postfix conversion.
+	def to_postfix( self, tokens ) :
+		result = []
+
+		operators = [ "(", "and", "or", "not" ]
+
+		operator_stack = []
+
+		# op percedence: not or then and.
+		for tok in tokens :
+			#print( operator_stack )
+
+			if tok == "(" :
+				operator_stack.append( tok )
+			elif tok == ")" :
+				# Until the token at the top of the stack is a left parenthesis,
+				# pop operators off the stack onto the output queue.
+				while operator_stack[-1] != "(" :
+					# there SHOULD be a ( in the stack already.
+					# Otherwise, it is a syntax error.
+					tokens.append( operator_stack.pop() )
+				lpar = operator_stack.pop()
+				assert lpar == "("
+			elif not tok.lower() in operators : # operand
+				result.append( tok )
+			else :
+				while len( operator_stack ) > 0 and \
+						operators.index( operator_stack[-1].lower() ) >= operators.index( tok.lower() ) :
+					result.append( operator_stack.pop() )
+				operator_stack.append( tok )
+
+		# pop left-overs.
+		while len( operator_stack ) > 0 :
+			if operator_stack[-1] == "(" :
+				print( "Unmatched parenthesis" )
+				raise SyntaxError
+			else :
+				result.append( operator_stack.pop() )
+
+		return result
+
 
 
 	def tokenize( self, qstring ) :
@@ -78,6 +127,12 @@ class FilterQuery :
 				# closing quote!
 				if char == "\"" :
 					token = flush_token( token, tokens )
+					tokens[-1] = "\"" + tokens[-1] + "\""
+					# surround the token with "" for discerning operator and string.
+					# e.g.
+					# we need to see if it was AND or "AND".
+					# quoted and = and string.
+					# not quoted and = operater and.
 					state = S_WS
 				else :
 					token += char
@@ -95,6 +150,11 @@ class FilterQuery :
 def main() :
 	fq = FilterQuery( "kyky AND noonal" )
 	fq = FilterQuery( "(NOT kyky) AND noonal \"OR noonal\"" )
+	fq = FilterQuery( "(NOT \"lilibet 'oh\")    AND noonal \"OR noonal\"" )
+	fq = FilterQuery( "1 OR 1 AND 3" )
+	fq = FilterQuery( "1 AND 1 OR 3" )
+	fq = FilterQuery( "(1 OR 1) AND 3" )
+	fq = FilterQuery( "1 OR (1 AND 3)" )
 
 
 
