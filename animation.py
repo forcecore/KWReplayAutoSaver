@@ -901,6 +901,10 @@ class TimelineViewer( wx.Frame ) :
 			self.mv_time( -10 )
 		elif key_code == wx.WXK_PAGEDOWN :
 			self.mv_time( 10 )
+		elif key_code == wx.WXK_HOME :
+			self.mv_time( -self.slider.GetMax() )
+		elif key_code == wx.WXK_END :
+			self.mv_time( self.slider.GetMax() )
 		else :
 			evt.Skip()
 	
