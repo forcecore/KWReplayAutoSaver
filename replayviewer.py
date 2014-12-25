@@ -7,6 +7,7 @@ from gnuplot import Gnuplot
 from animation import TimelineViewer
 from mapzip import MapZip
 from filterquery import FilterQuery 
+from consts import UNITNAMES
 import io
 import sys
 import os
@@ -543,6 +544,10 @@ class ReplayList( wx.ListCtrl ) :
 		# on key down doesn't work, for enter keys. :( :(
 		#self.Bind( wx.EVT_LIST_KEY_DOWN, self.on_key_down )
 	
+	def select_all( self, event ) :
+		for i in range( self.GetItemCount() ) :
+			self.Select( i )
+	
 	def set_path( self, path ) :
 		self.path = path
 		self.replay_items.scan_path( path )
@@ -685,6 +690,96 @@ class ReplayList( wx.ListCtrl ) :
 		item = self.GetFocusedItem()
 		self.EditLabel( item )
 	
+
+
+	# resolve random factions, if possible.
+	# if not possible, just silently pass...
+	def resolve_faction( self, kwr_fname ) :
+		result = {}
+
+		# Just try decoding. If it works, it is fine.
+		# If it is not, pass.
+		try :
+			kwr = KWReplayWithCommands( fname=kwr_fname )
+			if kwr.game != "KW" :
+				# works only for KW
+				return result
+
+			for pid, p in enumerate( kwr.players ) :
+				faction = p.decode_faction()
+				if faction != "Rnd" :
+					continue
+
+				# scan commands
+				for chunk in kwr.replay_body.chunks :
+					for cmd in chunk.commands :
+						# use placedown'ed building to resolve faction.
+						if cmd.player_id == pid and cmd.cmd_id == 0x31 :
+							cmd.decode_placedown_cmd()
+							if cmd.building_type in UNITNAMES :
+								# Good thing I always prefixed faction name in front!
+								data = UNITNAMES[ cmd.building_type ].split()
+								faction = "Rnd_" + data[0]
+
+								# insert to map
+								result[ p.name ] = faction
+								break
+
+		except :
+			# silently ignore chunk decoding.
+			pass
+
+		#print( result )
+		return result
+
+
+
+	# Resolve random faction, if possible.
+	def context_menu_resolve_random( self, event ) :
+		cnt = self.GetSelectedItemCount()
+		if cnt == 0 :
+			return
+
+		for pos in selected( self ) :
+			kwr = self.get_related_replay( pos ).kwr
+
+			# not kane's wrath! can't do anything.
+			if kwr.game != "KW" :
+				if cnt == 1 :
+					msg = "Resolving random works only for KW."
+					wx.MessageBox( msg, "Error", wx.OK|wx.ICON_ERROR )
+				continue
+
+			rep_name = self.GetItem( pos, 0 ).GetText()
+			if rep_name.find( "(Rnd)" ) < 0 :
+				#print( rep_name, "has no random in its name" )
+				continue
+
+			#print( rep_name, "has random" )
+
+			# old full name
+			old_name = kwr.fname
+			old_name = os.path.join( self.path, old_name )
+
+			# resolve factions
+			factions = self.resolve_faction( old_name )
+			if not factions :
+				# no need to rename.
+				continue
+
+			old_stem = self.GetItem( pos, 0 ).GetText()
+			new_stem = old_stem
+
+			for pname, faction in factions.items() :
+				pname = Watcher.sanitize_name( pname )
+				src = pname + " (Rnd)"
+				dest = pname + " (" + faction + ")"
+				new_stem = new_stem.replace( src, dest )
+
+			self.rename_with_stem( pos, old_name, new_stem )
+
+
+
 	# Delete this replay?
 	def context_menu_delete( self, event ) :
 		cnt = self.GetSelectedItemCount()
@@ -843,6 +938,11 @@ class ReplayList( wx.ListCtrl ) :
 			item = wx.MenuItem( menu, -1, "&Rename (F2)" )
 			menu.Bind( wx.EVT_MENU, self.context_menu_rename, id=item.GetId() )
 			menu.Append( item )
+
+		# resolve random
+		item = wx.MenuItem( menu, -1, "R&esolve Random" )
+		menu.Bind( wx.EVT_MENU, self.context_menu_resolve_random, id=item.GetId() )
+		menu.Append( item )
 
 		# delete replay menu
 		item = wx.MenuItem( menu, -1, "&Delete (Del)" )
@@ -1207,13 +1307,16 @@ class ReplayViewer( wx.Frame ) :
 		# Accelerator table (short cut keys)
 		self.id_rename = wx.NewId()
 		self.id_del = wx.NewId()
+		self.id_sel_all = wx.NewId()
 
 		self.Bind( wx.EVT_MENU, self.rep_list.context_menu_rename, id=self.id_rename )
 		self.Bind( wx.EVT_MENU, self.rep_list.context_menu_delete, id=self.id_del )
+		self.Bind( wx.EVT_MENU, self.rep_list.select_all, id=self.id_sel_all )
 
 		accel_tab = wx.AcceleratorTable([
 				( wx.ACCEL_NORMAL, wx.WXK_F2, self.id_rename ),
-				( wx.ACCEL_NORMAL, wx.WXK_DELETE, self.id_del )
+				( wx.ACCEL_NORMAL, wx.WXK_DELETE, self.id_del ),
+				( wx.ACCEL_CTRL, ord("a"), self.id_sel_all )
 			])
 		self.SetAcceleratorTable( accel_tab )
 	
