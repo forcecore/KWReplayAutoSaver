@@ -30,12 +30,17 @@ def calc_props( kwr ) :
 	props = []
 	props.append( kwr.map_name.lower() ) # map name
 	props.append( kwr.desc.lower() ) # desc
-	for player in kwr.players :
-		props.append( player.name.lower() )
-		props.append( player.ip )
-		aka = args.get_aka( player.ip )
-		if aka :
-			props.append( aka )
+
+	# wtf? why do we not get players?
+	if not kwr.players :
+		print( kwr.fname, "got problems with players" )
+	else :
+		for player in kwr.players :
+			props.append( player.name.lower() )
+			props.append( player.ip )
+			aka = args.get_aka( player.ip )
+			if aka :
+				props.append( aka )
 	
 	# lowercase everything!
 	for (i, prop) in enumerate( props ) :

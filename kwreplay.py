@@ -261,6 +261,7 @@ class Player :
 
 class KWReplay :
 	def __init__( self, fname=None, verbose=False, game=None ) :
+		self.fname = fname # for tracking
 		self.game = game
 		# game == "CNC3" for Tiberium Wars
 
@@ -526,8 +527,11 @@ class KWReplay :
 
 		data = header.split( ";" )
 		for info in data :
-			pair = info.split( "=" )
-			#print( pair )
+			pair = info.split( "=", maxsplit=1 ) # only split at the FIRST = sign.
+			# Why? because player names may contain "="!!! (or the clan names)
+
+			#if self.verbose :
+			#	print( pair )
 
 			if len( pair ) == 2 :
 				self.decode_pair( pair )
@@ -586,6 +590,8 @@ class KWReplay :
 		elif lhs == "RU" :
 			lhs = "Game initialization information (starting money... etc.)"
 		elif lhs == "S" :
+			if self.verbose :
+				print( "-- decode player start" )
 			lhs = "Players"
 			rhs_data = self.decode_header_players( rhs )
 			self.players = rhs_data
