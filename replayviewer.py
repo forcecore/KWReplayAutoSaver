@@ -540,14 +540,26 @@ class ReplayList( wx.ListCtrl ) :
 		self.Bind( wx.EVT_LIST_END_LABEL_EDIT, self.on_end_label_edit )
 		self.Bind( wx.EVT_LIST_BEGIN_LABEL_EDIT, self.on_begin_label_edit )
 		self.Bind( wx.EVT_LIST_COL_CLICK, self.on_col_click )
+		self.Bind( wx.EVT_KEY_DOWN, self.on_key_down )
 
 		# on key down doesn't work, for enter keys. :( :(
 		#self.Bind( wx.EVT_LIST_KEY_DOWN, self.on_key_down )
+
+
+
+	def on_key_down( self, event ) :
+		key_code = event.GetKeyCode()
+		if key_code == ord( 'A' ) and event.ControlDown() :
+			self.select_all()
+		else :
+			event.Skip()
 	
-	def select_all( self, event ) :
+	def select_all( self ) :
 		for i in range( self.GetItemCount() ) :
 			self.Select( i )
-	
+
+
+
 	def set_path( self, path ) :
 		self.path = path
 		self.replay_items.scan_path( path )
@@ -777,6 +789,8 @@ class ReplayList( wx.ListCtrl ) :
 				new_stem = new_stem.replace( src, dest )
 
 			self.rename_with_stem( pos, old_name, new_stem )
+
+		wx.MessageBox( "Done", "Info", wx.OK )
 
 
 
@@ -1307,16 +1321,13 @@ class ReplayViewer( wx.Frame ) :
 		# Accelerator table (short cut keys)
 		self.id_rename = wx.NewId()
 		self.id_del = wx.NewId()
-		self.id_sel_all = wx.NewId()
 
 		self.Bind( wx.EVT_MENU, self.rep_list.context_menu_rename, id=self.id_rename )
 		self.Bind( wx.EVT_MENU, self.rep_list.context_menu_delete, id=self.id_del )
-		self.Bind( wx.EVT_MENU, self.rep_list.select_all, id=self.id_sel_all )
 
 		accel_tab = wx.AcceleratorTable([
 				( wx.ACCEL_NORMAL, wx.WXK_F2, self.id_rename ),
 				( wx.ACCEL_NORMAL, wx.WXK_DELETE, self.id_del ),
-				( wx.ACCEL_CTRL, ord("a"), self.id_sel_all )
 			])
 		self.SetAcceleratorTable( accel_tab )
 	
