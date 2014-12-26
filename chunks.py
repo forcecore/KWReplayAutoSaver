@@ -194,12 +194,9 @@ class Command :
 		# Probably, that offset must be that neutral factions. (initial spike owners)
 
 		if not self.cmd_id in CMDLENS :
-			print( "Unknown command:" )
-			print( "0x%02X" % self.cmd_id )
-			print( "Please input command length, in consts.py:" )
-			print_bytes( f.getbuffer() )
-			print()
-			assert 0
+			print( "Warning: unknown command. FF creeping." )
+			self.split_0x00( f ) # same as 0x00, creep until FF.
+			return
 
 		cmdlen = CMDLENS[ self.cmd_id ]
 
@@ -617,8 +614,10 @@ class Chunk :
 		self.player_number = 0
 		self.time_code_payload = 0 # another timecode, in the payload.
 		self.ty2_payload = None
-	
-	def split( self ) :
+
+
+
+	def split( self, game ) :
 		if self.ty != 1 :
 			# I only care about game affecting stuff.
 			return
@@ -635,8 +634,9 @@ class Chunk :
 		else :
 			self.ncmd = read_uint32( f )
 			self.payload = f.read()
-			self.split_commands( self.ncmd, self.payload )
-			assert len( self.commands ) == self.ncmd
+			self.split_commands( self.ncmd, self.payload, game )
+			if len( self.commands ) != self.ncmd :
+				print( "Warning: chunk/command count mismatch!" )
 
 			for cmd in self.commands :
 				cmd.time_code = self.time_code
@@ -645,7 +645,7 @@ class Chunk :
 
 	# I split commands, before decoding anything.
 	# Not on the fly. It makes command decoding/hacking much easier.
-	def split_commands( self, ncmd, payload ) :
+	def split_commands( self, ncmd, payload, game ) :
 		f = io.BytesIO( payload )
 		#print( "COMMANDS payload:", payload )
 
@@ -673,42 +673,6 @@ class Chunk :
 				assert 0, "Command terminator not 0xFF"
 
 
-
-	def print( self ) :
-		self.decode()
-
-		if self.ty == 1 :
-			if cmd_id in CMDNAMES :
-				print( "---" )
-				print( CMDNAMES[ cmd_id ] )
-				print( "---" )
-			print( "player_id:", player_id )
-			print( "cmd_id: 0x%X" % cmd_id )
-
-			print( "time:", self.time )
-			print( "ncmd:", self.ncmd )
-			print( "payload:" )
-			for i in range( len( self.payload ) ) :
-				print( "0x%02X" % self.payload[i], end=" " )
-				if i % 16 == 0 :
-					print()
-			print()
-			print()
-			print()
-		elif self.ty == 2 :
-			#print( "Camera data." )
-			pass
-			#print( "\tplayer#:", self.player_number )
-			#print( "\ttimecode:", self.time_code_payload )
-		else :
-			# From eareplay.html:
-			# Chunk types 3 and 4 only appear to be present in replays with a
-			# commentary track, and it seems that type 3 contains the audio
-			# data and type 4 the telestrator data.
-			pass
-			#print( "type:", self.ty )
-			#print( "size:", self.size )
-			#print( "data:", self.data )
 	
 	def has_known( self ) :
 		for cmd in self.commands :
@@ -772,13 +736,87 @@ class Chunk :
 	
 	
 
+class ChunkOtherGames( Chunk ) :
+	# Just try splitting commands by "FF".
+	def split_commands( self, ncmd, payload, game ) :
+		# FSM modes
+		CMD_ID = 0
+		PID = 1
+		CONTENT = 2
+
+
+		c = None # command of interest
+		mode = CMD_ID
+		start = 0
+		end = 0
+
+		for i, byte in enumerate( payload ) :
+			if mode == CMD_ID :
+				c = Command()
+				self.commands.append( c )
+				c.cmd_id = byte
+
+				mode = PID
+
+			elif mode == PID :
+				# 3 for CNC3/KW. for RA3, k should be 2.
+				if game == "KW" or game == "CNC3" :
+					k = 3
+				else :
+					k = 2
+				self.player_id = int( byte / 8 ) - k
+
+				mode = CONTENT
+				start = i+1 # start of the cmd payload.
+
+			elif mode == CONTENT :
+				# Well, do nothing.
+				if byte == 0xFF :
+					end = i+1 # +1 to include 0xFF as well.
+					c.payload = payload[ start:end ]
+					mode = CMD_ID
+
+			else :
+				assert 0, "Shouldn't see me! split_commands() of ChunkOtherGames"
+	
+
+
+	def print_known( self ) :
+		pass # nothing is known
+
+
+
+	def dump_commands( self ) :
+		# print( "Time\tPlayer\tcmd_id\tparams" )
+		if self.ncmd != len( self.commands ) :
+			print( "Warning: ncmd & # command mismatch: %d:%d" %
+				(self.ncmd, len( self.commands ) ) )
+			print( "time_code:", self.time_code )
+			print( "ncmd:", self.ncmd )
+			print_bytes( self.payload )
+			print()
+
+		for cmd in self.commands :
+			print( "unknown command" )
+			print( cmd.time_code, end="\t" )
+			print( cmd.player_id, end="\t" )
+			print( "0x%02X" % cmd.cmd_id, end="\t" )
+			print_bytes( cmd.payload, break16=False )
+			print()
+	
+
+
 class ReplayBody :
-	def __init__( self, f ) :
+	def __init__( self, f, game="KW" ) :
 		self.chunks = []
+		self.game = game
 		self.loadFromStream( f )
 	
 	def read_chunk( self, f ) :
-		chunk = Chunk()
+		if self.game == "KW" :
+			chunk = Chunk()
+		else :
+			chunk = ChunkOtherGames()
 		chunk.time_code = read_uint32( f )
 		if chunk.time_code == 0x7FFFFFFF :
 			return None
@@ -797,7 +835,7 @@ class ReplayBody :
 		#print_bytes( chunk.data )
 		#print()
 	
-		chunk.split()
+		chunk.split( self.game )
 		return chunk
 	
 	def loadFromStream( self, f ) :
@@ -846,7 +884,7 @@ class KWReplayWithCommands( KWReplay ) :
 		self.guess_game( fname )
 		f = open( fname, 'rb' )
 		self.loadFromStream( f )
-		self.replay_body = ReplayBody( f )
+		self.replay_body = ReplayBody( f, game=self.game )
 		self.read_footer( f )
 		f.close()
 

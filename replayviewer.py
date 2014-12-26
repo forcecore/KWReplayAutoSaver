@@ -735,6 +735,10 @@ class ReplayList( wx.ListCtrl ) :
 
 								# insert to map
 								result[ p.name ] = faction
+
+								args = Args.args
+								aka = args.get_aka( p.ip )
+								result[ aka ] = faction # insert aka, too!
 								break
 
 		except :
@@ -779,6 +783,7 @@ class ReplayList( wx.ListCtrl ) :
 				# no need to rename.
 				continue
 
+			#print( factions )
 			old_stem = self.GetItem( pos, 0 ).GetText()
 			new_stem = old_stem
 
