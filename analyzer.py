@@ -4,7 +4,6 @@ import sys
 from args import Args
 from gnuplot import Gnuplot
 from chunks import KWReplayWithCommands, Command
-from consts import UNITCOST, POWERCOST, UPGRADECOST, UNITNAMES
 
 
 

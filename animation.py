@@ -9,7 +9,6 @@ from mapzip import MapZip
 from chunks import KWReplayWithCommands
 from analyzer import PositionDumper
 from args import Args
-from consts import UNITNAMES, POWERNAMES, UPGRADENAMES
 
 
 CANCEL_ALL = -1

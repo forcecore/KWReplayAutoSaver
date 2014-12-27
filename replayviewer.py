@@ -7,7 +7,6 @@ from gnuplot import Gnuplot
 from animation import TimelineViewer
 from mapzip import MapZip
 from filterquery import FilterQuery 
-from consts import UNITNAMES
 import io
 import sys
 import os

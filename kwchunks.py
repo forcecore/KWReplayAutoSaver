@@ -1176,7 +1176,7 @@ class KWChunk( chunks.Chunk ) :
 		# more var len commands
 		elif cmdlen < 0 :
 			# var len cmds!
-			chunks.Splitter.split_var_len( cmd, f, cmdlen, ncmd )
+			chunks.Splitter.split_var_len( cmd, f, cmdlen )
 		else :
 			if cmd.cmd_id <= 0x03 or cmd.cmd_id >= 0xFA :
 				# group designation command.

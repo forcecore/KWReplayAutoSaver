@@ -315,7 +315,7 @@ class Splitter :
 
 
 
-	def split_var_len( cmd, f, cmdlen, ncmd ) :
+	def split_var_len( cmd, f, cmdlen ) :
 		payload = f.getbuffer() # cursor unaffected buffer, w00t.
 		opos = f.tell()
 
@@ -336,7 +336,6 @@ class Splitter :
 
 		if Command.verbose :
 			print( "cmd_id: 0x%02X" % cmd.cmd_id )
-			print( "spit_var_len.ncmd:", ncmd )
 			print( "cheat: ", end="" )
 			print_bytes( payload )
 			print( "opos ~ pos:", opos, pos )
@@ -421,6 +420,49 @@ class Splitter :
 			end += 1
 
 		cmd.payload = f.read( end-pos )
+
+
+
+	def split_production_cmd( cmd, f ) :
+			# either short or long...
+			# length 8 or length 26, it seems, refering to cnc3reader_impl.cpp.
+
+			cheat = f.getbuffer()
+		
+			if Command.verbose :
+				print( "Production splitting" )
+				print( "0x%02X" % cmd.cmd_id )
+				print( "cheat:" )
+				print_bytes( cheat )
+				print()
+
+			if cheat[ f.tell() ] == 0xFF :
+				# 0x2D command with NOTHING in int.
+				cmd.payload = None # stub command can happen... omg
+			elif cheat[ f.tell() + 5 ] == 0xFF :
+				cmd.payload = f.read( 5 )
+			else :
+				cmd.payload = f.read( 23 )
+
+
+
+	# this skill targets one exact unit.
+	# sonic/laser fence that is.
+	def split_skill_target( cmd, f ) :
+		buf = f.getbuffer()
+		cnt = buf[ f.tell() + 15 ]
+		end = f.tell() + 4*(cnt+1) + 30
+		cmd.payload = f.read( end - f.tell() - 1 )
+
+		if Command.verbose :
+			print( "split_skill_target" )
+			print( "0x%02X" % cmd.cmd_id )
+			print( "cheat: ", end="" )
+			print_bytes( buf )
+			print( "end:", end )
+			print( "payload:", end="" )
+			print_bytes( cmd.payload )
+			print()
 
 
 
