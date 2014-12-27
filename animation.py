@@ -6,7 +6,7 @@ import os
 from args import Args
 from kwreplay import time_code2str
 from mapzip import MapZip
-from chunks import KWReplayWithCommands
+from chunks import KWReplayWithCommands, Command
 from analyzer import PositionDumper
 from args import Args
 
@@ -285,36 +285,10 @@ class TimelineAnalyzer() :
 		for chunk in self.kwr.replay_body.chunks :
 			time = int( chunk.time_code/15 )
 			for cmd in chunk.commands :
-				if cmd.cmd_id == 0x31 :
-					cmd.decode_placedown_cmd()
-					self.feed( time, cmd )
-				elif cmd.cmd_id == 0x26 :
-					cmd.decode_skill_targetless()
-					self.feed( time, cmd )
-				elif cmd.cmd_id == 0x27 :
-					cmd.decode_skill_xy()
-					self.feed( time, cmd )
-				elif cmd.cmd_id == 0x28 :
-					cmd.decode_skill_target()
-					self.feed( time, cmd )
-				elif cmd.cmd_id == 0x2B :
-					cmd.decode_upgrade_cmd()
-					self.feed( time, cmd )
-				elif cmd.cmd_id == 0x2D :
-					cmd.decode_queue_cmd()
-					self.feed( time, cmd )
-				elif cmd.cmd_id == 0x2E :
-					# hold/cancel/cancel all production
-					cmd.decode_hold_cmd()
-					self.feed( time, cmd )
-				elif cmd.cmd_id == 0x8A :
-					cmd.decode_skill_2xy()
-					self.feed( time, cmd )
-				elif cmd.cmd_id == 0x34 :
-					self.feed( time, cmd ) # sell
-				elif cmd.cmd_id == 0x91 :
-					cmd.pid = cmd.payload[1]
-					cmd.player_id = cmd.pid # override owner!
+				chunk.decode_cmd( cmd )
+				if Command.HOLD <= cmd.cmd_ty and cmd.cmd_ty <= Command.EOG :
+					if cmd.cmd_ty == Command.EOG :
+						cmd.player_id = cmd.target # override owner!
 					self.feed( time, cmd )
 
 		#print( eventsss )

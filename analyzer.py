@@ -143,6 +143,7 @@ class FactorySim() :
 		self.events = [] # priority queue of events. time in time_code.
 		self.t = 0 # current time (in time code)
 		self.end_time = 0 # game end time (in time code)
+		self.cost = {} # unit cost map
 
 
 
@@ -226,7 +227,7 @@ class FactorySim() :
 			remaining_time = under_const.time_code - self.t
 			fa.countdown[ unit_ty ] # save it to remaining time.
 
-		if not unit_ty in UNITCOST :
+		if not unit_ty in self.cost :
 			# just ignore this event.
 			if FactorySim.verbose :
 				print( "no data for this unit 0x%08X" % unit_ty )
@@ -239,7 +240,7 @@ class FactorySim() :
 		else :
 			# build_time is proportional to unit cost.
 			# 15 for second -> time_code conversion.
-			build_time = 15 * int( UNITCOST[unit_ty]/100 ) + 6 # extra 6 for unit exit delay;;;;;;;
+			build_time = 15 * int( self.cost[unit_ty]/100 ) + 6 # extra 6 for unit exit delay;;;;;;;
 
 		evt = Command()
 		evt.cmd_id = EVT_CONS_COMPLETE
@@ -300,6 +301,10 @@ class FactorySim() :
 			for i in range( cnt ) :
 				fa.order.append( evt.unit_ty )
 
+			# add to cost resolver map.
+			if evt.cost >= 0 :
+				self.cost[ evt.unit_ty ] = evt.cost
+
 			if FactorySim.verbose :
 				print( "Factory 0x%08X" % fa.factory_id )
 				fivex = ""
@@ -338,7 +343,7 @@ class FactorySim() :
 		if len( factory.order ) > 0 :
 			self.pop_factory( factory )
 
-		return (evt.player_id, evt.time_code, UNITCOST[ evt.unit_ty ], evt.unit_ty)
+		return (evt.player_id, evt.time_code, self.cost[ evt.unit_ty ], evt.unit_ty)
 	
 
 
@@ -495,6 +500,7 @@ class ResourceAnalyzer() :
 		# step 1. just collect how much is spent at time t, as a list.
 		for chunk in self.kwr.replay_body.chunks :
 			for cmd in chunk.commands :
+				chunk.decode_cmd( cmd )
 				self.feed( cmd )
 
 		# step 2. Run build queue simulation.
@@ -609,52 +615,30 @@ class ResourceAnalyzer() :
 	
 
 
+	# the cmd should be a decoded one.
 	def feed( self, cmd ) :
 		t = int( cmd.time_code / 15 ) # in seconds
-		if cmd.cmd_id == 0x31 : # place down building
-			cmd.decode_placedown_cmd()
-			if cmd.building_type in UNITCOST :
-				self.collect( cmd.player_id, t, UNITCOST[ cmd.building_type ] )
-		elif 0x26 <= cmd.cmd_id and cmd.cmd_id <= 0x28 : # use skill
-			# decode 'em
-			if cmd.cmd_id == 0x26 :
-				cmd.decode_skill_targetless()
-			elif cmd.cmd_id == 0x27 :
-				cmd.decode_skill_xy()
-			elif cmd.cmd_id == 0x28 :
-				cmd.decode_skill_target()
-
-			# collection.
-			if cmd.power in POWERCOST :
-				self.collect( cmd.player_id, t, POWERCOST[ cmd.power ] )
-		elif cmd.cmd_id == 0x2B :
+		if cmd.is_placedown() :
+			self.collect( cmd.player_id, t, cmd.cost )
+		elif cmd.is_skill_use() :
+			self.collect( cmd.player_id, t, cmd.cost )
+		elif cmd.is_upgrade() :
 			# upgrades are actually, like units, they are Queue commands.
 			# Dunno if it gets completed or not.
 			# But... being only an approximation, I just add 'em immediately,
 			# without queue or anything.
-			cmd.decode_upgrade_cmd()
-			if cmd.upgrade in UPGRADECOST :
-				self.collect( cmd.player_id, t, UPGRADECOST[ cmd.upgrade ] )
-		elif cmd.cmd_id == 0x2D :
+			self.collect( cmd.player_id, t, cmd.cost )
+		elif cmd.is_queue() :
 			# production Q simulation thingy
-			cmd.decode_queue_cmd()
-			if cmd.unit_ty :
-				self.sim.insert_build_evt( cmd )
-		elif cmd.cmd_id == 0x2E :
+			self.sim.insert_build_evt( cmd )
+		elif cmd.is_hold() :
 			# hold.
-			cmd.decode_hold_cmd()
 			self.sim.insert_hold_evt( cmd )
-		elif cmd.cmd_id == 0x8A :
-			cmd.decode_skill_2xy()
-			if cmd.power in POWERCOST :
-				self.collect( cmd.player_id, t, POWERCOST[ cmd.power ] )
-		elif cmd.cmd_id == 0x34 :
+		elif cmd.is_sell() :
 			# could be factory sell.
-			cmd.decode_sell_cmd()
 			self.sim.insert_sell_evt( cmd )
-		elif cmd.cmd_id == 0x89 :
+		elif cmd.is_powerdown() :
 			# could be factory powerdown.
-			cmd.decode_powerdown_cmd()
 			self.sim.insert_powerdown_evt( cmd )
 
 
@@ -759,6 +743,8 @@ class APMAnalyzer() :
 		command_list = cmds_at_second[ second ]
 
 		command_list.append( cmd )
+
+
 
 	def group_commands_by_time( self ) :
 		cmds_at_second = []
@@ -970,20 +956,22 @@ class PositionDumper() :
 
 
 if __name__ == "__main__" :
+	args = Args( 'config.ini' )
+
 	fname = "1.KWReplay"
 	if len( sys.argv ) >= 2 :
 		fname = sys.argv[1]
 	kw = KWReplayWithCommands( fname=fname, verbose=False )
 	#kw.replay_body.dump_commands()
 
-	#ana = APMAnalyzer( kw )
-	#ana.plot( 10 )
-	# or ana.emit_apm_csv( 10, file=sys.stdout )
+	ana = APMAnalyzer( kw )
+	ana.plot( 10 )
+	#ana.emit_apm_csv( 10, file=sys.stdout )
 
-	res = ResourceAnalyzer( kw )
-	res.calc()
+	#res = ResourceAnalyzer( kw )
+	#res.calc()
 	#res.print_unit_distribution()
-	res.plot_unit_distribution()
+	#res.plot_unit_distribution()
 	#res.emit_csv()
 	#res.plot()
 

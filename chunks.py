@@ -113,20 +113,20 @@ class Command :
 				else :
 					self.cnt = 5
 
+			self.cost = -1
+			if self.unit_ty in UNITCOST :
+				self.cost = UNITCOST[ self.unit_ty ]
+
 			if self.unit_ty in UNITNAMES :
 				self.unit_ty = UNITNAMES[ self.unit_ty ]
 			else :
 				self.unit_ty = "0x%08X" % self.unit_ty
 
-			self.cost = 0
-			if self.unit_ty in UNITCOST :
-				self.cost = UNITCOST[ self.unit_ty ]
-
 
 
 	def decode_gg( self ) :
-		cmd.cmd_ty = Command.GG
-		cmd.target = cmd.payload[1]
+		self.cmd_ty = Command.GG
+		self.target = self.payload[1]
 
 
 
@@ -137,14 +137,14 @@ class Command :
 		self.y = uint42float( data[ 10:14] )
 		self.power = uint42int( data[ 0:4 ] )
 
+		self.cost = -1
+		if self.power in POWERCOST :
+			self.cost = POWERCOST[ self.power ]
+
 		if self.power in POWERNAMES :
 			self.power = POWERNAMES[ self.power ]
 		else :
 			self.power = "0x%08X" % self.power
-
-		self.cost = 0
-		if self.power in POWERCOST :
-			self.cost = POWERCOST[ self.power ]
 
 
 
@@ -157,14 +157,14 @@ class Command :
 		self.y2 = uint42float( data[ 32:36] )
 		self.power = uint42int( data[ 0:4 ] )
 
+		self.cost = -1
+		if self.power in POWERCOST :
+			self.cost = POWERCOST[ self.power ]
+
 		if self.power in POWERNAMES :
 			self.power = POWERNAMES[ self.power ]
 		else :
 			self.power = "0x%08X" % self.power
-
-		self.cost = 0
-		if self.power in POWERCOST :
-			self.cost = POWERCOST[ self.power ]
 
 
 
@@ -173,14 +173,14 @@ class Command :
 		data = self.payload
 		self.power = uint42int( data[ 0:4 ] )
 
+		self.cost = -1
+		if self.power in POWERCOST :
+			self.cost = POWERCOST[ self.power ]
+
 		if self.power in POWERNAMES :
 			self.power = POWERNAMES[ self.power ]
 		else :
 			self.power = "0x%08X" % self.power
-
-		self.cost = 0
-		if self.power in POWERCOST :
-			self.cost = POWERCOST[ self.power ]
 
 
 
@@ -191,14 +191,14 @@ class Command :
 		# dunno about target, but it is certain that this is only used on walling
 		# structures -_-
 
+		self.cost = -1
+		if self.power in POWERCOST :
+			self.cost = POWERCOST[ self.power ]
+
 		if self.power in POWERNAMES :
 			self.power = POWERNAMES[ self.power ]
 		else :
 			self.power = "0x%08X" % self.power
-
-		self.cost = 0
-		if self.power in POWERCOST :
-			self.cost = POWERCOST[ self.power ]
 
 
 
@@ -207,14 +207,14 @@ class Command :
 		data = self.payload
 		self.upgrade = uint42int( data[1:5] )
 
+		self.cost = -1
+		if self.upgrade in UPGRADECOST :
+			self.cost = UPGRADECOST[ self.upgrade ]
+
 		if self.upgrade in UPGRADENAMES :
 			self.upgrade = UPGRADENAMES[ self.upgrade ]
 		else :
 			self.upgrade = "0x%08X" % self.upgrade
-
-		self.cost = 0
-		if self.upgrade in UPGRADECOST :
-			self.cost = UPGRADECOST[ self.upgrade ]
 
 
 
@@ -268,14 +268,14 @@ class Command :
 			self.y = uint42float( data[pos:pos+4] )
 			pos += 4
 
+		self.cost = -1
+		if self.building_type in UNITCOST :
+			self.cost = UNITCOST[ self.building_type ]
+
 		if self.building_type in UNITNAMES :
 			self.building_type = UNITNAMES[ self.building_type ]
 		else :
 			self.building_type = "0x%08X" % self.building_type
-
-		self.cost = 0
-		if self.building_type in UNITCOST :
-			self.cost = UNITCOST[ self.building_type ]
 
 
 

@@ -1133,23 +1133,31 @@ class KWChunk( chunks.Chunk ) :
 			return
 
 		if cmd.cmd_id == 0x31 :
-			cmd.decode_placedown_cmd( UNITNAMES )
+			cmd.decode_placedown_cmd( UNITNAMES, UNITCOST )
 		elif cmd.cmd_id == 0x26 :
-			cmd.decode_skill_targetless( POWERNAMES )
+			cmd.decode_skill_targetless( POWERNAMES, POWERCOST )
 		elif cmd.cmd_id == 0x27 :
-			cmd.decode_skill_xy( POWERNAMES )
+			cmd.decode_skill_xy( POWERNAMES, POWERCOST )
 		elif cmd.cmd_id == 0x28 :
-			cmd.decode_skill_target( POWERNAMES )
+			cmd.decode_skill_target( POWERNAMES, POWERCOST )
 		elif cmd.cmd_id == 0x2B :
-			cmd.decode_upgrade_cmd( UPGRADENAMES )
+			cmd.decode_upgrade_cmd( UPGRADENAMES, UPGRADECOST )
 		elif cmd.cmd_id == 0x2D :
-			cmd.decode_queue_cmd( UNITNAMES, AFLD_UNITS )
+			cmd.decode_queue_cmd( UNITNAMES, AFLD_UNITS, UNITCOST )
 		elif cmd.cmd_id == 0x2E :
 			cmd.decode_hold_cmd( UNITNAMES )
 		elif cmd.cmd_id == 0x8A :
-			cmd.decode_skill_2xy( POWERNAMES )
+			cmd.decode_skill_2xy( POWERNAMES, POWERCOST )
 		elif cmd.cmd_id == 0x34 :
 			cmd.decode_sell_cmd()
+		elif cmd.cmd_id == 0x7A :
+			cmd.decode_formation_move_cmd()
+		elif cmd.cmd_id == 0x46 :
+			cmd.decode_move_cmd()
+		elif cmd.cmd_id == 0x8E :
+			cmd.decode_reverse_move_cmd()
+		elif cmd.cmd_id == 0x89 :
+			cmd.decode_powerdown_cmd()
 		elif cmd.cmd_id == 0x91 :
 			cmd.decode_gg()
 
