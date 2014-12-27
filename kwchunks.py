@@ -6,7 +6,14 @@
 ### The decoding of the replays format is credited to R Schneider.
 ###
 
+import io
 import chunks
+from utils import *
+
+
+
+# Build order affecting commands (Which will be drawn in the time line)
+BO_COMMANDS = [ 0x31, 0x26, 0x27, 0x28, 0x2B, 0x2D, 0x2E, 0x8A, 0x34, 0x91 ]
 
 
 
@@ -1092,5 +1099,132 @@ UNITCOST = {
 	0xFD890B01: 1500, #"ZCM surveyer",
 }
 
+
+
+AFLD_UNITS = [
+	0x6AA59D16, # Nod vertigo
+	0x393E446C, # MoK vertigo
+	0xB587039F, # GDI orca
+	0xB3363EA3, # GDI firehawk
+	0x6BD7B8AB, # ST orca
+	0x42D55831, # ST FH
+	0xFAA68740, # Zorca
+	0x12E1C8C8, # ZCM FH
+	0xF6E707D5, # SC storm rider
+	0x1DF82E16, # R17 storm rider
+	0xECA08561, # T59 storm rider
+]
+
+
+
 class KWChunk( chunks.Chunk ) :
-	pass
+
+	def is_bo_cmd( self, cmd ) :
+		return cmd.cmd_id in BO_COMMANDS
+
+	def is_known_cmd( self, cmd ) :
+		return cmd.cmd_id in CMDNAMES
+
+	def resolve_known( self, cmd ) :
+		return CMDNAMES[ cmd.cmd_id ]
+
+	def decode_cmd( self, cmd ) :
+		if not self.is_bo_cmd( cmd ) :
+			return
+
+		if cmd.cmd_id == 0x31 :
+			cmd.decode_placedown_cmd( UNITNAMES )
+		elif cmd.cmd_id == 0x26 :
+			cmd.decode_skill_targetless( POWERNAMES )
+		elif cmd.cmd_id == 0x27 :
+			cmd.decode_skill_xy( POWERNAMES )
+		elif cmd.cmd_id == 0x28 :
+			cmd.decode_skill_target( POWERNAMES )
+		elif cmd.cmd_id == 0x2B :
+			cmd.decode_upgrade_cmd( UPGRADENAMES )
+		elif cmd.cmd_id == 0x2D :
+			cmd.decode_queue_cmd( UNITNAMES, AFLD_UNITS )
+		elif cmd.cmd_id == 0x2E :
+			cmd.decode_hold_cmd( UNITNAMES )
+		elif cmd.cmd_id == 0x8A :
+			cmd.decode_skill_2xy( POWERNAMES )
+		elif cmd.cmd_id == 0x34 :
+			cmd.decode_sell_cmd()
+		elif cmd.cmd_id == 0x91 :
+			cmd.decode_gg()
+
+
+
+	# The "legacy" split command.
+	def split_one_cmd( self, f ) :
+		cmd = chunks.Command()
+		# Was old split_command( self, f, ncmd ) :
+		cmd.cmd_id = read_byte( f )
+		player_id = read_byte( f )
+		cmd.player_id = int( player_id / 8 ) - 3 # 3 for KW.  for RA3, it should be 2.
+		# Probably, that offset must be that neutral factions. (initial spike owners)
+
+		if not cmd.cmd_id in CMDLENS :
+			print( "Warning: unknown command. FF creeping.", file=sys.stderr )
+			chunks.Splitter.split_ff_crawl( cmd, f ) # same as 0x00, creep until FF.
+			return
+
+		cmdlen = CMDLENS[ cmd.cmd_id ]
+
+		if cmdlen > 0 :
+			chunks.Splitter.split_fixed_len(cmd, f, cmdlen )
+		# more var len commands
+		elif cmdlen < 0 :
+			# var len cmds!
+			chunks.Splitter.split_var_len( cmd, f, cmdlen, ncmd )
+		else :
+			if cmd.cmd_id <= 0x03 or cmd.cmd_id >= 0xFA :
+				# group designation command.
+				assert cmd.cmd_id >= 0
+				assert cmd.cmd_id <= 0xFF
+				chunks.Splitter.split_ff_crawl( cmd, f )
+			elif 0x04 <= cmd.cmd_id and cmd.cmd_id <= 0x0D :
+				# group selection command.
+				# I usually get 0x0A 0x?? 0xFF (length=3).
+				# I sometimes get (rarely) 0x0A 0x00 0x00 0xFF
+				chunks.Splitter.split_ff_crawl( cmd, f ) # same as 0x00, creep until FF.
+
+			elif cmd.cmd_id == 0x0E :
+				chunks.Splitter.split_ff_crawl( cmd, f ) # same as 0x00, creep until FF.
+			elif cmd.cmd_id == 0x1F :
+				chunks.Splitter.split_ff_crawl( cmd, f ) # same as 0x00, creep until FF.
+			elif cmd.cmd_id == 0x2D :
+				#print( "split_cmd.ncmd:", ncmd )
+				chunks.Splitter.split_production_cmd( cmd, f )
+			elif cmd.cmd_id == 0x28 :
+				chunks.Splitter.split_skill_target( cmd, f )
+			elif cmd.cmd_id == 0x2C :
+				chunks.Splitter.split_0x2c( cmd, f )
+			elif cmd.cmd_id == 0x31 :
+				chunks.Splitter.split_placedown_cmd( cmd, f )
+			elif cmd.cmd_id == 0x36 :
+				chunks.Splitter.split_var_len2( cmd, f, 1, 4 )
+			elif cmd.cmd_id == 0x7F :
+				chunks.Splitter.split_ff_crawl( cmd, f ) # same as 0x00, creep until FF.
+			elif cmd.cmd_id == 0x8B :
+				chunks.Splitter.split_chunk1_uuid( cmd, f )
+			else :
+				print( "Unhandled command:" )
+				print( "0x%02X" % cmd.cmd_id )
+				print_bytes( f.getbuffer() )
+				print()
+				return None
+
+		return cmd
+
+
+
+	def fix_mismatch( self ) :
+		f = io.BytesIO( self.payload )
+
+		self.commands = []
+		for i in range( self.ncmd ) :
+			cmd = self.split_one_cmd( f )
+			if not cmd :
+				self.commands = [] # Let's not have anything... it is meaningless.
+				break

@@ -6,76 +6,12 @@
 ### The decoding of the replays format is credited to R Schneider.
 ###
 
-import struct # bin file enc/dec
 import sys
 import os
 import re
 import io
 import codecs
-import datetime
-import time
-import hashlib
-
-
-
-def encrypt( ip ) :
-	m = hashlib.md5()
-	m.update( ip.encode() )
-	ip = m.hexdigest()
-	#print( ip )
-	return ip
-
-
-
-def read_cstr( f, length ) :
-	data = f.read( length )
-	#s = struct.unpack( "18s", data )
-	data = data.decode( "utf-8" )
-	return data
-
-
-
-def read_tb_str( f, length=-1 ) :
-	buf = ""
-	while True :
-		l = f.read( 2 )
-		l = struct.unpack( 'H', l )[ 0 ]
-		if length == -1 and l == 0 :
-			break
-		buf += chr( l )
-
-		if length != -1 and len( buf ) == length :
-			break
-
-	#data = buf.decode( "utf-16" )
-	return buf
-
-
-
-def read_byte( f ) :
-	data = f.read( 1 )
-	data = struct.unpack( 'B', data )[0]
-	return data
-
-
-
-def read_float( f ) :
-	data = f.read( 4 )
-	data = struct.unpack( 'f', data )[0]
-	return data
-
-
-
-def read_uint32( f ) :
-	tmp = f.read( 4 )
-	i = struct.unpack( 'I', tmp )[ 0 ]
-	return i
-
-
-
-def time_code2str( tc ) :
-	t = time.gmtime( tc )
-	return time.strftime( "%H:%M:%S", t )
+from utils import *
 
 
 
