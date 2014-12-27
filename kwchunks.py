@@ -1130,9 +1130,6 @@ class KWChunk( chunks.Chunk ) :
 		return CMDNAMES[ cmd.cmd_id ]
 
 	def decode_cmd( self, cmd ) :
-		if not self.is_bo_cmd( cmd ) :
-			return
-
 		if cmd.cmd_id == 0x31 :
 			cmd.decode_placedown_cmd( UNITNAMES, UNITCOST )
 		elif cmd.cmd_id == 0x26 :

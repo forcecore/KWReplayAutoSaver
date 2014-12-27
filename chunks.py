@@ -242,13 +242,13 @@ class Command :
 		if self.unit_ty in UNITNAMES :
 			self.unit_ty = UNITNAMES[ self.unit_ty ]
 		else :
-			self.unit_ty = "Skill 0x%08X" % self.unit_ty
+			self.unit_ty = "Unit 0x%08X" % self.unit_ty
 	
 
 
 	def decode_formation_move_cmd( self ) :
 		self.decode_move_cmd() # seems to work, though there are more parameters.
-		self.cmd_ty = command.FORMATION_MOVE
+		self.cmd_ty = Command.FORMATION_MOVE
 		#data = self.payload
 		#self.x = uint42float( data[ 1:5 ] )
 		#self.y = uint42float( data[ 5:9 ] )
@@ -579,6 +579,7 @@ class Chunk :
 		# Override this one.
 		# If you can't fix, make sure you can print out this warning.
 		print( "Warning: chunk/command count mismatch!", file=sys.stderr )
+		self.commands = [] # just remove commands so that analyzer/timeline can't see this.
 
 
 

@@ -127,10 +127,10 @@ class Factory() :
 
 
 EVT_CONS_COMPLETE = 0x01
-EVT_QUEUE = 0x2D
-EVT_HOLD = 0x2E
-EVT_SELL = 0x34
-EVT_POWERDOWN = 0x89
+EVT_QUEUE = Command.QUEUE
+EVT_HOLD = Command.HOLD
+EVT_SELL = Command.SELL
+EVT_POWERDOWN = Command.POWERDOWN
 
 
 
@@ -227,10 +227,10 @@ class FactorySim() :
 			remaining_time = under_const.time_code - self.t
 			fa.countdown[ unit_ty ] # save it to remaining time.
 
-		if not unit_ty in self.cost :
+		if not unit_ty in self.cost or self.cost[ unit_ty ] < 0 :
 			# just ignore this event.
 			if FactorySim.verbose :
-				print( "no data for this unit 0x%08X" % unit_ty )
+				print( "no data for this unit %s" % unit_ty )
 			return
 
 		if unit_ty in fa.countdown :
@@ -243,7 +243,7 @@ class FactorySim() :
 			build_time = 15 * int( self.cost[unit_ty]/100 ) + 6 # extra 6 for unit exit delay;;;;;;;
 
 		evt = Command()
-		evt.cmd_id = EVT_CONS_COMPLETE
+		evt.cmd_ty = EVT_CONS_COMPLETE
 		evt.time_code = self.t + build_time
 		evt.player_id = fa.player_id
 		evt.unit_ty = unit_ty
@@ -252,7 +252,7 @@ class FactorySim() :
 		if FactorySim.verbose :
 			print( "Factory 0x%08X" % fa.factory_id )
 			print( "\tevt insert, end construction of", unit_ty )
-			print( "\t0x%08X" % unit_ty )
+			print( "\t%s" % unit_ty )
 			print( "\tevt @", evt.time_code )
 			print()
 		self.insert_event( evt )
@@ -312,7 +312,7 @@ class FactorySim() :
 					fivex = str(cnt) + "x "
 				print( "\tp%d queues %s%s @%d" % ( evt.player_id, fivex,
 					evt.unit_ty, evt.time_code ) )
-				print( "\t0x%08X" % evt.unit_ty )
+				print( "\t%s" % evt.unit_ty )
 				print()
 
 		# start building, if possible.
@@ -360,7 +360,7 @@ class FactorySim() :
 			if e.factory != factory :
 				continue
 
-			if e.cmd_id != EVT_CONS_COMPLETE :
+			if e.cmd_ty != EVT_CONS_COMPLETE :
 				continue
 
 			index = i
@@ -403,7 +403,7 @@ class FactorySim() :
 		fa = self.factories[ evt.factory ]
 		if FactorySim.verbose :
 			print( "Factory 0x%08X, trying to hold." % fa.factory_id )
-			print( "\t0x%08X" % evt.unit_ty )
+			print( "\t%s" % evt.unit_ty )
 			print( "\t", evt.unit_ty )
 			print( "\t@", evt.time_code )
 
@@ -463,15 +463,15 @@ class FactorySim() :
 		evt = self.events.pop( 0 )
 		self.t = evt.time_code # make time go.
 
-		if evt.cmd_id == EVT_QUEUE :
+		if evt.cmd_ty == EVT_QUEUE :
 			return self.process_evt_queue( evt )
-		elif evt.cmd_id == EVT_CONS_COMPLETE :
+		elif evt.cmd_ty == EVT_CONS_COMPLETE :
 			return self.process_evt_cons_complete( evt )
-		elif evt.cmd_id == EVT_HOLD :
+		elif evt.cmd_ty == EVT_HOLD :
 			return self.process_evt_hold( evt )
-		elif evt.cmd_id == EVT_SELL :
+		elif evt.cmd_ty == EVT_SELL :
 			return self.process_evt_sell( evt )
-		elif evt.cmd_id == EVT_POWERDOWN :
+		elif evt.cmd_ty == EVT_POWERDOWN :
 			return self.process_evt_powerdown( evt )
 		else :
 			return None
@@ -769,10 +769,14 @@ class APMAnalyzer() :
 			# count commands!
 			for t in range( left, sec+1 ) : # range [left, sec+1)
 				for cmd in cmds_at_second[ sec ] :
-					if cmd.cmd_id == 0x61 : # 30s heart beat
-						continue
+					#if cmd.cmd_id == 0x61 : # 30s heart beat
+					#	continue
+					# Come on, just one command!
+
 					pid = cmd.player_id
-					counts_at_second[ t ][ pid ] += 1
+					if pid < self.nplayers :
+						# interesting, why do we get this?
+						counts_at_second[ t ][ pid ] += 1
 
 		return counts_at_second
 	
@@ -920,7 +924,7 @@ class PositionDumper() :
 			commands = self.commandss[ pid ]
 
 			for cmd in commands :
-				if cmd.cmd_id == 0x8A : # wormhole
+				if cmd.has_2pos() :
 					#print( "0x%08X" % cmd.cmd_id )
 					print( "%f,%f" % (cmd.x1, cmd.y1 ) )
 					print( "%f,%f" % (cmd.x2, cmd.y2 ) )
