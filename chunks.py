@@ -15,11 +15,11 @@ import datetime
 import time
 from kwreplay import KWReplay, read_byte, read_uint32, read_float, \
 	read_cstr, time_code2str, read_tb_str
-from consts import *
 
 
 
-KNOWN_COMMANDS = [ 0x31, 0x26, 0x27, 0x28, 0x2B, 0x2D, 0x2E, 0x8A, 0x34, 0x91 ]
+# Build order affecting commands (Which will be drawn in the time line)
+BO_COMMANDS = [ 0x31, 0x26, 0x27, 0x28, 0x2B, 0x2D, 0x2E, 0x8A, 0x34, 0x91 ]
 
 
 
@@ -564,8 +564,8 @@ class Command :
 
 
 
-	def print_known( self ) :
-		if not self.cmd_id in KNOWN_COMMANDS :
+	def print_bo( self ) :
+		if not self.cmd_id in BO_COMMANDS :
 			return
 
 		time = time_code2str( self.time_code/15 )
@@ -595,7 +595,86 @@ class Command :
 
 
 
+class OldChunk :
+	# I split commands, before decoding anything.
+	# Not on the fly. It makes command decoding/hacking much easier.
+	def split_commands( self, ncmd, payload, game ) :
+		f = io.BytesIO( payload )
+		#print( "COMMANDS payload:", payload )
+
+		for i in range( ncmd ) :
+			c = Command()
+			self.commands.append( c )
+			c.split_command( f, ncmd )
+
+			# If you see error here, it means, command length specification
+			# in consts.py is wrong. You need to work out the format of the
+			# command.
+			try :
+				terminator = read_byte( f )
+				if terminator != 0xFF :
+					raise IOError
+			except :
+				# or if you reach here, again, command length is wrong.
+				print( "Decode error" )
+				print( "ncmd:", ncmd )
+				print( "cmd_id: 0x%02X" % c.cmd_id )
+				print( "Payload:" )
+				print_bytes( payload )
+				#print( "TERMINATOR: 0x%02X" % terminator )
+				#print( f.read() )
+				assert 0, "Command terminator not 0xFF"
+
+
+	
+	def has_known( self ) :
+		for cmd in self.commands :
+			if cmd.cmd_id in BO_COMMANDS :
+				return True
+		return False
+
+
+
+	def dump_commands( self ) :
+		# print( "Time\tPlayer\tcmd_id\tparams" )
+		for cmd in self.commands :
+			# Skipping stuff
+			# print tag or interpretation for readability.
+			if cmd.cmd_id == 0x8F :
+				# print( "Lets not see scrolls" )
+				continue
+			elif cmd.cmd_id == 0x61 :
+				# skip heartbeat
+				continue
+			#elif cmd.cmd_id == 0x2F :
+			#	continue
+			#elif cmd.cmd_id == 0xF8 :
+			#	continue
+			#elif cmd.cmd_id == 0xF5 : # select unit command.
+			#	continue
+			# * Even if nothing gets selected by the drag selection,
+			#   it does appear in the command list!
+			# * It seems the units that are selected are listed in the selection.
+			#   The command gets longer as more units are selected.
+
+			elif cmd.cmd_id in BO_COMMANDS :
+				cmd.decode()
+				cmd.print_bo()
+			elif cmd.cmd_id in CMDNAMES :
+				print( CMDNAMES[ cmd.cmd_id ] )
+			else :
+				print( "unknown command" )
+
+			print( cmd.time_code, end="\t" )
+			print( cmd.player_id, end="\t" )
+			print( "0x%02X" % cmd.cmd_id, end="\t" )
+			print_bytes( cmd.payload, break16=False )
+			print()
+
+	
+
 class Chunk :
+
 	def __init__( self ) :
 		self.time_code = 0
 		self.ty = 0
@@ -643,100 +722,6 @@ class Chunk :
 
 
 
-	# I split commands, before decoding anything.
-	# Not on the fly. It makes command decoding/hacking much easier.
-	def split_commands( self, ncmd, payload, game ) :
-		f = io.BytesIO( payload )
-		#print( "COMMANDS payload:", payload )
-
-		for i in range( ncmd ) :
-			c = Command()
-			self.commands.append( c )
-			c.split_command( f, ncmd )
-
-			# If you see error here, it means, command length specification
-			# in consts.py is wrong. You need to work out the format of the
-			# command.
-			try :
-				terminator = read_byte( f )
-				if terminator != 0xFF :
-					raise IOError
-			except :
-				# or if you reach here, again, command length is wrong.
-				print( "Decode error" )
-				print( "ncmd:", ncmd )
-				print( "cmd_id: 0x%02X" % c.cmd_id )
-				print( "Payload:" )
-				print_bytes( payload )
-				#print( "TERMINATOR: 0x%02X" % terminator )
-				#print( f.read() )
-				assert 0, "Command terminator not 0xFF"
-
-
-	
-	def has_known( self ) :
-		for cmd in self.commands :
-			if cmd.cmd_id in KNOWN_COMMANDS :
-				return True
-		return False
-	
-	def dump_commands( self ) :
-		# print( "Time\tPlayer\tcmd_id\tparams" )
-		for cmd in self.commands :
-			# Skipping stuff
-			# print tag or interpretation for readability.
-			if cmd.cmd_id == 0x8F :
-				# print( "Lets not see scrolls" )
-				continue
-			elif cmd.cmd_id == 0x61 :
-				# skip heartbeat
-				continue
-			#elif cmd.cmd_id == 0x2F :
-			#	continue
-			#elif cmd.cmd_id == 0xF8 :
-			#	continue
-			#elif cmd.cmd_id == 0xF5 : # select unit command.
-			#	continue
-			# * Even if nothing gets selected by the drag selection,
-			#   it does appear in the command list!
-			# * It seems the units that are selected are listed in the selection.
-			#   The command gets longer as more units are selected.
-
-			elif cmd.cmd_id in KNOWN_COMMANDS :
-				cmd.print_known()
-			elif cmd.cmd_id in CMDNAMES :
-				print( CMDNAMES[ cmd.cmd_id ] )
-			else :
-				print( "unknown command" )
-
-			print( cmd.time_code, end="\t" )
-			print( cmd.player_id, end="\t" )
-			print( "0x%02X" % cmd.cmd_id, end="\t" )
-			print_bytes( cmd.payload, break16=False )
-			print()
-	
-	def print_known( self ) :
-		if self.ty == 1 :
-			if not self.has_known() :
-				return
-
-			for cmd in self.commands :
-				cmd.print_known()
-
-		# I don't care about these!!
-		#elif self.ty == 2 :
-		#	f = io.BytesIO( self.data )
-		#	# This is camera data or heart beat data.
-		#	# I'll not try too hard to decode this.
-		#	one = read_byte( f ) # should be ==1
-		#	zero = read_byte( f ) # should be ==0
-		#	self.player_number = read_uint32( f ) # uint32
-		#	self.time_code_payload = read_uint32( f ) # time code...
-		#	self.ty2_payload = f.read() # the payload
-	
-	
-
-class ChunkOtherGames( Chunk ) :
 	# Just try splitting commands by "FF".
 	def split_commands( self, ncmd, payload, game ) :
 		# FSM modes
@@ -774,16 +759,46 @@ class ChunkOtherGames( Chunk ) :
 				if byte == 0xFF :
 					end = i+1 # +1 to include 0xFF as well.
 					c.payload = payload[ start:end ]
-					mode = CMD_ID
+
+					if ncmd != 1 :
+						# When ncmd ==1, we don't need to split!
+						mode = CMD_ID
 
 			else :
 				assert 0, "Shouldn't see me! split_commands() of ChunkOtherGames"
 	
 
 
-	def print_known( self ) :
-		pass # nothing is known
+	def is_bo_cmd( self, cmd ) :
+		return False
 
+
+
+	def has_bo_cmd( self ) :
+		return False
+
+
+
+	def print_bo( self ) :
+		if self.ty == 1 :
+			if not self.has_bo_cmd() :
+				return
+
+			for cmd in self.commands :
+				cmd.decode()
+				cmd.print_bo()
+
+		# I don't care about these!!
+		#elif self.ty == 2 :
+		#	f = io.BytesIO( self.data )
+		#	# This is camera data or heart beat data.
+		#	# I'll not try too hard to decode this.
+		#	one = read_byte( f ) # should be ==1
+		#	zero = read_byte( f ) # should be ==0
+		#	self.player_number = read_uint32( f ) # uint32
+		#	self.time_code_payload = read_uint32( f ) # time code...
+		#	self.ty2_payload = f.read() # the payload
+	
 
 
 	def dump_commands( self ) :
@@ -797,12 +812,16 @@ class ChunkOtherGames( Chunk ) :
 			print()
 
 		for cmd in self.commands :
-			print( "unknown command" )
-			print( cmd.time_code, end="\t" )
-			print( cmd.player_id, end="\t" )
-			print( "0x%02X" % cmd.cmd_id, end="\t" )
-			print_bytes( cmd.payload, break16=False )
-			print()
+			if self.is_bo_cmd( cmd ) :
+				cmd.decode()
+				cmd.print_bo()
+			else :
+				print( "unknown command" )
+				print( cmd.time_code, end="\t" )
+				print( cmd.player_id, end="\t" )
+				print( "0x%02X" % cmd.cmd_id, end="\t" )
+				print_bytes( cmd.payload, break16=False )
+				print()
 	
 
 
@@ -814,7 +833,11 @@ class ReplayBody :
 	
 	def read_chunk( self, f ) :
 		if self.game == "KW" :
-			chunk = Chunk()
+			import kwchunks
+			chunk = kwchunks.KWChunk()
+		elif self.game == "CNC3" :
+			import twchunks
+			chunk = twchunks.TWChunk()
 		else :
 			chunk = ChunkOtherGames()
 		chunk.time_code = read_uint32( f )
@@ -845,11 +868,11 @@ class ReplayBody :
 				break
 			self.chunks.append( chunk )
 	
-	def print_known( self ) :
+	def print_bo( self ) :
 		print( "Dump of known build order related commands" )
 		print( "Time\tPlayer\tAction" )
 		for chunk in self.chunks :
-			chunk.print_known()
+			chunk.print_bo()
 	
 	def dump_commands( self ) :
 		print( "Dump of commands" )
@@ -900,7 +923,7 @@ def main() :
 	kw = KWReplayWithCommands( fname=fname, verbose=False )
 	print( fname )
 	print()
-	kw.replay_body.print_known()
+	kw.replay_body.print_bo()
 	print()
 	kw.replay_body.dump_commands()
 

@@ -6,6 +6,8 @@
 ### The decoding of the replays format is credited to R Schneider.
 ###
 
+import chunks
+
 
 
 CMDLENS = {
@@ -1089,3 +1091,6 @@ UNITCOST = {
 	0x37F0A5F5: 1500, #"ZCM orca",
 	0xFD890B01: 1500, #"ZCM surveyer",
 }
+
+class KWChunk( chunks.Chunk ) :
+	pass
