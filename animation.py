@@ -554,7 +554,7 @@ class Timeline( wx.Panel ) :
 		print( file=f )
 		for events in self.eventss :
 			for cmd in events :
-				cmd.print_known()
+				cmd.print_bo()
 		f.close()
 		sys.stdout = tmp
 

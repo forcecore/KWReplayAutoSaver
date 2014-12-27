@@ -251,7 +251,7 @@ class FactorySim() :
 
 		if FactorySim.verbose :
 			print( "Factory 0x%08X" % fa.factory_id )
-			print( "\tevt insert, end construction of", UNITNAMES[ unit_ty ] )
+			print( "\tevt insert, end construction of", unit_ty )
 			print( "\t0x%08X" % unit_ty )
 			print( "\tevt @", evt.time_code )
 			print()
@@ -286,7 +286,7 @@ class FactorySim() :
 		if evt.unit_ty in fa.held :
 			if FactorySim.verbose :
 				print( "Factory 0x%08X" % fa.factory_id )
-				print( "\tResuming construction of", UNITNAMES[ evt.unit_ty ] )
+				print( "\tResuming construction of", evt.unit_ty )
 				print()
 			del fa.held[ evt.unit_ty ] # unblock this thingy
 
@@ -311,7 +311,7 @@ class FactorySim() :
 				if cnt > 1 :
 					fivex = str(cnt) + "x "
 				print( "\tp%d queues %s%s @%d" % ( evt.player_id, fivex,
-					UNITNAMES[ evt.unit_ty ], evt.time_code ) )
+					evt.unit_ty, evt.time_code ) )
 				print( "\t0x%08X" % evt.unit_ty )
 				print()
 
@@ -336,7 +336,7 @@ class FactorySim() :
 		if FactorySim.verbose :
 			print( "Factory 0x%08X" % factory.factory_id )
 			print( "\tp%d built %s @%d" % ( evt.player_id,
-				UNITNAMES[ evt.unit_ty ], evt.time_code ) )
+				evt.unit_ty, evt.time_code ) )
 			print()
 
 		# proceed, if anything in factory queue.
@@ -404,7 +404,7 @@ class FactorySim() :
 		if FactorySim.verbose :
 			print( "Factory 0x%08X, trying to hold." % fa.factory_id )
 			print( "\t0x%08X" % evt.unit_ty )
-			print( "\t", UNITNAMES[ evt.unit_ty ] )
+			print( "\t", evt.unit_ty )
 			print( "\t@", evt.time_code )
 
 		# When I just right click on the interfact (without even starting the build)
@@ -443,7 +443,7 @@ class FactorySim() :
 				fa.countdown[ evt.unit_ty ] = remaining_time
 
 				if FactorySim.verbose :
-					print( "\tRemoving completion evt of", UNITNAMES[compl.unit_ty] )
+					print( "\tRemoving completion evt of", compl.unit_ty )
 
 			fa.held[ evt.unit_ty ] = True # value doesn't matter, though.
 
@@ -537,7 +537,7 @@ class ResourceAnalyzer() :
 
 			histo = self.units[ i ]
 			for unit, cnt in histo.items() :
-				print( UNITNAMES[ unit ] + "," + str( cnt ) )
+				print( unit + "," + str( cnt ) )
 
 			print()
 			print()
@@ -570,7 +570,7 @@ class ResourceAnalyzer() :
 			i = 0
 			items = []
 			for unit, cnt in histo.items() :
-				items.append( '"%s" %d' % ( UNITNAMES[ unit ], i ) )
+				items.append( '"%s" %d' % ( unit, i ) )
 				i += 1
 			cmd += ", ".join( items )
 			cmd += ") rotate by 45 right\n"

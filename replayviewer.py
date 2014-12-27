@@ -1528,7 +1528,7 @@ class ReplayViewer( wx.Frame ) :
 		tmp = sys.stdout # intercept stdout temporarily.
 		f = open( ofname, "w" )
 		sys.stdout = f
-		kwr_chunks.replay_body.print_known()
+		kwr_chunks.replay_body.print_bo()
 		f.close()
 		sys.stdout = tmp
 
