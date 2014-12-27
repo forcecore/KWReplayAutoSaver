@@ -6,7 +6,7 @@ import os
 from args import Args
 from kwreplay import time_code2str
 from mapzip import MapZip
-from chunks import KWReplayWithCommands, Command
+from chunks import KWReplayWithCommands
 from analyzer import PositionDumper
 from args import Args
 
@@ -128,7 +128,7 @@ class MiniMap( wx.Panel ) :
 		Y = 0
 		for commands in self.posa.commandss :
 			for cmd in commands :
-				if cmd.cmd_id == 0x8A :
+				if cmd.has_2pos() :
 					X = max( X, cmd.x1 )
 					X = max( X, cmd.x2 )
 					Y = max( Y, cmd.y1 )
@@ -248,8 +248,7 @@ class MiniMap( wx.Panel ) :
 				if not player.is_player() :
 					continue
 
-				if cmd.cmd_id == 0x8A : # wormhole
-					#print( "0x%08X" % cmd.cmd_id )
+				if cmd.has_2pos() : # wormhole
 					self.draw_dot( dc, cmd.x1, cmd.y1, UNIT_COLORS[pid] )
 					self.draw_dot( dc, cmd.x2, cmd.y2, UNIT_COLORS[pid] )
 				else :
@@ -286,8 +285,8 @@ class TimelineAnalyzer() :
 			time = int( chunk.time_code/15 )
 			for cmd in chunk.commands :
 				chunk.decode_cmd( cmd )
-				if Command.HOLD <= cmd.cmd_ty and cmd.cmd_ty <= Command.EOG :
-					if cmd.cmd_ty == Command.EOG :
+				if cmd.cmd_ty :
+					if cmd.is_eog() :
 						cmd.player_id = cmd.target # override owner!
 					self.feed( time, cmd )
 
@@ -307,7 +306,7 @@ class TimelineAnalyzer() :
 
 		# Let's define cnt for cancels.
 		for evt in events :
-			if evt.cmd_id == 0x2E :
+			if evt.is_hold() :
 				# cnt of 0 = hold. >0 is cancel
 				# and... um... cancel all is obviously cancel all.
 				# prev.cnt == CANCEL_ALL
@@ -324,10 +323,10 @@ class TimelineAnalyzer() :
 				merged.append( evt )
 				continue
 
-			if evt.cmd_id == 0x2D : # queue
+			if evt.is_queue() :
 				if evt.unit_ty and evt.unit_ty == prev.unit_ty :
 					prev.cnt += evt.cnt
-			elif evt.cmd_id == 0x2E : # hold/cancel
+			elif evt.is_hold() :
 				if evt.unit_ty and evt.unit_ty == prev.unit_ty :
 					if evt.cancel_all :
 						evt.cnt = CANCEL_ALL
@@ -597,91 +596,75 @@ class Timeline( wx.Panel ) :
 
 
 	def cmd_desc( self, dc, cmd, x, y ) :
-		if cmd.cmd_id == 0x31 :
+		if cmd.is_placedown() :
 			dc.SetTextForeground( wx.CYAN )
 			dc.SetPen( wx.Pen( wx.CYAN ) )
 
-			if cmd.building_type in UNITNAMES :
-				name = UNITNAMES[ cmd.building_type ]
-			else :
-				name ="bldg 0x%08X" % cmd.building_type
+			name = cmd.building_type
 			dc.DrawText( name, x-10, y )
 
 			dc.DrawLine( x, self.Y, x, y+20 )
 
 
-		elif cmd.cmd_id in [0x26, 0x27, 0x28, 0x8A] :
+		elif cmd.is_skill_use() :
 			dc.SetTextForeground( wx.GREEN )
 			dc.SetPen( wx.Pen( wx.GREEN ) )
 
-			if cmd.power in POWERNAMES :
-				name = POWERNAMES[ cmd.power ]
-			else :
-				name = "skill 0x%08X" % cmd.power
+			name = cmd.power
 			dc.DrawText( name, x-10, y )
 
 			dc.DrawLine( x, self.Y, x, y+20 )
 
-		elif cmd.cmd_id == 0x2B :
+		elif cmd.is_upgrade() :
 			dc.SetTextForeground( wx.YELLOW )
 			dc.SetPen( wx.Pen( wx.YELLOW ) )
 
-			if cmd.upgrade in UPGRADENAMES :
-				name = UPGRADENAMES[ cmd.upgrade ]
-			else :
-				name = "upgrade 0x%08X" % cmd.upgrade
+			name = cmd.upgrade
 			dc.DrawText( name, x-10, y )
 
 			dc.DrawLine( x, self.Y, x, y+20 )
 
-		elif cmd.cmd_id == 0x2D :
+		elif cmd.is_eog() :
+			dc.SetTextForeground( "#9a0eea" )
+			dc.SetPen( wx.Pen( "#9a0eea" ) ) # violet
+			dc.DrawText( "GG?", x-10, y )
+			dc.DrawLine( x, self.Y, x, y+20 )
+
+		elif cmd.is_queue() :
 			# hold/cancel
 			dc.SetTextForeground( wx.RED )
 			dc.SetPen( wx.Pen( wx.RED ) )
 
-			if not cmd.unit_ty :
-				dc.SetTextForeground( "#9a0eea" )
-				dc.SetPen( wx.Pen( "#9a0eea" ) ) # violet
-				dc.DrawText( "GG?", x-10, y )
-				dc.DrawLine( x, self.Y, x, y+20 )
+			name = cmd.unit_ty
+
+			if cmd.cnt > 1 :
+				dc.DrawText( str(cmd.cnt) + "x Q " + name, x-10, y )
 			else :
-				if cmd.unit_ty in UNITNAMES :
-					name = UNITNAMES[ cmd.unit_ty ]
-				else :
-					name = "unit 0x%08X" % cmd.unit_ty
+				dc.DrawText( "Q " + name, x-10, y )
 
-				if cmd.cnt > 1 :
-					dc.DrawText( str(cmd.cnt) + "x Q " + name, x-10, y )
-				else :
-					dc.DrawText( "Q " + name, x-10, y )
-
-				dc.DrawLine( x, self.Y, x, y+20 )
+			dc.DrawLine( x, self.Y, x, y+20 )
 
 
-		elif cmd.cmd_id == 0x2E :
+		elif cmd.is_hold() :
 			# hold/cancel
 			dc.SetTextForeground( '#ff7fff' )
 			dc.SetPen( wx.Pen( '#ff7fff' ) )
 
-			if cmd.unit_ty :
-				if cmd.unit_ty in UNITNAMES :
-					name = UNITNAMES[ cmd.unit_ty ]
-				else :
-					name = "unit 0x%08X" % cmd.unit_ty
+			name = cmd.unit_ty
 
-				if cmd.cnt == CANCEL_ALL :
-					dc.DrawText( "CA " + name, x-10, y )
-				elif cmd.cnt == 0 or cmd.cnt == 1 :
-					dc.DrawText( "C/H " + name, x-10, y )
-				elif cmd.cnt > 1 :
-					dc.DrawText( str(cmd.cnt) + "x C/H " + name, x-10, y )
-				else :
-					assert 0, "strange, U shouldnt get here"
+			if cmd.cnt == CANCEL_ALL :
+				dc.DrawText( "CA " + name, x-10, y )
+			elif cmd.cnt == 0 or cmd.cnt == 1 :
+				dc.DrawText( "C/H " + name, x-10, y )
+			elif cmd.cnt > 1 :
+				dc.DrawText( str(cmd.cnt) + "x C/H " + name, x-10, y )
+			else :
+				assert 0, "strange, U shouldnt get here"
 
-				dc.DrawLine( x, self.Y, x, y+20 )
+			dc.DrawLine( x, self.Y, x, y+20 )
 
 
-		elif cmd.cmd_id == 0x34 : # sell
+		elif cmd.is_sell() :
 			dc.SetTextForeground( wx.YELLOW )
 			dc.SetPen( wx.Pen( wx.YELLOW ) )
 
@@ -689,7 +672,7 @@ class Timeline( wx.Panel ) :
 			dc.DrawLine( x, self.Y, x, y+20 )
 
 
-		elif cmd.cmd_id == 0x91 : # GG!
+		elif cmd.is_gg() :
 			dc.SetTextForeground( "#9a0eea" )
 			dc.SetPen( wx.Pen( "#9a0eea" ) ) # violet
 			dc.DrawText( "GG", x-10, y )
@@ -1076,7 +1059,7 @@ class TimelineViewer( wx.Frame ) :
 			for cmd in commands :
 				sec = int( cmd.time_code / 15 )
 
-				if cmd.cmd_id == 0x31 : # buildings
+				if cmd.is_placedown() :
 					posa.structures[ sec ].append( cmd )
 				else :
 					posa.commands[ sec ].append( cmd )

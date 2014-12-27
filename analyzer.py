@@ -883,6 +883,7 @@ class PositionDumper() :
 		# except for heart beat, all are commands.
 		for chunk in self.kwr.replay_body.chunks :
 			for cmd in chunk.commands :
+				chunk.decode_cmd( cmd )
 				commands = commandss[ cmd.player_id ]
 				commands.append( cmd )
 
@@ -890,32 +891,10 @@ class PositionDumper() :
 
 
 
-	def decode_commands( self, commands ) :
-		for cmd in commands :
-			if cmd.cmd_id == 0x27 : # use skill
-				cmd.decode_skill_xy()
-
-			elif cmd.cmd_id == 0x31 : # place down building
-				cmd.decode_placedown_cmd()
-
-			elif 0x46 <= cmd.cmd_id and cmd.cmd_id <= 0x48 :
-				cmd.decode_move_cmd() # this works for 'em all.
-
-			elif cmd.cmd_id == 0x7A : # formation move
-				cmd.decode_formation_move_cmd()
-
-			elif cmd.cmd_id == 0x8A : # wormhole
-				cmd.decode_skill_2xy()
-
-			elif cmd.cmd_id == 0x8E : # move
-				cmd.decode_move_cmd()
-
-
-
 	def filter_commands( self, commands ) :
 		result = []
 		for cmd in commands :
-			if cmd.cmd_id in [ 0x27, 0x31, 0x46, 0x47, 0x48, 0x7A, 0x8A, 0x8E ] :
+			if cmd.has_pos() :
 				result.append( cmd )
 		return result
 
@@ -925,7 +904,6 @@ class PositionDumper() :
 		commandss = self.group_commands_by_pid()
 		for i in range( len( commandss ) ) :
 			commandss[ i ] = self.filter_commands( commandss[ i ] )
-			self.decode_commands( commandss[ i ] )
 
 		self.commandss = commandss
 

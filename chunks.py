@@ -41,6 +41,11 @@ class Command :
 	REVERSE_MOVE = 15
 
 
+	def is_gg( self ) :
+		return self.cmd_ty == Command.GG
+
+	def is_eog( self ) :
+		return self.cmd_ty == Command.EOG
 
 	def is_skill_use( self ) :
 		return Command.SKILL_2XY <= self.cmd_ty and self.cmd_ty <= Command.SKILL_TARGET
@@ -62,6 +67,15 @@ class Command :
 
 	def is_sell( self ) :
 		return self.cmd_ty == Command.SELL
+
+	def has_1pos( self ) :
+		return hasattr( self, "x" )
+
+	def has_2pos( self ) :
+		return hasattr( self, "x2" )
+
+	def has_pos( self ) :
+		return self.has_1pos() or self.has_2pos()
 
 
 
@@ -120,7 +134,7 @@ class Command :
 			if self.unit_ty in UNITNAMES :
 				self.unit_ty = UNITNAMES[ self.unit_ty ]
 			else :
-				self.unit_ty = "0x%08X" % self.unit_ty
+				self.unit_ty = "Unit 0x%08X" % self.unit_ty
 
 
 
@@ -144,7 +158,7 @@ class Command :
 		if self.power in POWERNAMES :
 			self.power = POWERNAMES[ self.power ]
 		else :
-			self.power = "0x%08X" % self.power
+			self.power = "Skill 0x%08X" % self.power
 
 
 
@@ -164,7 +178,7 @@ class Command :
 		if self.power in POWERNAMES :
 			self.power = POWERNAMES[ self.power ]
 		else :
-			self.power = "0x%08X" % self.power
+			self.power = "Skill 0x%08X" % self.power
 
 
 
@@ -180,7 +194,7 @@ class Command :
 		if self.power in POWERNAMES :
 			self.power = POWERNAMES[ self.power ]
 		else :
-			self.power = "0x%08X" % self.power
+			self.power = "Skill 0x%08X" % self.power
 
 
 
@@ -198,7 +212,7 @@ class Command :
 		if self.power in POWERNAMES :
 			self.power = POWERNAMES[ self.power ]
 		else :
-			self.power = "0x%08X" % self.power
+			self.power = "Skill 0x%08X" % self.power
 
 
 
@@ -214,7 +228,7 @@ class Command :
 		if self.upgrade in UPGRADENAMES :
 			self.upgrade = UPGRADENAMES[ self.upgrade ]
 		else :
-			self.upgrade = "0x%08X" % self.upgrade
+			self.upgrade = "Skill 0x%08X" % self.upgrade
 
 
 
@@ -228,7 +242,7 @@ class Command :
 		if self.unit_ty in UNITNAMES :
 			self.unit_ty = UNITNAMES[ self.unit_ty ]
 		else :
-			self.unit_ty = "0x%08X" % self.unit_ty
+			self.unit_ty = "Skill 0x%08X" % self.unit_ty
 	
 
 
@@ -275,7 +289,7 @@ class Command :
 		if self.building_type in UNITNAMES :
 			self.building_type = UNITNAMES[ self.building_type ]
 		else :
-			self.building_type = "0x%08X" % self.building_type
+			self.building_type = "Skill 0x%08X" % self.building_type
 
 
 
