@@ -288,6 +288,8 @@ class TimelineAnalyzer() :
 				if cmd.cmd_ty :
 					if cmd.is_eog() :
 						cmd.player_id = cmd.target # override owner!
+					elif cmd.is_gg() :
+						cmd.player_id = cmd.target # override owner!
 					self.feed( time, cmd )
 
 		#print( eventsss )

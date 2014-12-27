@@ -884,8 +884,9 @@ class PositionDumper() :
 		for chunk in self.kwr.replay_body.chunks :
 			for cmd in chunk.commands :
 				chunk.decode_cmd( cmd )
-				commands = commandss[ cmd.player_id ]
-				commands.append( cmd )
+				if cmd.has_pos() :
+					commands = commandss[ cmd.player_id ]
+					commands.append( cmd )
 
 		return commandss
 
