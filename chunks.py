@@ -34,11 +34,11 @@ class Command :
 	SKILL_TARGETLESS = 8
 	SKILL_TARGET = 9
 	UPGRADE = 10
-	FORMATION_MOVE = 11
-	MOVE = 12
-	REVERSE_MOVE = 13
-	PLACEDOWN = 14
-	EOG =15 # end of game marker
+	PLACEDOWN = 11
+	EOG = 12 # end of game marker
+	FORMATION_MOVE = 13
+	MOVE = 14
+	REVERSE_MOVE = 15
 
 
 
@@ -70,11 +70,7 @@ class Command :
 		self.cmd_ty = Command.QUEUE
 		data = self.payload
 
-		if len( data ) == 1 : # Just "" for net payload (Only FF in payload)
-			# end of game marker?
-			self.cmd_ty = Command.EOG
-			self.target = self.player_id
-		elif len( data ) == 5 :
+		if ( not data ) or ( len( data ) <= 18 ) : # Just "" for net payload (Only FF in payload)
 			# end of game marker?
 			self.cmd_ty = Command.EOG
 			self.target = self.player_id
@@ -614,7 +610,8 @@ class Chunk :
 
 			for cmd in self.commands :
 				self.decode_cmd( cmd )
-				cmd.print_bo()
+				if self.is_bo_cmd( cmd ) :
+					cmd.print_bo()
 
 		# I don't care about these!!
 		#elif self.ty == 2 :
