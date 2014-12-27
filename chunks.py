@@ -27,7 +27,7 @@ class Command :
 	HOLD = 1
 	SELL = 2
 	GG = 3
-	POWER_DOWN = 4
+	POWERDOWN = 4
 	QUEUE = 5 # queue unit production
 	SKILL_2XY = 6
 	SKILL_XY = 7
@@ -39,6 +39,29 @@ class Command :
 	FORMATION_MOVE = 13
 	MOVE = 14
 	REVERSE_MOVE = 15
+
+
+
+	def is_skill_use( self ) :
+		return Command.SKILL_2XY <= self.cmd_ty and self.cmd_ty <= Command.SKILL_TARGET
+
+	def is_placedown( self ) :
+		return self.cmd_ty == Command.PLACEDOWN
+
+	def is_upgrade( self ) :
+		return self.cmd_ty == Command.UPGRADE
+
+	def is_queue( self ) :
+		return self.cmd_ty == Command.QUEUE
+
+	def is_hold( self ) :
+		return self.cmd_ty == Command.HOLD
+
+	def is_powerdown( self ) :
+		return self.cmd_ty == Command.POWERDOWN
+
+	def is_sell( self ) :
+		return self.cmd_ty == Command.SELL
 
 
 
@@ -62,11 +85,11 @@ class Command :
 
 	def decode_powerdown_cmd( self ) :
 		self.decode_sell_cmd() # this works for powerdown, too.
-		self.cmd_ty = Command.POWER_DOWN
+		self.cmd_ty = Command.POWERDOWN
 
 
 
-	def decode_queue_cmd( self, UNITNAMES, AFLD_UNITS ) :
+	def decode_queue_cmd( self, UNITNAMES, AFLD_UNITS, UNITCOST ) :
 		self.cmd_ty = Command.QUEUE
 		data = self.payload
 
@@ -95,6 +118,10 @@ class Command :
 			else :
 				self.unit_ty = "0x%08X" % self.unit_ty
 
+			self.cost = 0
+			if self.unit_ty in UNITCOST :
+				self.cost = UNITCOST[ self.unit_ty ]
+
 
 
 	def decode_gg( self ) :
@@ -103,7 +130,7 @@ class Command :
 
 
 
-	def decode_skill_xy( self, POWERNAMES ) :
+	def decode_skill_xy( self, POWERNAMES, POWERCOST ) :
 		self.cmd_ty = Command.SKILL_XY
 		data = self.payload
 		self.x = uint42float( data[ 6:10] )
@@ -115,9 +142,13 @@ class Command :
 		else :
 			self.power = "0x%08X" % self.power
 
+		self.cost = 0
+		if self.power in POWERCOST :
+			self.cost = POWERCOST[ self.power ]
 
 
-	def decode_skill_2xy( self, POWERNAMES ) :
+
+	def decode_skill_2xy( self, POWERNAMES, POWERCOST ) :
 		self.cmd_ty = Command.SKILL_2XY
 		data = self.payload
 		self.x1 = uint42float( data[ 16:20] )
@@ -131,9 +162,13 @@ class Command :
 		else :
 			self.power = "0x%08X" % self.power
 
+		self.cost = 0
+		if self.power in POWERCOST :
+			self.cost = POWERCOST[ self.power ]
 
 
-	def decode_skill_targetless( self, POWERNAMES ) :
+
+	def decode_skill_targetless( self, POWERNAMES, POWERCOST ) :
 		self.cmd_ty = Command.SKILL_TARGETLESS
 		data = self.payload
 		self.power = uint42int( data[ 0:4 ] )
@@ -143,9 +178,13 @@ class Command :
 		else :
 			self.power = "0x%08X" % self.power
 
+		self.cost = 0
+		if self.power in POWERCOST :
+			self.cost = POWERCOST[ self.power ]
 
 
-	def decode_skill_target( self, POWERNAMES ) :
+
+	def decode_skill_target( self, POWERNAMES, POWERCOST ) :
 		self.cmd_ty = Command.SKILL_TARGET
 		data = self.payload
 		self.power = uint42int( data[ 0:4 ] )
@@ -157,9 +196,13 @@ class Command :
 		else :
 			self.power = "0x%08X" % self.power
 
+		self.cost = 0
+		if self.power in POWERCOST :
+			self.cost = POWERCOST[ self.power ]
 
 
-	def decode_upgrade_cmd( self, UPGRADENAMES ) :
+
+	def decode_upgrade_cmd( self, UPGRADENAMES, UPGRADECOST ) :
 		self.cmd_ty = Command.UPGRADE
 		data = self.payload
 		self.upgrade = uint42int( data[1:5] )
@@ -168,6 +211,10 @@ class Command :
 			self.upgrade = UPGRADENAMES[ self.upgrade ]
 		else :
 			self.upgrade = "0x%08X" % self.upgrade
+
+		self.cost = 0
+		if self.upgrade in UPGRADECOST :
+			self.cost = UPGRADECOST[ self.upgrade ]
 
 
 
@@ -205,7 +252,7 @@ class Command :
 	
 
 
-	def decode_placedown_cmd( self, UNITNAMES ) :
+	def decode_placedown_cmd( self, UNITNAMES, UNITCOST ) :
 		self.cmd_ty = Command.PLACEDOWN
 		data = self.payload
 		self.building_type = uint42int( data[6:10] )
@@ -225,6 +272,10 @@ class Command :
 			self.building_type = UNITNAMES[ self.building_type ]
 		else :
 			self.building_type = "0x%08X" % self.building_type
+
+		self.cost = 0
+		if self.building_type in UNITCOST :
+			self.cost = UNITCOST[ self.building_type ]
 
 
 
@@ -259,23 +310,21 @@ class Command :
 	def __str__( self ) :
 		if self.cmd_ty == Command.NONE :
 			return "Unknown Command"
-		elif self.cmd_ty == Command.HOLD :
+		elif self.is_hold() :
 			return "Hold/Cancel " + self.unit_ty
-		elif self.cmd_ty == Command.SELL :
+		elif self.is_sell() :
 			return "Sell"
 		elif self.cmd_ty == Command.GG :
 			return "GG " + str( self.target )
-		elif self.cmd_ty == Command.GG :
-			return "GG " + str( self.target )
-		elif self.cmd_ty == Command.POWER_DOWN :
+		elif self.is_powerdown() :
 			return "Power down building"
-		elif self.cmd_ty == Command.QUEUE :
+		elif self.is_queue() :
 			return "Queue " + str( self.cnt ) + "x " + self.unit_ty
-		elif Command.SKILL_2XY <= self.cmd_ty and self.cmd_ty <= Command.SKILL_TARGET :
+		elif self.is_skill_use() :
 			return self.power
-		elif self.cmd_ty == Command.UPGRADE :
+		elif self.is_upgrade() :
 			return self.upgrade
-		elif self.cmd_ty == Command.PLACEDOWN :
+		elif self.is_placedown() :
 			return self.building_type
 		elif self.cmd_ty == Command.EOG :
 			return "End of game"
