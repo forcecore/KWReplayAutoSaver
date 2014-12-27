@@ -20,7 +20,7 @@ CMDNAMES = {
 	0x26: "Hold",
 	0x27: "Place down a structure",
 	0x2A: "Sell",
-#	0x2D: "GG",
+	0x2D: "GG",
 	0x3C: "Move",
 	0x70: "Formation move",
 	0x7F: "toggle power down/up",
@@ -30,7 +30,7 @@ CMDNAMES = {
 	0xF8: "Deselect units",
 }
 
-BO_COMMANDS = [ 0x1C, 0x1D, 0x23, 0x27, 0x80, 0x21, 0x26, 0x2A ]
+BO_COMMANDS = [ 0x1C, 0x1D, 0x23, 0x27, 0x80, 0x21, 0x26, 0x2A, 0x2D ]
 
 
 
@@ -71,8 +71,8 @@ class TWChunk( chunks.Chunk ) :
 			cmd.decode_powerdown_cmd()
 		elif cmd.cmd_id == 0x84 :
 			cmd.decode_reverse_move_cmd()
-		#elif cmd.cmd_id == 0xFF :
-		#	cmd.decode_gg()
+		elif cmd.cmd_id == 0x2D :
+			cmd.decode_gg()
 
 		# Fortunately, we don't have target skill, in the sidebar skills, in TW.
 		#elif cmd.cmd_id == 0x?? :

@@ -139,8 +139,12 @@ class Command :
 
 
 	def decode_gg( self ) :
-		self.cmd_ty = Command.GG
-		self.target = self.payload[1]
+		if self.payload[0] == 0xFF :
+			self.cmd_ty = Command.EOG
+			self.target = self.player_id
+		else :
+			self.cmd_ty = Command.GG
+			self.target = self.payload[1]
 
 
 
