@@ -546,7 +546,7 @@ class Chunk :
 					k = 3
 				else :
 					k = 2
-				self.player_id = int( byte / 8 ) - k
+				c.player_id = int( byte / 8 ) - k
 
 				mode = CONTENT
 				start = i+1 # start of the cmd payload.
