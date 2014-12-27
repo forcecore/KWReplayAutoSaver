@@ -212,7 +212,8 @@ POWERNAMES = {
 	0xE1E50B20: "Mothership",
 	0xE930FD00: "Shock pod",
 	0xFD88FC00: "Temporal wormhole",
-	0xA0E6D800: "Wormhole",
+	0xA0E6D800: "Wormhole (T59)",
+	0x97ECA100: "Wormhole",
 
 	0x63C6B820: "MCV Pack",
 	0x3039C820: "MCV Unpack",
@@ -1227,6 +1228,7 @@ class KWChunk( chunks.Chunk ) :
 
 
 
+	# The "old" command splitter code, essentially the method in the cpp code by R. Schneider.
 	def fix_mismatch( self ) :
 		f = io.BytesIO( self.payload )
 

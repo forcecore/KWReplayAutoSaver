@@ -289,7 +289,7 @@ class Command :
 		if self.building_type in UNITNAMES :
 			self.building_type = UNITNAMES[ self.building_type ]
 		else :
-			self.building_type = "Skill 0x%08X" % self.building_type
+			self.building_type = "Bldg 0x%08X" % self.building_type
 
 
 
@@ -328,7 +328,7 @@ class Command :
 			return "Hold/Cancel " + self.unit_ty
 		elif self.is_sell() :
 			return "Sell"
-		elif self.cmd_ty == Command.GG :
+		elif self.is_gg() :
 			return "GG " + str( self.target )
 		elif self.is_powerdown() :
 			return "Power down building"
@@ -340,7 +340,7 @@ class Command :
 			return self.upgrade
 		elif self.is_placedown() :
 			return self.building_type
-		elif self.cmd_ty == Command.EOG :
+		elif self.is_eog() :
 			return "End of game"
 		else :
 			return "Unknown Command"
@@ -704,17 +704,13 @@ class Chunk :
 				if self.is_bo_cmd( cmd ) :
 					self.decode_cmd( cmd )
 					cmd.print_bo()
-					print()
-				else :
-					if self.is_known_cmd( cmd ) :
-						print( self.resolve_known( cmd ) )
-					else :
-						print( "unknown command" )
-					print( cmd.time_code, end="\t" )
-					print( cmd.player_id, end="\t" )
-					print( "0x%02X" % cmd.cmd_id, end="\t" )
-					print_bytes( cmd.payload, break16=False )
-					print()
+				elif self.is_known_cmd( cmd ) :
+					print( self.resolve_known( cmd ) )
+				print( cmd.time_code, end="\t" )
+				print( cmd.player_id, end="\t" )
+				print( "0x%02X" % cmd.cmd_id, end="\t" )
+				print_bytes( cmd.payload, break16=False )
+				print()
 	
 
 
