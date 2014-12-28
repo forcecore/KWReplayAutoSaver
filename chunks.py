@@ -732,8 +732,11 @@ class ReplayBody :
 		elif self.game == "CNC3" :
 			import twchunks
 			chunk = twchunks.TWChunk()
+		elif self.game == "RA3" :
+			import ra3chunks
+			chunk = ra3chunks.RA3Chunk()
 		else :
-			chunk = ChunkOtherGames()
+			assert 0, "What game is this?"
 		chunk.time_code = read_uint32( f )
 		if chunk.time_code == 0x7FFFFFFF :
 			return None
