@@ -11,6 +11,7 @@ import chunks
 
 
 CMDNAMES = {
+	0x00: "Deploy into a building (MCV/Core)",
 	0x01: "Skill with target unit",
 	0x03: "Upgrade",
 	0x05: "Queue unit production",
@@ -111,6 +112,41 @@ UNITNAMES = {
 	0x5AE534FC: "A A. Destroyer",
 	0x09705D80: "A A. Carrier",
 	0x648D1440: "A MCV (NavYd)",
+
+	0xF8C50039: "E Wall",
+	0xC6B3F8AA: "E Generator core",
+	0x57F07A3A: "E Dojo core",
+	0xFF4A8B60: "E Ref core",
+	0xA02E31D3: "E Mecha bay core",
+	0xF0455D99: "E Docks core",
+	0x78D3E32C: "E Mainframe core",
+	0x1F496B6B: "E Defender core",
+	0x2412FB82: "E Tower core",
+	0x5FC93021: "E Nanoswarm core",
+	0x5C1C0F0F: "E Psychic desolator core",
+
+	0x12E7D7A4: "E Burst drone",
+	0x0FB02C55: "E Imperial warrior",
+	0x7D0549DD: "E Tank buster",
+	0x20DBDFCC: "E Engineer",
+	0xA768E216: "E Shinobi",
+	0xD81C1012: "E Rocket angel",
+	0x6586A5A0: "E Yuriko Omega",
+	0x92CDE50F: "E Ore collector",
+	0x1791E072: "E Sudden transport",
+	0xC3986ED4: "E Taengu",
+	0xCEB7DA1F: "E Tsunami tank",
+	0x6E8C5FFF: "E Striker-VX",
+	0x59908E62: "E King oni",
+	0x90B81D3C: "E Wav. F. Artillary",
+	0x1C2EF767: "E MCV",
+	0xE27A88A0: "E Ore collector (NavYd)",
+	0xCEDA61FD: "E Yari sub.",
+	0xBA8E535F: "E Tsunami tank (NavYd)",
+	0xB142DEC6: "E Sea wing",
+	0x1A2CA9AB: "E Naginata cruiser",
+	0xFC5E3314: "E Shogun battleship",
+	0xD2ECDA2C: "E MCV (NavYd)",
 }
 
 SCIENCENAMES = {
@@ -178,6 +214,7 @@ POWERNAMES = {
 	0xB0D5B200: "Timebomb I",
 	0x3ED71300: "Timebomb II",
 	0x67C30E00: "Timebomb III",
+	0x10551A20: "Pack MCV",
 }
 
 POWERCOST = {
@@ -210,16 +247,26 @@ POWERCOST = {
 UPGRADENAMES = {
 	0xB0ADE8C1: "A Clearance I",
 	0xC2868D5F: "A Clearance II",
+	0xBF3B8DE8: "Dojo II",
+	0x3C7E2488: "Dojo III",
+	0x17C0F29C: "Mechabay II",
+	0xCF864AD9: "Mechabay III",
+	0x7EEF69F2: "Docks II",
+	0xB8E633CF: "Docks III",
 }
 
 UPGRADECOST = {
 	0xB0ADE8C1: 1500,
 	0xC2868D5F: 3000,
+	0xBF3B8DE8: 250,
+	0x3C7E2488: 500,
+	0x17C0F29C: 500,
+	0x7EEF69F2: 500,
 }
 
 AFLD_UNITS = []
 
-BO_COMMANDS = [ 0x05, 0x09, 0x0A, 0x4E, 0xFF, 0x01, 0x03, 0xFE, 0x32 ]
+BO_COMMANDS = [ 0x00, 0x01, 0x03, 0x05, 0x06, 0x09, 0x0A, 0x32, 0x4E, 0xFE, 0xFF ]
 
 
 
@@ -245,7 +292,9 @@ class RA3Chunk( chunks.Chunk ) :
 		elif cmd.cmd_id == 0x05 :
 			cmd.decode_ra3_queue_cmd( UNITNAMES, AFLD_UNITS, UNITCOST )
 		elif cmd.cmd_id == 0x06 :
-			cmd.decode_hold_cmd( UNITNAMES )
+			cmd.decode_ra3_hold_cmd( UNITNAMES )
+		elif cmd.cmd_id == 0x00 :
+			cmd.decode_ra3_deploy_cmd( UNITNAMES )
 		elif cmd.cmd_id == 0x14 :
 			cmd.decode_move_cmd()
 		elif cmd.cmd_id == 0x0A :
@@ -267,11 +316,9 @@ class RA3Chunk( chunks.Chunk ) :
 			cmd.decode_skill_targetless( POWERNAMES, POWERCOST )
 		elif cmd.cmd_id == 0x32 :
 			cmd.decode_skill_2xy( POWERNAMES, POWERCOST )
-		return
 
-		if cmd.cmd_id == 0x01 :
-			cmd.decode_gg()
-
+		#if cmd.cmd_id == 0x01 :
+		#	cmd.decode_gg()
 		# Fortunately, we don't have target skill, in the sidebar skills, in TW.
 		#elif cmd.cmd_id == 0x?? :
 		#	cmd.decode_skill_target( POWERNAMES, POWERCOST )

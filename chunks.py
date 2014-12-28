@@ -48,6 +48,19 @@ class Command :
 	def is_eog( self ) :
 		return self.cmd_ty == Command.EOG
 
+	def show_in_timeline( self ) :
+		if self.cmd_ty == Command.NONE :
+			return False
+		if self.cmd_ty == Command.FORMATION_MOVE :
+			return False
+		if self.cmd_ty == Command.REVERSE_MOVE :
+			return False
+		if self.cmd_ty == Command.MOVE :
+			return False
+		if self.cmd_ty == Command.HIDDEN :
+			return False
+		return True
+
 	def is_skill_use( self ) :
 		return Command.SKILL_2XY <= self.cmd_ty and self.cmd_ty <= Command.SKILL_TARGET
 
@@ -116,6 +129,17 @@ class Command :
 	def decode_powerdown_cmd( self ) :
 		self.decode_sell_cmd() # this works for powerdown, too.
 		self.cmd_ty = Command.POWERDOWN
+
+
+
+	def decode_ra3_deploy_cmd( self, UNITNAMES ) :
+		self.cmd_ty = Command.SKILL_TARGET
+		data = self.payload
+		self.x = uint42float( data[ 6:10] )
+		self.y = uint42float( data[ 10:14] )
+		self.orientation = uint42float( data[19:23] )
+		self.cost = 0
+		self.power = "Deploy Core/MCV"
 
 
 
@@ -197,9 +221,9 @@ class Command :
 	def decode_skill_xy( self, POWERNAMES, POWERCOST ) :
 		self.cmd_ty = Command.SKILL_XY
 		data = self.payload
+		self.power = uint42int( data[ 0:4 ] )
 		self.x = uint42float( data[ 6:10] )
 		self.y = uint42float( data[ 10:14] )
-		self.power = uint42int( data[ 0:4 ] )
 
 		self.cost = -1
 		if self.power in POWERCOST :
@@ -248,6 +272,8 @@ class Command :
 
 
 
+	# with a target unit.
+	# eg, laser fence, toxic corrosion.
 	def decode_skill_target( self, POWERNAMES, POWERCOST ) :
 		data = self.payload
 		if len( data ) < 5 :
@@ -259,6 +285,12 @@ class Command :
 		self.power = uint42int( data[ 0:4 ] )
 		# dunno about target, but it is certain that this is only used on walling
 		# structures -_-
+
+		# Sometimes, GG in RA3.
+		if self.power == 0x00 :
+			self.cmd_ty = Command.EOG
+			self.target = self.player_id
+			return
 
 		self.cost = -1
 		if self.power in POWERCOST :
@@ -298,7 +330,21 @@ class Command :
 			self.unit_ty = UNITNAMES[ self.unit_ty ]
 		else :
 			self.unit_ty = "Unit 0x%08X" % self.unit_ty
-	
+
+
+
+	def decode_ra3_hold_cmd( self, UNITNAMES ) :
+		self.cmd_ty = Command.HOLD
+		data = self.payload
+		self.factory = uint42int( data[ 1:5 ] )
+		self.unit_ty = uint42int( data[ 6:10 ] )
+		self.cancel_all = data[11] # remove all build queue of this type
+
+		if self.unit_ty in UNITNAMES :
+			self.unit_ty = UNITNAMES[ self.unit_ty ]
+		else :
+			self.unit_ty = "Unit 0x%08X" % self.unit_ty
+
 
 
 	def decode_formation_move_cmd( self ) :

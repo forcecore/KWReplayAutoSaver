@@ -374,6 +374,9 @@ class TimelineAnalyzer() :
 			offset = 0
 			for events in eventss :
 				for cmd in events :
+					if not cmd.show_in_timeline() :
+						cmd.offset = 0
+						continue
 					cmd.offset = offset
 					offset += 1
 
