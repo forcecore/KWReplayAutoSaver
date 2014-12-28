@@ -703,6 +703,35 @@ class ReplayList( wx.ListCtrl ) :
 	
 
 
+	# scan commands in kwr, owner==pid.
+	# If queue, placedown command is met, try to resolve the faction of the player
+	# given by pid.
+	def resolve_faction_with_commands( self, kwr, pid ) :
+		for chunk in kwr.replay_body.chunks :
+			for cmd in chunk.commands :
+				chunk.decode_cmd( cmd )
+				# use placedown'ed building to resolve faction.
+				if cmd.player_id != pid :
+					continue
+
+				name = None
+				if cmd.is_placedown() :
+					if not cmd.building_type.startswith( "0x" ) :
+						name = cmd.building_type
+				elif cmd.is_queue() :
+					if not cmd.unit_ty.startswith( "0x" ) :
+						name = cmd.unit_ty
+
+				if name :
+					# Good thing I always prefixed faction name in front!
+					data = name.split()
+					faction = "Rnd_" + data[0]
+					return faction
+
+		return None
+
+
+
 	# resolve random factions, if possible.
 	# if not possible, just silently pass...
 	def resolve_faction( self, kwr_fname ) :
@@ -712,9 +741,6 @@ class ReplayList( wx.ListCtrl ) :
 		# If it is not, pass.
 		try :
 			kwr = KWReplayWithCommands( fname=kwr_fname )
-			if kwr.game != "KW" :
-				# works only for KW
-				return result
 
 			for pid, p in enumerate( kwr.players ) :
 				faction = p.decode_faction()
@@ -722,23 +748,16 @@ class ReplayList( wx.ListCtrl ) :
 					continue
 
 				# scan commands
-				for chunk in kwr.replay_body.chunks :
-					for cmd in chunk.commands :
-						# use placedown'ed building to resolve faction.
-						if cmd.player_id == pid and cmd.cmd_id == 0x31 :
-							cmd.decode_placedown_cmd()
-							if cmd.building_type in UNITNAMES :
-								# Good thing I always prefixed faction name in front!
-								data = UNITNAMES[ cmd.building_type ].split()
-								faction = "Rnd_" + data[0]
+				faction = self.resolve_faction_with_commands( kwr, pid )
+				if faction :
+					# insert to map
+					result[ p.name ] = faction
+					args = Args.args
+					aka = args.get_aka( p.ip )
+					if aka :
+						result[ aka ] = faction # insert aka, too, if any!
 
-								# insert to map
-								result[ p.name ] = faction
-
-								args = Args.args
-								aka = args.get_aka( p.ip )
-								result[ aka ] = faction # insert aka, too!
-								break
+					continue # continue to the next player.
 
 		except :
 			# silently ignore chunk decoding.
@@ -757,13 +776,6 @@ class ReplayList( wx.ListCtrl ) :
 
 		for pos in selected( self ) :
 			kwr = self.get_related_replay( pos ).kwr
-
-			# not kane's wrath! can't do anything.
-			if kwr.game != "KW" :
-				if cnt == 1 :
-					msg = "Resolving random works only for KW."
-					wx.MessageBox( msg, "Error", wx.OK|wx.ICON_ERROR )
-				continue
 
 			rep_name = self.GetItem( pos, 0 ).GetText()
 			if rep_name.find( "(Rnd)" ) < 0 :

@@ -32,6 +32,13 @@ CMDNAMES = {
 	0xFF: "Skill /w target pos",
 }
 
+AFLD_UNITS = [
+	0x7F54CED1, # MiG
+	0xB74F8348, # Vindicator
+	0x3C82B910, # Apoolo
+	0x83D5A86B, # Century bomber
+]
+
 UNITNAMES = {
 	0xA01D437D: "S Crane",
 	0xCF8D9F20: "S Reactor",
@@ -102,7 +109,7 @@ UNITNAMES = {
 	0x52BFE9C5: "A Mirage",
 	0x28DA574E: "A MCV",
 	0xB74F8348: "A Vindicator",
-	0x3C82B910: "A Appolo",
+	0x3C82B910: "A Apollo",
 	0x509D5101: "A Cryocopter",
 	0x83D5A86B: "A Century bomber",
 	0x75288D70: "A Prospecter (NavYd)",
@@ -147,6 +154,123 @@ UNITNAMES = {
 	0x1A2CA9AB: "E Naginata cruiser",
 	0xFC5E3314: "E Shogun battleship",
 	0xD2ECDA2C: "E MCV (NavYd)",
+}
+
+UNITCOST = {
+	0xA01D437D: (1500, 20), #"S Crane",
+	0xCF8D9F20: (800, 10), #"S Reactor",
+	0x80D4EA1E: (500, 10), #"S Barracks",
+	0xC45AAEAB: (2000, 20), #"S Ref",
+	0xD50C222E: (2000, 20), #"S Factory",
+	0x524BBD01: (2000, 30), #"S Super reactor",
+	0xB7377639: (3000, 60), #"S Battle lab",
+	0xD25BB962: (1000, 30), #"S Airfield",
+	0xA82CF003: (10, 5), #"S Wall",
+	0x6E1ABB35: (1000, 20), #"S Naval yard",
+	0xD20552E1: (3000, 30), #"S Iron curtain",
+	0x856C9DD6: (5000, 30), #"S Vaccum imploder",
+	0xFA1F6466: (1500, 30), #"S Tesla coil",
+	0x4DF5F9C1: (800, 20), #"S Sentry gun",
+	0x1769BE29: (800, 20), #"S Flak cannon",
+
+	0x33026FA1: (225, 2), # "S War bear",
+	0x19AB11AF: (100, 4), # "S Conscript",
+	0x2C358C61: (300, 5), #"S Flak trooper",
+	0xA08AABD3: (500, 10), #"S Combat engineer",
+	0x3E11865D: (750, 10), #"S Tesla trooper",
+	0x174F874F: (2000, 30), #"S Natasha",
+	0xF6DAC2A4: (1400, 20), #"S Ore collector",
+	0xBB686AE1: (1200, 20), #"S Sputnik",
+	0xD741D327: (600, 5), #"S Terror drone",
+	0x60F0B4E9: (900, 10), #"S Sickle",
+	0x522BCB61: (900, 10), #"S Bullfrog",
+	0x94B3590B: (1000, 10), #"S Hammer tank",
+	0x821381DE: (1200, 15), #"S V4 RL",
+	0x9E45383C: (2000, 20), #"S Apocalypse",
+	0xAF4C0DA5: (5000, 60), #"S MCV",
+	0x40ACAD6D: (1200, 15), #"S Twinblade",
+	0x7F54CED1: (1000, 10), #"S MiG",
+	0xFFA811AE: (2500, 25), #"S Kirov",
+	0x951764B9: (1400, 20), #"S Ore collector (NavYd)",
+	0x92718B35: (1200, 900), #"S Sputnik (NavYd)",
+	0xAFF62E78: (1000, 10), #"S Stringray",
+	0xCCBD2C91: (1800, 20), #"S Bullfrog (NavYd)",
+	0x8D0A384A: (900, 10), #"S Akula",
+	0xBCEF51B9: (2000, 30), #"S Dreadnaught",
+	0x1545FAC2: (5000, 60), #"S MCV (NavYd)",
+
+	0x89B86E3D: (800, 10), #"A Power plant",
+	0x509BD329: (500, 10), #"A Barracks",
+	0x8ECE261C: (2000, 20), #"A Ref",
+	0x8209C058: (2000, 20), #"A Factory",
+	0x7848F598: (1000, 20), #"A Naval yard",
+	0x5B3008B7: (1000, 15), #"A Airfield",
+	0xCA9257EB: (1500, 10), #"A Defense bureau",
+	0x296799CF: (10, 5), #"A Wall",
+	0xEE3E07BD: (800, 20), #"A Multigunner turret",
+	0x69B62705: (1200, 30), #"A Spectrum tower",
+	0xFD87E82A: (3000, 30), #"A Chronosphere",
+	0x95D6E965: (5000, 30), #"A Proton collider",
+
+	0xDDFC28DE: (200, 2), #"A Dog",
+	0x139CBC97: (200, 5), #"A Peacekeeper",
+	0x9C5D3BB8: (400, 5), #"A Jav. Troop.",
+	0x53E0EB12: (2000, 30), #"A Tanya",
+	0x4AA5D515: (1000, 10), #"A Spy",
+	0xE1E9179B: (500, 10), #"A Engineer",
+	0x2A196E71: (1400, 20), #"A Prospecter",
+	0x4068B3D7: (900, 10), #"A Riptide",
+	0xBB06395A: (700, 8), #"A IFV",
+	0x07B91527: (900, 10), #"A Guardian",
+	0xD48ED838: (1400, 20), #"A Athena",
+	0x52BFE9C5: (1600, 15), #"A Mirage",
+	0x28DA574E: (5000, 60), #"A MCV",
+	0xB74F8348: (1200, 15), #"A Vindicator",
+	0x3C82B910: (1000, 10), #"A Apollo",
+	0x509D5101: (1600, 15), #"A Cryocopter",
+	0x83D5A86B: (2000, 20), #"A Century bomber",
+	0x75288D70: (1400, 20), #"A Prospecter (NavYd)",
+	0x8ACA3F75: (750, 10), #"A Dolphin",
+	0x1C331EB6: (900, 10), #"A Riptide (NavYd)",
+	0x2E211A99: (900, 10), #"A Hydrofoil",
+	0x5AE534FC: (1800, 20), #"A A. Destroyer",
+	0x09705D80: (2000, 30), #"A A. Carrier",
+	0x648D1440: (5000, 60), #"A MCV (NavYd)",
+
+	0xF8C50039: (10, 5), #"E Wall",
+	0xC6B3F8AA: (1000, 4), #"E Generator core",
+	0x57F07A3A: (500, 4), #"E Dojo core",
+	0xFF4A8B60: (2500, 4), #"E Ref core",
+	0xA02E31D3: (2000, 4), #"E Mecha bay core",
+	0xF0455D99: (1000, 4), #"E Docks core",
+	0x78D3E32C: (3000, 4), #"E Mainframe core",
+	0x1F496B6B: (800, 4), #"E Defender core",
+	0x2412FB82: (1400, 5), #"E Tower core",
+	0x5FC93021: (3000, 4), #"E Nanoswarm core",
+	0x5C1C0F0F: (5000, 4), #"E Psionic desolator core",
+
+	0x12E7D7A4: (300, 5), #"E Burst drone",
+	0x0FB02C55: (150, 5), #"E Imperial warrior",
+	0x7D0549DD: (300, 5), #"E Tank buster",
+	0x20DBDFCC: (500, 10), #"E Engineer",
+	0xA768E216: (1000, 10), #"E Shinobi",
+	0xD81C1012: (900, 10), #"E Rocket angel",
+	0x6586A5A0: (2000, 30), #"E Yuriko Omega",
+	0x92CDE50F: (1400, 20), #"E Ore collector",
+	0x1791E072: (500, 5), #"E Sudden transport",
+	0xC3986ED4: (800, 10), #"E Taengu",
+	0xCEB7DA1F: (1000, 10), #"E Tsunami tank",
+	0x6E8C5FFF: (1200, 10), #"E Striker-VX",
+	0x59908E62: (2000, 20), #"E King oni",
+	0x90B81D3C: (1800, 15), #"E Wav. F. Artillary",
+	0x1C2EF767: (5000, 60), #"E MCV",
+	0xE27A88A0: (1400, 20), #"E Ore collector (NavYd)",
+	0xCEDA61FD: (800, 10), #"E Yari sub.",
+	0xBA8E535F: (1000, 10), #"E Tsunami tank (NavYd)",
+	0xB142DEC6: (1100, 11), #"E Sea wing",
+	0x1A2CA9AB: (1800, 18), #"E Naginata cruiser",
+	0xFC5E3314: (2200, 22), #"E Shogun battleship",
+	0xD2ECDA2C: (5000, 60), #"E MCV (NavYd)",
 }
 
 SCIENCENAMES = {
@@ -197,9 +321,6 @@ SCIENCENAMES = {
 	0x37183B56: "Emperor's Rage I",
 	0xA3E51558: "Emperor's Rage II",
 	0xB49139E0: "Emperor's Rage III",
-}
-
-UNITCOST = {
 }
 
 POWERNAMES = {
@@ -268,15 +389,15 @@ UPGRADENAMES = {
 }
 
 UPGRADECOST = {
-	0xB0ADE8C1: 1500,
-	0xC2868D5F: 3000,
-	0xBF3B8DE8: 250,
-	0x3C7E2488: 500,
-	0x17C0F29C: 500,
-	0x7EEF69F2: 500,
+	0xB0ADE8C1: 1500, # clearance I
+	0xC2868D5F: 3000, # clearance II
+	0xBF3B8DE8: 250, # dojo II
+	0x3C7E2488: 500, # dojo III
+	0x17C0F29C: 500, # mecha bay II
+	0xCF864AD9: 1000, # mecha bay III
+	0x7EEF69F2: 500, # docks II
+	0xB8E633CF: 1000, # docks III
 }
-
-AFLD_UNITS = []
 
 BO_COMMANDS = [ 0x00, 0x01, 0x03, 0x05, 0x06, 0x09, 0x0A, 0x32, 0x4E, 0xFE, 0xFF ]
 
