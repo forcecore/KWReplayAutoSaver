@@ -11,9 +11,32 @@ import chunks
 
 
 CMDNAMES = {
+	0x07: "Start building soviet structure",
+	0x09: "Place down soviet structure",
 }
 
-BO_COMMANDS = []
+UNITNAMES = {
+	0xA01D437D: "S Crane",
+	0xCF8D9F20: "S Reactor",
+	0x80D4EA1E: "S Barracks",
+	0xC45AAEAB: "S Ref",
+	0xD50C222E: "S Factory",
+	0x524BBD01: "S Super reactor",
+	0xB7377639: "S Battle lab",
+	0xD25BB962: "S Airfield",
+	0xA82CF003: "S Wall",
+	0x6E1ABB35: "S Naval yard",
+	0xD20552E1: "S Iron curtain",
+	0x856C9DD6: "S Vaccum imploder",
+	0xFA1F6466: "S Tesla coil",
+	0x4DF5F9C1: "S Sentry gun",
+	0x1769BE29: "S Flak cannon",
+}
+
+UNITCOST = {
+}
+
+BO_COMMANDS = [ 0x09 ]
 
 
 
@@ -30,6 +53,8 @@ class RA3Chunk( chunks.Chunk ) :
 
 	# Decode decodable commands
 	def decode_cmd( self, cmd ) :
+		if cmd.cmd_id == 0x09 :
+			cmd.decode_placedown_cmd( UNITNAMES, UNITCOST )
 		return
 
 		if cmd.cmd_id == 0x27 :
