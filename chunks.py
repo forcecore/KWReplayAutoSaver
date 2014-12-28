@@ -132,7 +132,7 @@ class Command :
 
 
 
-	def decode_ra3_deploy_cmd( self, UNITNAMES ) :
+	def decode_ra3_deploy_cmd( self ) :
 		self.cmd_ty = Command.SKILL_TARGET
 		data = self.payload
 		self.x = uint42float( data[ 6:10] )

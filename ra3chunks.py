@@ -123,7 +123,7 @@ UNITNAMES = {
 	0x1F496B6B: "E Defender core",
 	0x2412FB82: "E Tower core",
 	0x5FC93021: "E Nanoswarm core",
-	0x5C1C0F0F: "E Psychic desolator core",
+	0x5C1C0F0F: "E Psionic desolator core",
 
 	0x12E7D7A4: "E Burst drone",
 	0x0FB02C55: "E Imperial warrior",
@@ -181,12 +181,30 @@ SCIENCENAMES = {
 	0xF99CAD9D: "Timebomb I",
 	0x37233A54: "Timebomb II",
 	0xBC51CA49: "Timebomb III",
+
+	0x92ED4E4B: "Fortified Fleet",
+	0x7E7D02D1: "Sleeper Ambush",
+	0x9F4538FE: "Balloon bomb I",
+	0x105CD263: "Balloon bomb II",
+	0xBE7F685D: "Balloon bomb III",
+	0xD40D5B6A: "Advanced rocket pods",
+	0x31201046: "Final squadron I",
+	0x4EA3BB59: "Final squadron II",
+	0xC21217EF: "Final squadron III",
+	0xF628B1AA: "Robotic aseembly",
+	0xFBE46678: "Honorable discharge",
+	0xC48071DD: "Point-defense drones",
+	0x37183B56: "Emperor's Rage I",
+	0xA3E51558: "Emperor's Rage II",
+	0xB49139E0: "Emperor's Rage III",
 }
 
 UNITCOST = {
 }
 
 POWERNAMES = {
+	0x10551A20: "Pack MCV",
+
 	0xDE6EBD00: "Cash bounty",
 	0xC3FC9800: "Desolator airstrike I",
 	0x3D3EF700: "Desolator airstrike II",
@@ -201,6 +219,7 @@ POWERNAMES = {
 	0x61360F00: "Iron curtain",
 	0x2EB8F100: "Vaccum implosion",
 	0x29BFB700: "Magnetic singularity",
+
 	0x84694200: "Surveillance sweep",
 	0x4796FE00: "Surgical strike",
 	0x0A443400: "Chrono swap 1",
@@ -214,35 +233,28 @@ POWERNAMES = {
 	0xB0D5B200: "Timebomb I",
 	0x3ED71300: "Timebomb II",
 	0x67C30E00: "Timebomb III",
-	0x10551A20: "Pack MCV",
+	0xD795F100: "Proton collision",
+	0x69AE6E00: "Chrono src",
+	0x6C6DEF00: "Chrono dest",
+
+	0x86CAC700: "Speeper ambush",
+	0x52F31600: "Balloon bomb I",
+	0x3DF40100: "Balloon bomb II",
+	0xA6260C00: "Balloon bomb III",
+	0x9B694F00: "Final squadron I",
+	0xAAA4FC00: "Final squadron II",
+	0x74BB9800: "Final squadron III",
+	0xD6542C00: "Point-defense drones",
+	0x299CC500: "Emperor's Rage I",
+	0x1ECE0100: "Emperor's Rage II",
+	0xF4169400: "Emperor's Rage III",
+	0x69286300: "Nano swarm",
+	0xCE19D800: "Psionic desolation",
 }
 
-POWERCOST = {
-	0xDE6EBD00: 0,
-	0xC3FC9800: 0,
-	0xDF8D7100: 0,
-	0x69B1E200: 0,
-	0x927E9C00: 0,
-	0x3D3EF700: 0,
-	0xAEA53D00: 0,
-	0x61360F00: 0,
-	0x2EB8F100: 0,
-	0x115EEE00: 0,
-	0xB53BE900: 0,
-	0xD8778B00: 0,
-	0x29BFB700: 0,
-	0x8FA51900: 0,
-	0x84694200: 0,
-	0x4796FE00: 0,
-	0x0A443400: 0,
-	0x91B16200: 0,
-	0x32421800: 0,
-	0xC8266300: 0,
-	0xB0D5B200: 0,
-	0xEECD2500: 0,
-	0x67C30E00: 0,
-	0x3A3B1C00: 0,
-}
+POWERCOST = {}
+for key, val in POWERNAMES.items() :
+	POWERCOST[ key ] = 0
 
 UPGRADENAMES = {
 	0xB0ADE8C1: "A Clearance I",
@@ -294,7 +306,7 @@ class RA3Chunk( chunks.Chunk ) :
 		elif cmd.cmd_id == 0x06 :
 			cmd.decode_ra3_hold_cmd( UNITNAMES )
 		elif cmd.cmd_id == 0x00 :
-			cmd.decode_ra3_deploy_cmd( UNITNAMES )
+			cmd.decode_ra3_deploy_cmd()
 		elif cmd.cmd_id == 0x14 :
 			cmd.decode_move_cmd()
 		elif cmd.cmd_id == 0x0A :
