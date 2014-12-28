@@ -306,6 +306,7 @@ class KWReplay :
 			elif ext == ".ra3replay" :
 				self.game = "RA3"
 				self.MAGIC_SIZE = 17
+				self.FOOTER_MAGIC_SIZE = 16
 				self.U1_SIZE = 31
 				self.U2_SIZE = 20
 			else :
