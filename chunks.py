@@ -162,7 +162,7 @@ class Command :
 			else :
 				self.cnt = 5
 
-		self.cost = -1
+		self.cost = None # not zero but none, intended. units must have some info :D
 		if self.unit_ty in UNITCOST :
 			self.cost = UNITCOST[ self.unit_ty ]
 
@@ -197,7 +197,7 @@ class Command :
 				else :
 					self.cnt = 5
 
-			self.cost = -1
+			self.cost = None
 			if self.unit_ty in UNITCOST :
 				self.cost = UNITCOST[ self.unit_ty ]
 
@@ -225,7 +225,7 @@ class Command :
 		self.x = uint42float( data[ 6:10] )
 		self.y = uint42float( data[ 10:14] )
 
-		self.cost = -1
+		self.cost = 0 # by default, 0.
 		if self.power in POWERCOST :
 			self.cost = POWERCOST[ self.power ]
 
@@ -245,7 +245,7 @@ class Command :
 		self.y2 = uint42float( data[ 32:36] )
 		self.power = uint42int( data[ 0:4 ] )
 
-		self.cost = -1
+		self.cost = 0 # by default, 0.
 		if self.power in POWERCOST :
 			self.cost = POWERCOST[ self.power ]
 
@@ -261,7 +261,7 @@ class Command :
 		data = self.payload
 		self.power = uint42int( data[ 0:4 ] )
 
-		self.cost = -1
+		self.cost = 0 # by default, 0.
 		if self.power in POWERCOST :
 			self.cost = POWERCOST[ self.power ]
 
@@ -292,7 +292,7 @@ class Command :
 			self.target = self.player_id
 			return
 
-		self.cost = -1
+		self.cost = 0 # by default, 0.
 		if self.power in POWERCOST :
 			self.cost = POWERCOST[ self.power ]
 
@@ -308,7 +308,7 @@ class Command :
 		data = self.payload
 		self.upgrade = uint42int( data[1:5] )
 
-		self.cost = -1
+		self.cost = 0 # by default, 0.
 		if self.upgrade in UPGRADECOST :
 			self.cost = UPGRADECOST[ self.upgrade ]
 
@@ -383,7 +383,7 @@ class Command :
 			self.y = uint42float( data[pos:pos+4] )
 			pos += 4
 
-		self.cost = -1
+		self.cost = None
 		if self.building_type in UNITCOST :
 			self.cost = UNITCOST[ self.building_type ]
 

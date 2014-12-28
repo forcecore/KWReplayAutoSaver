@@ -126,7 +126,7 @@ class Factory() :
 
 
 
-EVT_CONS_COMPLETE = 0x01
+EVT_CONS_COMPLETE = 0xFF+1
 EVT_QUEUE = Command.QUEUE
 EVT_HOLD = Command.HOLD
 EVT_SELL = Command.SELL
@@ -227,7 +227,7 @@ class FactorySim() :
 			remaining_time = under_const.time_code - self.t
 			fa.countdown[ unit_ty ] # save it to remaining time.
 
-		if not unit_ty in self.cost or self.cost[ unit_ty ] < 0 :
+		if not unit_ty in self.cost :
 			# just ignore this event.
 			if FactorySim.verbose :
 				print( "no data for this unit %s" % unit_ty )
@@ -240,7 +240,13 @@ class FactorySim() :
 		else :
 			# build_time is proportional to unit cost.
 			# 15 for second -> time_code conversion.
-			build_time = 15 * int( self.cost[unit_ty]/100 ) + 6 # extra 6 for unit exit delay;;;;;;;
+			if type( self.cost[unit_ty] ) == int :
+				cost = self.cost[unit_ty]
+				build_time = 15 * int( self.cost[unit_ty]/100 ) + 6 # extra 6 for unit exit delay;;;;;;;
+			elif type( self.cost[unit_ty] ) == tuple :
+				cost, build_time = self.cost[unit_ty]
+			else :
+				assert 0
 
 		evt = Command()
 		evt.cmd_ty = EVT_CONS_COMPLETE
@@ -302,8 +308,10 @@ class FactorySim() :
 				fa.order.append( evt.unit_ty )
 
 			# add to cost resolver map.
-			if evt.cost >= 0 :
+			if evt.cost != None :
 				self.cost[ evt.unit_ty ] = evt.cost
+			else :
+				assert 0, "Units require cost info."
 
 			if FactorySim.verbose :
 				print( "Factory 0x%08X" % fa.factory_id )
@@ -603,6 +611,10 @@ class ResourceAnalyzer() :
 	def collect( self, pid, t, cost ) :
 		spent = self.spents[ pid ]
 
+		# could be price-buildtime pair.
+		if type( cost ) == tuple :
+			cost, buildtime = cost
+
 		# OK, if the latest entry has the same t,
 		# we merge the costs hehehe
 		if len( spent ) > 1 :
@@ -652,6 +664,11 @@ class ResourceAnalyzer() :
 		ts = []
 		costs = []
 		for t, cost in spent :
+
+			# RA3 cost-buildtime pair.
+			if type( cost ) == tuple :
+				cost, buildtime = cost
+
 			if len( ts ) == 0 :
 				# initial element
 				ts.append( t )
