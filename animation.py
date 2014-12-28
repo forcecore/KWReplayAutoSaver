@@ -607,6 +607,17 @@ class Timeline( wx.Panel ) :
 
 			dc.DrawLine( x, self.Y, x, y+20 )
 
+		
+		elif cmd.is_science() :
+			dc.SetTextForeground( wx.GREEN )
+			dc.SetPen( wx.Pen( wx.GREEN ) )
+
+			name = str( cmd )
+			dc.DrawText( name, x-10, y )
+
+			dc.DrawLine( x, self.Y, x, y+20 )
+
+
 
 		elif cmd.is_skill_use() :
 			dc.SetTextForeground( wx.GREEN )
@@ -617,6 +628,7 @@ class Timeline( wx.Panel ) :
 
 			dc.DrawLine( x, self.Y, x, y+20 )
 
+
 		elif cmd.is_upgrade() :
 			dc.SetTextForeground( wx.YELLOW )
 			dc.SetPen( wx.Pen( wx.YELLOW ) )
@@ -626,11 +638,13 @@ class Timeline( wx.Panel ) :
 
 			dc.DrawLine( x, self.Y, x, y+20 )
 
+
 		elif cmd.is_eog() :
 			dc.SetTextForeground( "#9a0eea" )
 			dc.SetPen( wx.Pen( "#9a0eea" ) ) # violet
 			dc.DrawText( "GG?", x-10, y )
 			dc.DrawLine( x, self.Y, x, y+20 )
+
 
 		elif cmd.is_queue() :
 			# hold/cancel

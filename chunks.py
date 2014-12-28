@@ -39,7 +39,8 @@ class Command :
 	FORMATION_MOVE = 13
 	MOVE = 14
 	REVERSE_MOVE = 15
-
+	HIDDEN = 16 # hide from dump. (for debug)
+	SCIENCE = 17 # general skill
 
 	def is_gg( self ) :
 		return self.cmd_ty == Command.GG
@@ -67,6 +68,9 @@ class Command :
 
 	def is_sell( self ) :
 		return self.cmd_ty == Command.SELL
+
+	def is_science( self ) :
+		return self.cmd_ty == Command.SCIENCE
 
 	def has_1pos( self ) :
 		return hasattr( self, "x" )
@@ -97,9 +101,51 @@ class Command :
 
 
 
+	# Science? Why? Because it was called science in C&C Generals modding.
+	def decode_science_sel_cmd( self, SCIENCENAMES ) :
+		self.cmd_ty = Command.SCIENCE
+		self.science = uint42int( self.payload[ 1:5 ] )
+
+		if self.science in SCIENCENAMES :
+			self.science = SCIENCENAMES[ self.science ]
+		else :
+			self.science = "Science 0x%08X" % self.science
+
+
+
 	def decode_powerdown_cmd( self ) :
 		self.decode_sell_cmd() # this works for powerdown, too.
 		self.cmd_ty = Command.POWERDOWN
+
+
+
+	def decode_ra3_queue_cmd( self, UNITNAMES, AFLD_UNITS, UNITCOST ) :
+		self.cmd_ty = Command.QUEUE
+		data = self.payload
+
+		self.factory = uint42int( data[ 1:5 ] ) # probably, but not too sure.
+		self.unit_ty = uint42int( data[ 6:10 ] )
+		self.cnt = 1 # how many queued?
+		fivex = data[11]
+		if fivex :
+			if self.unit_ty in AFLD_UNITS :
+				self.cnt = 4
+				# Actually, fivex just tells us that it is
+				# shift + click on the unit produciton button.
+				# For normal units, it is definitely 5x.
+				# But for these air units, it could be
+				# 1 ~ 4, depending on the space left on the landing pad.
+			else :
+				self.cnt = 5
+
+		self.cost = -1
+		if self.unit_ty in UNITCOST :
+			self.cost = UNITCOST[ self.unit_ty ]
+
+		if self.unit_ty in UNITNAMES :
+			self.unit_ty = UNITNAMES[ self.unit_ty ]
+		else :
+			self.unit_ty = "Unit 0x%08X" % self.unit_ty
 
 
 
@@ -203,8 +249,13 @@ class Command :
 
 
 	def decode_skill_target( self, POWERNAMES, POWERCOST ) :
-		self.cmd_ty = Command.SKILL_TARGET
 		data = self.payload
+		if len( data ) < 5 :
+			# GG?
+			self.cmd_ty = Command.EOG
+			return
+
+		self.cmd_ty = Command.SKILL_TARGET
 		self.power = uint42int( data[ 0:4 ] )
 		# dunno about target, but it is certain that this is only used on walling
 		# structures -_-
@@ -332,6 +383,8 @@ class Command :
 			return "Hold/Cancel " + self.unit_ty
 		elif self.is_sell() :
 			return "Sell"
+		elif self.is_science() :
+			return "Select " + self.science
 		elif self.is_gg() :
 			return "GG " + str( self.target )
 		elif self.is_powerdown() :
@@ -706,7 +759,11 @@ class Chunk :
 			print()
 		else :
 			for cmd in self.commands :
-				if self.is_bo_cmd( cmd ) :
+				self.decode_cmd( cmd )
+				if cmd.cmd_ty == Command.HIDDEN :
+					# just hide this command.
+					continue
+				elif self.is_bo_cmd( cmd ) :
 					self.decode_cmd( cmd )
 					cmd.print_bo()
 				elif self.is_known_cmd( cmd ) :
