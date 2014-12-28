@@ -283,7 +283,7 @@ class Command :
 		if self.upgrade in UPGRADENAMES :
 			self.upgrade = UPGRADENAMES[ self.upgrade ]
 		else :
-			self.upgrade = "Skill 0x%08X" % self.upgrade
+			self.upgrade = "Upgrade 0x%08X" % self.upgrade
 
 
 
