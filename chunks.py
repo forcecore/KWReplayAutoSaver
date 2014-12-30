@@ -41,12 +41,20 @@ class Command :
 	REVERSE_MOVE = 15
 	HIDDEN = 16 # hide from dump. (for debug)
 	SCIENCE = 17 # general skill
+	WIN = 18 # end of game marker
+	LOSE = 19 # end of game marker
 
 	def is_gg( self ) :
 		return self.cmd_ty == Command.GG
 
 	def is_eog( self ) :
 		return self.cmd_ty == Command.EOG
+
+	def is_win( self ) :
+		return self.cmd_ty == Command.WIN
+
+	def is_lose( self ) :
+		return self.cmd_ty == Command.LOSE
 
 	def show_in_timeline( self ) :
 		if self.cmd_ty == Command.NONE :
@@ -177,8 +185,14 @@ class Command :
 		self.cmd_ty = Command.QUEUE
 		data = self.payload
 
-		if ( not data ) or ( len( data ) <= 18 ) : # Just "" for net payload (Only FF in payload)
+		if ( not data ) or ( len( data ) <= 2 ) : # Just "" for net payload (Only FF in payload)
 			# end of game marker?
+			self.cmd_ty = Command.LOSE
+			self.target = self.player_id
+		elif data[ 1 ] == 0x02 :
+			self.cmd_ty = Command.WIN
+			self.target = self.player_id
+		elif len( data ) <= 18 :
 			self.cmd_ty = Command.EOG
 			self.target = self.player_id
 		else :
@@ -445,6 +459,10 @@ class Command :
 			return self.building_type
 		elif self.is_eog() :
 			return "End of game"
+		elif self.is_win() :
+			return "Win"
+		elif self.is_lose() :
+			return "Lose"
 		else :
 			return "Unknown Command"
 

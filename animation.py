@@ -649,6 +649,23 @@ class Timeline( wx.Panel ) :
 			dc.DrawLine( x, self.Y, x, y+20 )
 
 
+
+		elif cmd.is_win() :
+			dc.SetTextForeground( "#9a0eea" )
+			dc.SetPen( wx.Pen( "#9a0eea" ) ) # violet
+			dc.DrawText( "win?", x-10, y )
+			dc.DrawLine( x, self.Y, x, y+20 )
+
+
+
+		elif cmd.is_lose() :
+			dc.SetTextForeground( "#9a0eea" )
+			dc.SetPen( wx.Pen( "#9a0eea" ) ) # violet
+			dc.DrawText( "lose?", x-10, y )
+			dc.DrawLine( x, self.Y, x, y+20 )
+
+
+
 		elif cmd.is_queue() :
 			# hold/cancel
 			dc.SetTextForeground( wx.RED )
