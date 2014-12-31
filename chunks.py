@@ -571,7 +571,7 @@ class Splitter :
 
 
 	def split_0x2c( cmd, f ) : # 0x2c of KW.
-		cmd.split_var_len2( f, 5, 4 )
+		Splitter.split_var_len2( cmd, f, 5, 4 )
 
 
 
