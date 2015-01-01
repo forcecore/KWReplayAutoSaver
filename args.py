@@ -99,6 +99,16 @@ class Args :
 			return default
 		else :
 			return self.cfg.getboolean( section, key )
+
+
+
+	# similar to get_bool, but for int.
+	def get_int( self, key, default=0, section='options' ) :
+		val = self.get_var( key )
+		if val == None :
+			return default
+		else :
+			return self.cfg.getint( section, key )
 	
 
 

@@ -532,7 +532,13 @@ class ReplayList( wx.ListCtrl ) :
 		self.replay_items = None # This is shared with frame, beware!
 		self.path = None
 		self.replay_items = ReplayItems()
-	
+
+		# sort stuff.
+		self.last_clicked_col = 0 # last clicked column number
+		self.ascending = True # sort by ascending order?
+
+
+
 	def event_bindings( self ) :
 		self.Bind( wx.EVT_LIST_ITEM_SELECTED, self.on_Click )
 		self.Bind( wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_RightClick )
@@ -552,7 +558,9 @@ class ReplayList( wx.ListCtrl ) :
 			self.select_all()
 		else :
 			event.Skip()
-	
+
+
+
 	def select_all( self ) :
 		for i in range( self.GetItemCount() ) :
 			self.Select( i )
@@ -563,12 +571,15 @@ class ReplayList( wx.ListCtrl ) :
 		self.path = path
 		self.replay_items.scan_path( path )
 		self.populate( self.replay_items )
+		self.sort()
 		self.names = None # scratch memory for replay renaming presets (for context menu)
 		self.ctx_old_name = "" # lets have a space for the old replay name too.
 			# this one is for remembering click/right clicked ones only.
 			# i.e, context menus.
 		self.custom_old_name = ""
 			# this one, is for remembering the old fname for custom renames.
+
+
 
 	# reps: repaly_items
 	def populate( self, reps, filter=None ) :
@@ -581,9 +592,7 @@ class ReplayList( wx.ListCtrl ) :
 		for rep in reps.items :
 			self.add_replay( rep, filter=filter )
 
-		# managing sort state XD
-		self.last_clicked_col = -1 # last clicked column number
-		self.ascending = True # sort by ascending order?
+
 
 	def add_replay( self, rep, filter=None ) :
 		fname = rep.fname
@@ -605,6 +614,8 @@ class ReplayList( wx.ListCtrl ) :
 			self.SetItem( pos, 3, time ) # time
 			self.SetItem( pos, 4, date ) # date
 			self.SetItemData( pos, rep.id ) # associate replay
+
+
 
 	# Modify the description of the replay which is currently selected.
 	def modify_desc( self, desc ) :
@@ -628,11 +639,15 @@ class ReplayList( wx.ListCtrl ) :
 		self.SetItem( pos, 2, desc ) # desc
 		kwr = KWReplay( fname ) # reload it.
 		rep.kwr = kwr
-	
+
+
+
 	def get_related_replay( self, pos ) :
 		rep_id = self.GetItemData( pos )
 		rep_item = self.replay_items.find( id=rep_id )
 		return rep_item
+
+
 
 	def key_func( self, rep_id1, rep_id2 ) :
 		col = self.last_clicked_col
@@ -665,6 +680,7 @@ class ReplayList( wx.ListCtrl ) :
 			data1 = rep1.kwr.timestamp
 			data2 = rep2.kwr.timestamp
 		else :
+			print( "invalid col", col )
 			assert 0
 
 		if data1 == data2 :
@@ -678,9 +694,13 @@ class ReplayList( wx.ListCtrl ) :
 			result *= -1
 
 		return result
-	
-	def sort( self, col, asc ) :
+
+
+
+	def sort( self ) :
 		self.SortItems( self.key_func )
+
+
 
 	# sort by clicked column
 	def on_col_click( self, event ) :
@@ -692,7 +712,9 @@ class ReplayList( wx.ListCtrl ) :
 		self.last_clicked_col = event.GetColumn()
 
 		# now lets do the sorting
-		self.sort( event.GetColumn(), self.ascending )
+		self.sort()
+
+
 
 	def context_menu_rename( self, event ) :
 		if not self.ctx_old_name :
@@ -1197,11 +1219,93 @@ class ReplayViewer( wx.Frame ) :
 		self.create_accel_tab()
 		self.set_icon()
 
-		self.rep_list.set_path( path )
 		self.make_menu()
+
+		self.load_win_props() # load win sz, win pos, ...
+
+		self.rep_list.set_path( path )
 
 		# don't need DB. we just set the image name right.
 		#self.map_db = self.load_map_db( 'MapDB.txt' )
+	
+
+
+	def load_win_props( self ) :
+		args = Args.args
+		prefix = ""
+
+		# maximized
+		maxed = args.get_bool( "man_maximized", default=False )
+		if maxed :
+			prefix = "maxed_"
+
+		# window sz
+		w = args.get_int( "man_width", default=1024 )
+		h = args.get_int( "man_height", default=800 )
+		self.SetSize( (w, h) )
+
+		# window pos
+		x = args.get_int( "man_x", default=-1 )
+		y = args.get_int( "man_y", default=-1 )
+		if x >= 0 and y >= 0 :
+			self.SetPosition( (x, y) )
+
+		# sash pos
+		sash_pos = args.get_int( prefix + "man_sash_pos", default=-1 )
+		if sash_pos >= 0 :
+			self.splitter.SetSashPosition( sash_pos )
+
+		# actually do maximization.
+		if maxed :
+			self.Maximize()
+
+		# load col width
+		for i in range( self.rep_list.GetColumnCount() ) :
+			w = args.get_int( prefix + "man_colw" + str( i ), default=-1 )
+			if w >= 0 :
+				 self.rep_list.SetColumnWidth( i, w )
+
+		# sort criterions
+		self.rep_list.last_clicked_col = args.get_int( "man_sort_by", default=0 )
+		self.rep_list.ascending = args.get_bool( 'man_sort_ascending', default=True )
+
+
+
+	def save_win_props( self ) :
+		args = Args.args
+		prefix = ""
+		if self.IsMaximized() :
+			prefix = "maxed_"
+			args.set_var( "man_maximized", "true" )
+
+		# window sz
+		if not self.IsMaximized() :
+			w, h = self.GetSize()
+			args.set_var( "man_width", str( w ) )
+			args.set_var( "man_height", str( h ) )
+
+		# window pos
+		if not self.IsMaximized() :
+			x, y = self.GetPosition()
+			args.set_var( "man_x", str( x ) )
+			args.set_var( "man_y", str( y ) )
+
+		# sash pos
+		sash_pos = self.splitter.GetSashPosition()
+		args.set_var( prefix + "man_sash_pos", str( sash_pos ) )
+
+		# save col width
+		for i in range( self.rep_list.GetColumnCount() ) :
+			w = self.rep_list.GetColumnWidth( i )
+			args.set_var( prefix + "man_colw" + str( i ), str( w ) )
+
+		# save the option. How was it sorted?
+		args.set_var( 'man_sort_by', str( self.rep_list.last_clicked_col ) )
+		if self.rep_list.ascending :
+			args.set_var( 'man_sort_ascending', 'true' )
+		else :
+			args.set_var( 'man_sort_ascending', 'false' )
+
 
 
 
@@ -1286,19 +1390,19 @@ class ReplayViewer( wx.Frame ) :
 	def do_layout( self ) :
 		self.SetMinSize( (900, 700) )
 		main_sizer = wx.BoxSizer( wx.VERTICAL )
-		splitter = wx.SplitterWindow( self ) # must go into a sizer :S
-		splitter.SetMinimumPaneSize( 20 )
-		main_sizer.Add( splitter, 1, wx.EXPAND )
+		self.splitter = wx.SplitterWindow( self ) # must go into a sizer :S
+		self.splitter.SetMinimumPaneSize( 20 )
+		main_sizer.Add( self.splitter, 1, wx.EXPAND )
 
 		# top part of the splitter.
 		# creates self.player_list, self.map_view
-		top_panel = self.create_top_panel( splitter )
+		top_panel = self.create_top_panel( self.splitter )
 
 		#
 		# bottom part of the splitter
 		#
 		# for splitter box resizing...
-		bottom_panel = wx.Panel( splitter, size=(500,500) )
+		bottom_panel = wx.Panel( self.splitter, size=(500,500) )
 
 		self.rep_list = ReplayList( bottom_panel, self )
 
@@ -1328,8 +1432,8 @@ class ReplayViewer( wx.Frame ) :
 		bottom_panel.SetSizer( bottom_box )
 		#bottom_box.SetMinSize( (600, 400 ) )
 
-		splitter.SplitHorizontally( top_panel, bottom_panel )
-		#splitter.SetSashGravity( 0.5 )
+		self.splitter.SplitHorizontally( top_panel, bottom_panel )
+		#self.splitter.SetSashGravity( 0.5 )
 
 		self.SetAutoLayout(True)
 		self.SetSizer( main_sizer )
@@ -1642,6 +1746,8 @@ class ReplayViewer( wx.Frame ) :
 
 
 	def on_close( self, evt ) :
+		self.save_win_props()
+
 		# remove gnuplot temp files
 		for fname in Gnuplot.temp_files :
 			os.unlink( fname )
