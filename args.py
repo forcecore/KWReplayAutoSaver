@@ -55,6 +55,7 @@ class Args :
 			val = val.replace( "%", "%%" )
 			# The % symbols all mess up setting this variable. :(
 		self.cfg[ section ][ key ] = str( val ) # set it in cfg.
+		self.save()
 	
 
 
