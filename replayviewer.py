@@ -1188,6 +1188,9 @@ class ReplayViewer( wx.Frame ) :
 		super().__init__( parent, title='Replay Info Viewer', size=(1024,800) )
 		path = os.path.dirname( Args.args.last_replay )
 
+		self.is_min = False # on close, discern if this is actually a minimization action.
+		# used by on_min
+
 		self.MAPS_ZIP = 'maps.zip' # the name of the zip file that has map previews
 		self.do_layout()
 		self.event_bindings()
@@ -1628,6 +1631,16 @@ class ReplayViewer( wx.Frame ) :
 
 
 
+	def on_min( self, evt ) :
+		args = Args.args
+		if args.get_bool( 'min_to_tray', default=False ) :
+			self.is_min = True
+			self.Close()
+		else :
+			evt.Skip()
+
+
+
 	def on_close( self, evt ) :
 		# remove gnuplot temp files
 		for fname in Gnuplot.temp_files :
@@ -1636,8 +1649,15 @@ class ReplayViewer( wx.Frame ) :
 
 		par = self.Parent
 		if par :
-			# I (the developer) run the replay viewer only sometimes haha
-			par.tray_icon.on_exit( evt )
+			args = Args.args
+
+			if self.is_min :
+				# minimize to tray = self.Close().
+				# In this case, don't kill tray actually.
+				pass
+			elif args.get_bool( 'close_to_tray', default=True ) == False :
+				# if not close to tray, close the app.
+				par.tray_icon.on_exit( evt )
 
 		evt.Skip()
 	
@@ -1655,7 +1675,8 @@ class ReplayViewer( wx.Frame ) :
 		self.nofilter_btn.Bind( wx.EVT_BUTTON, self.on_nofilter_btnClick )
 		self.filter_text.Bind( wx.EVT_TEXT_ENTER, self.on_filter_applyClick )
 
-		self.Bind( wx.EVT_CLOSE, self.on_close )
+		self.Bind( wx.EVT_CLOSE, self.on_close ) # on close...
+		self.Bind( wx.EVT_ICONIZE, self.on_min ) # on minimize...
 
 
 
@@ -1750,8 +1771,8 @@ class ReplayViewer( wx.Frame ) :
 		on_close.Bind( wx.EVT_MENU, self.on_close_the_app, close_the_app )
 
 		on_minimize = wx.Menu()
-		min_to_tray = on_minimize.Append( wx.ID_ANY, 'minimizes to tray', kind=wx.ITEM_RADIO )
 		min_to_tbar = on_minimize.Append( wx.ID_ANY, 'minimizes to taskbar', kind=wx.ITEM_RADIO )
+		min_to_tray = on_minimize.Append( wx.ID_ANY, 'minimizes to tray', kind=wx.ITEM_RADIO )
 		on_minimize.Bind( wx.EVT_MENU, self.on_min_to_tray, min_to_tray )
 		on_minimize.Bind( wx.EVT_MENU, self.on_min_to_tbar, min_to_tbar )
 
@@ -1765,7 +1786,7 @@ class ReplayViewer( wx.Frame ) :
 		else :
 			on_close.Check( close_the_app.GetId(), True )
 
-		if args.get_bool( 'min_to_tray', default=True ) :
+		if args.get_bool( 'min_to_tray', default=False ) :
 			on_minimize.Check( min_to_tray.GetId(), True )
 		else :
 			on_minimize.Check( min_to_tbar.GetId(), True )
