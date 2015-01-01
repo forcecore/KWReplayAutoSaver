@@ -807,7 +807,7 @@ class ReplayList( wx.ListCtrl ) :
 			#print( rep_name, "has random" )
 
 			# old full name
-			old_name = kwr.fname
+			old_name = rep_name
 			old_name = os.path.join( self.path, old_name )
 
 			# resolve factions
