@@ -180,8 +180,8 @@ POWERNAMES = {
 	0x02FB0C00: "Ion cannon",
 	0xC0527800: "Sonic wall",
 
-	0xA1819100: "Decoy army",
-	0x7668A300: "Radar jamming", # probably incorrect.
+	0xA1819100: "Decoy army src",
+	0x7668A300: "Decoy army dest",
 	0xF1630D20: "Radar jamming",
 	0xC21CA400: "Laser fence",
 	0x34EAD100: "Nod cloaking field",
