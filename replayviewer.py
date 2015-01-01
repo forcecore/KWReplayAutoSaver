@@ -1624,15 +1624,22 @@ class ReplayViewer( wx.Frame ) :
 
 
 	def on_exit( self, evt ) :
+		self.Close() # generate close event.
+
+
+
+	def on_close( self, evt ) :
 		# remove gnuplot temp files
 		for fname in Gnuplot.temp_files :
 			os.unlink( fname )
+		Gnuplot.temp_files = [] # purge the list.
 
 		par = self.Parent
-		self.Close()
 		if par :
 			# I (the developer) run the replay viewer only sometimes haha
 			par.tray_icon.on_exit( evt )
+
+		evt.Skip()
 	
 
 
@@ -1648,12 +1655,12 @@ class ReplayViewer( wx.Frame ) :
 		self.nofilter_btn.Bind( wx.EVT_BUTTON, self.on_nofilter_btnClick )
 		self.filter_text.Bind( wx.EVT_TEXT_ENTER, self.on_filter_applyClick )
 
+		self.Bind( wx.EVT_CLOSE, self.on_close )
 
 
-	def make_menu( self ) :
-		menubar = wx.MenuBar()
+
+	def make_analysis_menu( self ) :
 		analysis_menu = wx.Menu()
-		menubar.Append( analysis_menu, "&Analysis" )
 
 		# Plot APM
 		plot_apm_menu_item = analysis_menu.Append( wx.NewId(), "Plot &APM",
@@ -1706,9 +1713,19 @@ class ReplayViewer( wx.Frame ) :
 		# Sep.
 		analysis_menu.AppendSeparator()
 
-		exit_menu_item = analysis_menu.Append( wx.NewId(), "E&xit program (including tray icon)",
-				"Exits the program completely" )
+		exit_menu_item = analysis_menu.Append( wx.NewId(), "E&xit",
+				"Exits the program or this manager" )
 		analysis_menu.Bind( wx.EVT_MENU, self.on_exit, exit_menu_item )
+
+		return analysis_menu
+
+
+
+	def make_menu( self ) :
+		menubar = wx.MenuBar()
+
+		analysis_menu = self.make_analysis_menu()
+		menubar.Append( analysis_menu, "&Analysis" )
 
 		self.SetMenuBar( menubar )
 
