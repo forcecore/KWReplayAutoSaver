@@ -1688,7 +1688,7 @@ class ReplayViewer( wx.Frame ) :
 		analysis_menu.Bind( wx.EVT_MENU, self.on_plot_unit_dist, plot_unit_dist_menu_item )
 
 		# dump commands
-		dump_cmds_menu_item = analysis_menu.Append( wx.NewId(), "Dump &Commands",
+		dump_cmds_menu_item = analysis_menu.Append( wx.NewId(), "&Dump Commands",
 				"Dump commands to file" )
 		analysis_menu.Bind( wx.EVT_MENU, self.on_dump_cmds, dump_cmds_menu_item )
 
@@ -1713,11 +1713,64 @@ class ReplayViewer( wx.Frame ) :
 		# Sep.
 		analysis_menu.AppendSeparator()
 
-		exit_menu_item = analysis_menu.Append( wx.NewId(), "E&xit",
+		exit_menu_item = analysis_menu.Append( wx.NewId(), "&Close",
 				"Exits the program or this manager" )
 		analysis_menu.Bind( wx.EVT_MENU, self.on_exit, exit_menu_item )
 
 		return analysis_menu
+
+
+
+	def on_close_to_tray( self, event ) :
+		args = Args.args
+		args.set_var( 'close_to_tray', 'true' )
+
+	def on_close_the_app( self, event ) :
+		args = Args.args
+		args.set_var( 'close_to_tray', 'false' )
+
+	def on_min_to_tray( self, event ) :
+		args = Args.args
+		args.set_var( 'min_to_tray', 'true' )
+
+	def on_min_to_tbar( self, event ) :
+		args = Args.args
+		args.set_var( 'min_to_tray', 'false' )
+
+
+
+	def make_options_menu( self ) :
+		options_menu = wx.Menu()
+
+		# Plot APM
+		on_close = wx.Menu()
+		close_to_tray = on_close.Append( wx.ID_ANY, 'closes to tray', kind=wx.ITEM_RADIO )
+		close_the_app = on_close.Append( wx.ID_ANY, 'closes the app', kind=wx.ITEM_RADIO )
+		on_close.Bind( wx.EVT_MENU, self.on_close_to_tray, close_to_tray )
+		on_close.Bind( wx.EVT_MENU, self.on_close_the_app, close_the_app )
+
+		on_minimize = wx.Menu()
+		min_to_tray = on_minimize.Append( wx.ID_ANY, 'minimizes to tray', kind=wx.ITEM_RADIO )
+		min_to_tbar = on_minimize.Append( wx.ID_ANY, 'minimizes to taskbar', kind=wx.ITEM_RADIO )
+		on_minimize.Bind( wx.EVT_MENU, self.on_min_to_tray, min_to_tray )
+		on_minimize.Bind( wx.EVT_MENU, self.on_min_to_tbar, min_to_tbar )
+
+		options_menu.Append( wx.ID_ANY, "Close...", on_close )
+		options_menu.Append( wx.ID_ANY, "Minimize...", on_minimize )
+
+		# read the val and apply it.
+		args = Args.args
+		if args.get_bool( 'close_to_tray', default=True ) :
+			on_close.Check( close_to_tray.GetId(), True )
+		else :
+			on_close.Check( close_the_app.GetId(), True )
+
+		if args.get_bool( 'min_to_tray', default=True ) :
+			on_minimize.Check( min_to_tray.GetId(), True )
+		else :
+			on_minimize.Check( min_to_tbar.GetId(), True )
+
+		return options_menu
 
 
 
@@ -1726,6 +1779,9 @@ class ReplayViewer( wx.Frame ) :
 
 		analysis_menu = self.make_analysis_menu()
 		menubar.Append( analysis_menu, "&Analysis" )
+
+		options_menu = self.make_options_menu()
+		menubar.Append( options_menu, "&Options" )
 
 		self.SetMenuBar( menubar )
 
