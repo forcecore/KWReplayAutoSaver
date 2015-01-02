@@ -776,6 +776,8 @@ class APMAnalyzer() :
 
 	
 
+	# returns:
+	# counts_at_secont[ t ] = commands in [t-interval, t].
 	def count_player_actions( self, interval, cmds_at_second ) :
 		counts_at_second = [ [0]*self.nplayers for i in range( len( cmds_at_second ) ) ]
 		# counts_at_second[ sec ][ pid ] = action counts at sec for that player.
@@ -803,15 +805,20 @@ class APMAnalyzer() :
 		if file == None :
 			file = sys.stdout
 
+		cmds_at_second = self.group_commands_by_time()
+		counts_at_second = self.count_player_actions( interval, cmds_at_second )
 		# actions counted for that second...
-		counts_at_second = self.count_actions( interval )
+
+		ts = [ t for t in range( len( counts_at_second ) ) ]
+		apmss = self.make_apmss( interval, counts_at_second )
+		#apmss[pid][t] = apm at time t, of player pid.
 
 		# print header
 		print( "t", end=",", file=file )
 		for player in self.kwr.players :
 			if not player.is_player() :
 				continue
-			print( '"' + Args.args.akaed_name( player) + '"', end=",", file=file )
+			print( '"' + Args.args.akaed_name( player ) + '"', end=",", file=file )
 		print( file=file )
 
 		for t in range( len( counts_at_second ) ) :
@@ -825,6 +832,35 @@ class APMAnalyzer() :
 				apm *= 60/interval
 				print( apm, end=",", file=file )
 			print( file=file )
+	
+
+
+	def calc_avg_apm( self, cmds_at_second ) :
+		avg_apms = [ 0 ] * self.nplayers
+		game_len = len( cmds_at_second )
+
+		# counts_at_second[t][pid] = count
+
+		# count commands for the whole game.
+		for t in range( game_len ) :
+			commands = cmds_at_second[ t ]
+			for cmd in commands :
+				pid = cmd.player_id
+				avg_apms[ pid ] += 1
+
+		# now, get avg.
+		for pid in range( self.nplayers ) :
+			avg_apms[ pid ] /= (game_len/60)
+
+		# lets print
+		#for pid in range( self.nplayers ) :
+		#	player = self.kwr.players[i]
+		#	if not player.is_player() :
+		#		continue
+		#	name = Args.args.aka_xor_name( player )
+		#	# print( name, avg_apms[ pid ] )
+
+		return avg_apms
 
 
 
@@ -832,8 +868,10 @@ class APMAnalyzer() :
 		plt = Gnuplot()
 		plt.open()
 
+		cmds_at_second = self.group_commands_by_time()
+		counts_at_second = self.count_player_actions( interval, cmds_at_second )
 		# actions counted for that second...
-		counts_at_second = self.count_actions( interval )
+
 		ts = [ t for t in range( len( counts_at_second ) ) ]
 		apmss = self.make_apmss( interval, counts_at_second )
 		#apmss[pid][t] = apm at time t, of player pid.
@@ -855,6 +893,20 @@ class APMAnalyzer() :
 
 		# draw legend
 		plt.legend( labels )
+
+		avg_apms = self.calc_avg_apm( cmds_at_second )
+		#peak_apms = self.calc_peak_apm( apmss )
+
+		# lets print
+		for pid in range( self.nplayers ) :
+			player = self.kwr.players[pid]
+			if not player.is_player() :
+				continue
+			name = Args.args.aka_xor_name( player )
+			#print( name, avg_apms[ pid ] )
+			#plt.write( "plot %f\n" % avg_apms[ pid ] )
+			text = name + " avg: %f"
+		plt.write( "set label 1 gprintf(\"%s\", %.2f) at 10, 10\n" % ( text, avg_apms[ pid ] ) )
 
 		plt.show()
 		plt.close()
@@ -884,9 +936,9 @@ class APMAnalyzer() :
 
 	# interval: collect this much commands to calculate APM.
 	# returns almost APM... we only need to apply weight and emit the data.
-	def count_actions( self, interval ) :
-		cmds_at_second = self.group_commands_by_time()
-		return self.count_player_actions( interval, cmds_at_second )
+	#def count_actions( self, interval ) :
+	#	cmds_at_second = self.group_commands_by_time()
+	#	return self.count_player_actions( interval, cmds_at_second )
 
 
 
