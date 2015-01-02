@@ -571,7 +571,6 @@ class ReplayList( wx.ListCtrl ) :
 		self.path = path
 		self.replay_items.scan_path( path )
 		self.populate( self.replay_items )
-		self.sort()
 		self.names = None # scratch memory for replay renaming presets (for context menu)
 		self.ctx_old_name = "" # lets have a space for the old replay name too.
 			# this one is for remembering click/right clicked ones only.
