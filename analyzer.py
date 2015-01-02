@@ -864,6 +864,9 @@ class APMAnalyzer() :
 
 
 
+	# I think this is the way to go...
+	# um... nah. it sucks. you should be able to compare!
+	# http://gnuplot.sourceforge.net/demo/layout.html
 	def plot( self, interval, font_fname=None ) :
 		plt = Gnuplot()
 		plt.open()
@@ -898,6 +901,7 @@ class APMAnalyzer() :
 		#peak_apms = self.calc_peak_apm( apmss )
 
 		# lets print
+		texts = []
 		for pid in range( self.nplayers ) :
 			player = self.kwr.players[pid]
 			if not player.is_player() :
@@ -905,10 +909,25 @@ class APMAnalyzer() :
 			name = Args.args.aka_xor_name( player )
 			#print( name, avg_apms[ pid ] )
 			#plt.write( "plot %f\n" % avg_apms[ pid ] )
-			text = name + " avg: %f"
-		plt.write( "set label 1 gprintf(\"%s\", %.2f) at 10, 10\n" % ( text, avg_apms[ pid ] ) )
+			text = "%s avg: %.2f" % ( name, avg_apms[ pid ] )
+			texts.append( text )
+		text = ", ".join( texts )
+		plt.write( "set label 1 \"%s\" at 10, 10\n" % text )
+
+		plt.write( "set multiplot\n" )
 
 		plt.show()
+
+		for pid in range( self.nplayers ) :
+			player = self.kwr.players[pid]
+			if not player.is_player() :
+				continue
+			#name = Args.args.aka_xor_name( player )
+			#print( name, avg_apms[ pid ] )
+			plt.write( "replot %f\n" % avg_apms[ pid ] )
+
+		plt.write( "clear\n" )
+		plt.write( "unset multiplot\n" )
 		plt.close()
 
 
