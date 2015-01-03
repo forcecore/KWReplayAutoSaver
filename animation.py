@@ -21,6 +21,7 @@ UNIT_COLORS = [
 		'#ff7f00', # Orange
 		'#00ffff', # Cyan
 		'#ff7fff', # Pink
+		'#ffffff', # White
 	]
 
 BLDG_COLORS = [
@@ -31,6 +32,7 @@ BLDG_COLORS = [
 		'#7f3f00', # Orange
 		'#007f7f', # Cyan
 		'#7f667f', # Pink
+		'#7f7f7f', # White
 	]
 	
 
@@ -1133,6 +1135,7 @@ class TimelineViewer( wx.Frame ) :
 
 	def load( self, kwr ) :
 		self.kwr = kwr
+		self.kwr.fix_pid()
 		assert len( kwr.replay_body.chunks ) > 0
 		# +1 second so that we can see the END of the replay.
 		self.length = int( kwr.replay_body.chunks[-1].time_code/15 ) + 1

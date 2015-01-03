@@ -381,12 +381,13 @@ class Command :
 	
 
 
-	def decode_placedown_cmd( self, UNITNAMES, UNITCOST ) :
+	def decode_placedown_cmd( self, UNITNAMES, UNITCOST, FREEUNITS ) :
 		self.cmd_ty = Command.PLACEDOWN
 		data = self.payload
 		self.building_type = uint42int( data[6:10] )
 		self.substructure_cnt = data[10]
 		self.substructures = []
+		self.free_unit = None # harvesters.
 
 		# substructure X and Y decoding.
 		pos = 11
@@ -402,6 +403,9 @@ class Command :
 			self.cost = UNITCOST[ self.building_type ]
 
 		if self.building_type in UNITNAMES :
+			if self.building_type in FREEUNITS :
+				self.free_unit = FREEUNITS[ self.building_type ]
+				self.free_unit = UNITNAMES[ self.free_unit ]
 			self.building_type = UNITNAMES[ self.building_type ]
 		else :
 			self.building_type = "Bldg 0x%08X" % self.building_type
@@ -920,7 +924,31 @@ class KWReplayWithCommands( KWReplay ) :
 			print( "final_time_code:", self.final_time_code )
 			print( "footer_data:", self.footer_data )
 			print()
-	
+
+
+
+	# Sometimes, we get invalid player_id in some commands for unknown reason.
+	# See cornercases/big_player_id for example.
+	# Why do I do this? cos I work with pid as array indexes a lot.
+	def fix_pid( self ) :
+		discarded = 0
+		for chunk in self.replay_body.chunks :
+
+			# keep valid commands
+			commands = []
+			for cmd in chunk.commands :
+				# invalid player id!
+				if cmd.player_id < len( self.players ) :
+					commands.append( cmd )
+
+			if len( commands ) != len( chunk.commands ) :
+				discarded += len( chunk.commands ) - len( commands )
+				chunk.commands = commands
+
+		print( discarded, "commands with invalid player discarded" )
+
+
+
 	def loadFromFile( self, fname ) :
 		self.guess_game( fname )
 		f = open( fname, 'rb' )

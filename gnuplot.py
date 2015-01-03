@@ -34,6 +34,7 @@ class Gnuplot() :
 		self.write( 'set ylabel "%s"\n' % s )
 	
 	def legend( self, labels ) :
+		self.write( 'set key outside bottom center horizontal\n' )
 		self.labels = labels
 	
 	def plot( self, xs, ys ) :
@@ -45,13 +46,15 @@ class Gnuplot() :
 		#self.linestyle_id += 1
 		#self.write( 'set style line %d \n' % self.data_id )
 
-		self.write( 'set key outside bottom center horizontal\n' )
-
 		self.write( 'plot \\\n' )
+		# now a stub command... for use with other useful plottings.
+		self.data_plot_command()
+
+	def data_plot_command( self ) :
 		assert len( self.xss ) == len( self.yss )
 		data_str = []
 		for i in range( len( self.xss ) ) :
-			data_str.append( '"-" using 1:2 with %s title "%s"' % ( self.style, self.labels[i] ) )
+			data_str.append( '"-" using 1:2 with %s title "%s" linecolor %d' % ( self.style, self.labels[i], i+1 ) )
 		data_str = ", ".join( data_str )
 		self.write( data_str )
 		self.write( "\n" )

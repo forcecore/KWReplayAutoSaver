@@ -7,6 +7,20 @@ from chunks import KWReplayWithCommands, Command
 
 
 
+# Gnuplot title can get ... busted if
+# player name contains " or \... tough one, eh?
+def sanitize_name( player, xor=False ) :
+	if not xor :
+		name = Args.args.akaed_name( player )
+	else :
+		name = Args.args.aka_xor_name( player )
+	name = name.replace( "\\", "\\\\" )
+	name = name.replace( "\"", "\\\"" )
+	name = name.replace( "`", "\\`" )
+	return name
+
+
+
 def merge_lines( f, players, xss, yss ) :
 	# data check.
 	for xs, ys in zip( xss, yss ) :
@@ -313,6 +327,10 @@ class FactorySim() :
 			else :
 				assert 0, "Units require cost info."
 
+			# Well, if we have free units to track, track now... um,
+			# how about cancel?! oh no...  don't count it here.
+			# self.count_unit( cmd.player_id, cmd.free_unit )
+
 			if FactorySim.verbose :
 				print( "Factory 0x%08X" % fa.factory_id )
 				fivex = ""
@@ -489,16 +507,32 @@ class FactorySim() :
 class ResourceAnalyzer() :
 	def __init__( self, kwr_chunks ) :
 		self.kwr = kwr_chunks
+		self.kwr.fix_pid()
 		self.nplayers = len( self.kwr.players )
 		self.sim = FactorySim()
 
 		self.spents = [ [] for i in range( self.nplayers ) ] # remember who spent what.
 		self.units = [ {} for i in range( self.nplayers ) ] # remember who built what how many.
 		# spents[ pid ] = [ (t1, cost1), (t2, cost2), ... ]
+	
+
+
+	# keep track of #of a unit type by player pid.
+	def count_unit( self, pid, unit ) :
+		# count units produced, too, for histogram.
+		histo = self.units[ pid ]
+		unit = unit.replace( " (NavYd)", "" ) # naval yard created units are the same units u know.
+		if unit in histo :
+			histo[ unit ] += 1
+		else :
+			histo[ unit ] = 1
 
 
 
 	def calc( self ) :
+		if self.kwr.game == "RA3" :
+			import ra3chunks
+
 		# determine end time of Q simulation.
 		# Must be done before step 1.
 		if len( self.kwr.replay_body.chunks ) > 0 :
@@ -518,13 +552,15 @@ class ResourceAnalyzer() :
 				pid, time_code, cost, unit = spent
 				t = int( time_code / 15 )
 				self.spents[ pid ].append( (t, cost) )
+				self.count_unit( pid, unit )
 
-				# count units produced, too, for histogram.
-				histo = self.units[ pid ]
-				if unit in histo :
-					histo[ unit ] += 1
-				else :
-					histo[ unit ] = 1
+				# some dirty job...
+				# empire ref core is a UNIT. :(
+				# works differently from placedown commands.
+				if self.kwr.game == "RA3" :
+					if unit in ra3chunks.FREEUNITS :
+						freeunit = ra3chunks.FREEUNITS[ unit ]
+						self.count_unit( pid, freeunit )
 
 		# step 3. Sort events by time.
 		for spent in self.spents :
@@ -541,7 +577,7 @@ class ResourceAnalyzer() :
 			player = self.kwr.players[i]
 			if not player.is_player() :
 				continue
-			print( Args.args.aka_xor_name( player ) )
+			print( sanitize_name( player, xor=True ) )
 
 			histo = self.units[ i ]
 			for unit, cnt in histo.items() :
@@ -568,7 +604,7 @@ class ResourceAnalyzer() :
 			plt.write( 'set style fill solid\n' )
 			plt.write( 'set key off\n' )
 			plt.write( 'set boxwidth 0.5\n' )
-			plt.write( 'set title "%s"\n' % Args.args.akaed_name( player ) )
+			plt.write( 'set title "%s"\n' % sanitize_name( player ) )
 
 			n_kinds = len( histo )
 			plt.write( 'set xrange[-1:%d]\n' % n_kinds )
@@ -590,6 +626,13 @@ class ResourceAnalyzer() :
 			#	cmd = 'set label "%d" at %d,%d\n' % ( cnt, i, cnt+5 )
 			#	plt.write( cmd )
 			#	i += 1
+
+			# y range, manually.
+			max_cnt = 0
+			for unit, cnt in histo.items() :
+				max_cnt = max( max_cnt, cnt )
+			print( max_cnt )
+			plt.write( "set yrange [0:%f]\n" % ( 1.2*max_cnt ) )
 
 			# feed data
 			cmd = 'plot "-" using 0:1 with boxes linecolor %s, ' % color
@@ -632,6 +675,9 @@ class ResourceAnalyzer() :
 		t = int( cmd.time_code / 15 ) # in seconds
 		if cmd.is_placedown() :
 			self.collect( cmd.player_id, t, cmd.cost )
+			if cmd.free_unit :
+				# keep track of free harvesters.
+				self.count_unit( cmd.player_id, cmd.free_unit )
 		elif cmd.is_skill_use() :
 			self.collect( cmd.player_id, t, cmd.cost )
 		elif cmd.is_upgrade() :
@@ -691,7 +737,7 @@ class ResourceAnalyzer() :
 		plt.open()
 
 		plt.xlabel( "Time (s)" )
-		plt.ylabel( "$$$ spent" )
+		plt.ylabel( "$$$ spent (estimate)" )
 		plt.set_style( "linespoints" )
 
 		plots = []
@@ -707,7 +753,7 @@ class ResourceAnalyzer() :
 			ts, costs = pair
 
 			plt.plot( ts, costs )
-			labels.append( Args.args.aka_xor_name( player ) )
+			labels.append( sanitize_name( player, xor=True ) )
 
 		plt.legend( labels )
 		plt.show()
@@ -735,7 +781,7 @@ class ResourceAnalyzer() :
 
 			xss.append( ts )
 			yss.append( costs )
-			players.append( Args.args.akaed_name( player ) )
+			players.append( sanitize_name( player ) )
 
 		print( "t,$$$ spent", file=file )
 		merge_lines( file, players, xss, yss )
@@ -745,6 +791,7 @@ class ResourceAnalyzer() :
 class APMAnalyzer() :
 	def __init__( self, kwr_chunks ) :
 		self.kwr = kwr_chunks
+		self.kwr.fix_pid()
 		self.nplayers = len( self.kwr.players )
 
 
@@ -776,6 +823,8 @@ class APMAnalyzer() :
 
 	
 
+	# returns:
+	# counts_at_secont[ t ] = commands in [t-interval, t].
 	def count_player_actions( self, interval, cmds_at_second ) :
 		counts_at_second = [ [0]*self.nplayers for i in range( len( cmds_at_second ) ) ]
 		# counts_at_second[ sec ][ pid ] = action counts at sec for that player.
@@ -803,15 +852,20 @@ class APMAnalyzer() :
 		if file == None :
 			file = sys.stdout
 
+		cmds_at_second = self.group_commands_by_time()
+		counts_at_second = self.count_player_actions( interval, cmds_at_second )
 		# actions counted for that second...
-		counts_at_second = self.count_actions( interval )
+
+		ts = [ t for t in range( len( counts_at_second ) ) ]
+		apmss = self.make_apmss( interval, counts_at_second )
+		#apmss[pid][t] = apm at time t, of player pid.
 
 		# print header
 		print( "t", end=",", file=file )
 		for player in self.kwr.players :
 			if not player.is_player() :
 				continue
-			print( '"' + Args.args.akaed_name( player) + '"', end=",", file=file )
+			print( '"' + sanitize_name( player  ) + '"', end=",", file=file )
 		print( file=file )
 
 		for t in range( len( counts_at_second ) ) :
@@ -825,15 +879,142 @@ class APMAnalyzer() :
 				apm *= 60/interval
 				print( apm, end=",", file=file )
 			print( file=file )
+	
+
+
+	def calc_avg_apm( self, cmds_at_second ) :
+		avg_apms = [ 0 ] * self.nplayers
+		game_len = len( cmds_at_second )
+
+		# counts_at_second[t][pid] = count
+
+		# count commands for the whole game.
+		for t in range( game_len ) :
+			commands = cmds_at_second[ t ]
+			for cmd in commands :
+				pid = cmd.player_id
+				avg_apms[ pid ] += 1
+
+		# now, get avg.
+		for pid in range( self.nplayers ) :
+			avg_apms[ pid ] /= (game_len/60)
+
+		# lets print
+		#for pid in range( self.nplayers ) :
+		#	player = self.kwr.players[i]
+		#	if not player.is_player() :
+		#		continue
+		#	name = sanitize_name( player, xor=True )
+		#	# print( name, avg_apms[ pid ] )
+
+		return avg_apms
 
 
 
+	# Turn apm into text, suitable for gnuplot label.
+	def avg_apm2txts( self, avg_apms ) :
+		# lets print
+		texts = []
+		for pid in range( self.nplayers ) :
+			player = self.kwr.players[pid]
+			if not player.is_player() :
+				texts.append( "" )
+				continue
+			name = sanitize_name( player, xor=True )
+			#print( name, avg_apms[ pid ] )
+			#plt.write( "plot %f\n" % avg_apms[ pid ] )
+			text = "%s avg = %.2f" % ( name, avg_apms[ pid ] )
+			texts.append( text )
+		return texts
+
+		## slice the texts into groups of 3.
+		#slice_len = 3
+		#groups = []
+		#for i in range( 0, len( texts ), slice_len ) :
+		#	groups.append( texts[ i:i+slice_len ] )
+
+		## then, we join each group as one string.
+		#texts = []
+		#for group in groups :
+		#	texts.append( ", ".join( group ) )
+
+		# old label code for group of 3, just in case of revival.
+		#for i, text in enumerate( avg_apm_texts ) :
+		#	y = 15 * ( len( avg_apm_texts ) - i )
+		#	plt.write( "set label %d \"%s\" at 10, %d\n" % ( i+1, text, y ) )
+
+		#return texts
+
+
+
+	# get peak APM for each player.
+	def calc_peak_apm( self, apmss ) :
+		peaks = [] # (time, max pair).
+
+		for pid in range( self.nplayers ) :
+			player = self.kwr.players[pid]
+			if not player.is_player() :
+				peaks.append( (0,0) )
+				continue
+
+			apms = apmss[ pid ]
+
+			peak_time = 0
+			peak_apm = 0
+
+			for t, apm in enumerate( apms ) :
+				if apm > peak_apm :
+					peak_apm = apm
+					peak_time = t
+
+			peaks.append( (peak_time, peak_apm) )
+
+		return peaks
+
+
+
+	def draw_peak_labels( self, plt, apmss ) :
+		peak_apms = self.calc_peak_apm( apmss )
+
+		max_apm = 0
+		for pid in range( self.nplayers ) :
+			player = self.kwr.players[pid]
+			if not player.is_player() :
+				continue
+			t, peak = peak_apms[ pid ]
+			max_apm = max( max_apm, peak )
+
+		offset = int( 0.1 * max_apm )
+
+		cnt = 1
+		for pid in range( self.nplayers ) :
+			player = self.kwr.players[pid]
+			if not player.is_player() :
+				continue
+			t, peak = peak_apms[ pid ]
+
+			#print( t, peak )
+
+			plt.write( "set arrow %d from %f, %f to %f, %f\n" % ( cnt, t, peak+offset/2, t, peak ) )
+			plt.write( "set label %d '%.2f' at %f, %f centre\n" % ( cnt, peak, t, peak+0.75*offset ) )
+
+
+			cnt += 1
+		plt.write( "set yrange [0:%f]\n" % ( max_apm+1.1*offset ) )
+
+
+
+	# I think this is the way to go...
+	# um... nah. it sucks. you should be able to compare!
+	# http://gnuplot.sourceforge.net/demo/layout.html
 	def plot( self, interval, font_fname=None ) :
 		plt = Gnuplot()
 		plt.open()
 
+		cmds_at_second = self.group_commands_by_time()
+		counts_at_second = self.count_player_actions( interval, cmds_at_second )
 		# actions counted for that second...
-		counts_at_second = self.count_actions( interval )
+
 		ts = [ t for t in range( len( counts_at_second ) ) ]
 		apmss = self.make_apmss( interval, counts_at_second )
 		#apmss[pid][t] = apm at time t, of player pid.
@@ -849,14 +1030,35 @@ class APMAnalyzer() :
 				continue
 
 			plt.plot( ts, apmss[ i ] )
-			labels.append( Args.args.aka_xor_name( player ) )
+			name = sanitize_name( player, xor=True )
+			labels.append( name )
 
 		# touch up label of the curve
 
 		# draw legend
 		plt.legend( labels )
 
-		plt.show()
+		avg_apms = self.calc_avg_apm( cmds_at_second )
+		avg_apm_texts = self.avg_apm2txts( avg_apms )
+
+		# draw peak arrow.
+		self.draw_peak_labels( plt, apmss )
+
+		# now the plot begins.
+		plt.write( 'plot \\\n' ) # begin the plot command.
+
+		color = 1
+		for pid in range( self.nplayers ) :
+			player = self.kwr.players[pid]
+			if not player.is_player() :
+				continue
+			#name = sanitize_name( player, xor=True )
+			#print( name, avg_apms[ pid ] )
+			plt.write( "%f title \"%s\" linecolor %d linetype 0 linewidth 2, \\\n" % ( avg_apms[ pid ], avg_apm_texts[pid], color ) )
+			color += 1
+
+		plt.data_plot_command() # plot apm(player, t) data.
+
 		plt.close()
 
 
@@ -884,15 +1086,16 @@ class APMAnalyzer() :
 
 	# interval: collect this much commands to calculate APM.
 	# returns almost APM... we only need to apply weight and emit the data.
-	def count_actions( self, interval ) :
-		cmds_at_second = self.group_commands_by_time()
-		return self.count_player_actions( interval, cmds_at_second )
+	#def count_actions( self, interval ) :
+	#	cmds_at_second = self.group_commands_by_time()
+	#	return self.count_player_actions( interval, cmds_at_second )
 
 
 
 class PositionDumper() :
 	def __init__( self, kwr_chunks ) :
 		self.kwr = kwr_chunks
+		self.kwr.fix_pid()
 		self.nplayers = len( self.kwr.players )
 		self.commandss = None # populated by calc()
 
@@ -964,14 +1167,14 @@ if __name__ == "__main__" :
 	kw = KWReplayWithCommands( fname=fname, verbose=False )
 	#kw.replay_body.dump_commands()
 
-	ana = APMAnalyzer( kw )
-	ana.plot( 10 )
+	#ana = APMAnalyzer( kw )
+	#ana.plot( 10 )
 	#ana.emit_apm_csv( 10, file=sys.stdout )
 
-	#res = ResourceAnalyzer( kw )
-	#res.calc()
+	res = ResourceAnalyzer( kw )
+	res.calc()
 	#res.print_unit_distribution()
-	#res.plot_unit_distribution()
+	res.plot_unit_distribution()
 	#res.emit_csv()
 	#res.plot()
 

@@ -39,6 +39,13 @@ AFLD_UNITS = [
 	0x83D5A86B, # Century bomber
 ]
 
+FREEUNITS = {
+	0xC45AAEAB: 0xF6DAC2A4, # soviet ref
+	0x8ECE261C: 0x2A196E71, # allied ref
+	0xFF4A8B60: 0x92CDE50F, # empire ref
+	"E Ref core": "E Ore collector", # empire ref
+}
+
 UNITNAMES = {
 	0xA01D437D: "S Crane",
 	0xCF8D9F20: "S Reactor",
@@ -421,7 +428,7 @@ class RA3Chunk( chunks.Chunk ) :
 			cmd.cmd_ty = chunks.Command.HIDDEN # lets forbid this from showing.
 
 		if cmd.cmd_id == 0x09 :
-			cmd.decode_placedown_cmd( UNITNAMES, UNITCOST )
+			cmd.decode_placedown_cmd( UNITNAMES, UNITCOST, FREEUNITS )
 		elif cmd.cmd_id == 0x05 :
 			cmd.decode_ra3_queue_cmd( UNITNAMES, AFLD_UNITS, UNITCOST )
 		elif cmd.cmd_id == 0x06 :

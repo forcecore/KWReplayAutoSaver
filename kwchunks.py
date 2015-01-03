@@ -126,6 +126,7 @@ CMDNAMES = {
 	0x2D: "queue/resume production",
 	0x2E: "hold/cancel/cancel_all production",
 	0x2F: "Start building construction",
+	0x30: "Hold/Cancel construction",
 	0x31: "Place down building",
 	0x34: "sell",
 	0x3D: "attack",
@@ -274,6 +275,18 @@ UPGRADENAMES = {
 	0x70427973: "Conversion beam res.",
 	0xA921E313: "Advanced articulators",
 	0x4FCCDACF: "Traveller engine",
+}
+
+FREEUNITS = {
+	0xB5D275B6: 0x3A3D109A, # Nod ref & harv
+	0x16A86D68: 0x0D258354, # GDI
+	0x4C2E2C25: 0xF52AEEDF, # ST
+	0x05F6FA50: 0x21661DFB, # BH
+	0x40DCA116: 0xC3785BFE, # MoK
+	0x0CA58AEF: 0x14E34DE2, # Sc
+	0x7E291858: 0xC37F7227, # R17
+	0xF4E73A51: 0x998395BF, # T59
+	0xBA62677D: 0xC23B3A15, # ZCM
 }
 
 UNITNAMES = {
@@ -1131,7 +1144,7 @@ class KWChunk( chunks.Chunk ) :
 
 	def decode_cmd( self, cmd ) :
 		if cmd.cmd_id == 0x31 :
-			cmd.decode_placedown_cmd( UNITNAMES, UNITCOST )
+			cmd.decode_placedown_cmd( UNITNAMES, UNITCOST, FREEUNITS )
 		elif cmd.cmd_id == 0x26 :
 			cmd.decode_skill_targetless( POWERNAMES, POWERCOST )
 		elif cmd.cmd_id == 0x27 :
