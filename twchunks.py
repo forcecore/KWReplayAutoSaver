@@ -16,8 +16,9 @@ CMDNAMES = {
 	0x1D: "Skill (with 1 target pos)",
 	0x21: "Upgrade",
 	0x23: "Queue a unit production",
+	0x24: "Hold a unit production",
 	0x25: "Start construction of a structure",
-	0x26: "Hold",
+	0x26: "Hold/cancel construction of a structure",
 	0x27: "Place down a structure",
 	0x2A: "Sell",
 	0x2D: "GG",
@@ -30,7 +31,7 @@ CMDNAMES = {
 	0xF8: "Deselect units",
 }
 
-BO_COMMANDS = [ 0x1C, 0x1D, 0x23, 0x27, 0x80, 0x21, 0x26, 0x2A, 0x2D ]
+BO_COMMANDS = [ 0x1C, 0x1D, 0x23, 0x24, 0x27, 0x80, 0x21, 0x2A, 0x2D ]
 
 
 
@@ -59,7 +60,7 @@ class TWChunk( chunks.Chunk ) :
 			cmd.decode_skill_2xy( POWERNAMES, POWERCOST )
 		elif cmd.cmd_id == 0x21 :
 			cmd.decode_upgrade_cmd( UPGRADENAMES, UPGRADECOST )
-		elif cmd.cmd_id == 0x26 :
+		elif cmd.cmd_id == 0x24 :
 			cmd.decode_hold_cmd( UNITNAMES )
 		elif cmd.cmd_id == 0x2A :
 			cmd.decode_sell_cmd()

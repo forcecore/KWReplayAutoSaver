@@ -126,6 +126,7 @@ CMDNAMES = {
 	0x2D: "queue/resume production",
 	0x2E: "hold/cancel/cancel_all production",
 	0x2F: "Start building construction",
+	0x30: "Hold/Cancel construction",
 	0x31: "Place down building",
 	0x34: "sell",
 	0x3D: "attack",
