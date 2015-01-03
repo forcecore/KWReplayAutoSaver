@@ -692,7 +692,7 @@ class ResourceAnalyzer() :
 		plt.open()
 
 		plt.xlabel( "Time (s)" )
-		plt.ylabel( "$$$ spent" )
+		plt.ylabel( "$$$ spent (estimate)" )
 		plt.set_style( "linespoints" )
 
 		plots = []
@@ -873,25 +873,32 @@ class APMAnalyzer() :
 		for pid in range( self.nplayers ) :
 			player = self.kwr.players[pid]
 			if not player.is_player() :
+				texts.append( "" )
 				continue
 			name = Args.args.aka_xor_name( player )
 			#print( name, avg_apms[ pid ] )
 			#plt.write( "plot %f\n" % avg_apms[ pid ] )
-			text = "%s avg: %.2f" % ( name, avg_apms[ pid ] )
+			text = "%s avg = %.2f" % ( name, avg_apms[ pid ] )
 			texts.append( text )
-
-		# slice the texts into groups of 3.
-		slice_len = 3
-		groups = []
-		for i in range( 0, len( texts ), slice_len ) :
-			groups.append( texts[ i:i+slice_len ] )
-
-		# then, we join each group as one string.
-		texts = []
-		for group in groups :
-			texts.append( ", ".join( group ) )
-
 		return texts
+
+		## slice the texts into groups of 3.
+		#slice_len = 3
+		#groups = []
+		#for i in range( 0, len( texts ), slice_len ) :
+		#	groups.append( texts[ i:i+slice_len ] )
+
+		## then, we join each group as one string.
+		#texts = []
+		#for group in groups :
+		#	texts.append( ", ".join( group ) )
+
+		# old label code for group of 3, just in case of revival.
+		#for i, text in enumerate( avg_apm_texts ) :
+		#	y = 15 * ( len( avg_apm_texts ) - i )
+		#	plt.write( "set label %d \"%s\" at 10, %d\n" % ( i+1, text, y ) )
+
+		#return texts
 
 
 
@@ -931,21 +938,22 @@ class APMAnalyzer() :
 		avg_apms = self.calc_avg_apm( cmds_at_second )
 		avg_apm_texts = self.avg_apm2txts( avg_apms )
 
-		for i, text in enumerate( avg_apm_texts ) :
-			y = 15 * ( len( avg_apm_texts ) - i )
-			plt.write( "set label %d \"%s\" at 10, %d\n" % ( i+1, text, y ) )
-
 		#peak_apms = self.calc_peak_apm( apmss )
-		plt.show()
+		#plt.show()
 
-		if 0 :
-			for pid in range( self.nplayers ) :
-				player = self.kwr.players[pid]
-				if not player.is_player() :
-					continue
-				#name = Args.args.aka_xor_name( player )
-				#print( name, avg_apms[ pid ] )
-				plt.write( "plot %f\n" % avg_apms[ pid ] )
+		plt.write( 'plot \\\n' ) # begin the plot command.
+
+		color = 1
+		for pid in range( self.nplayers ) :
+			player = self.kwr.players[pid]
+			if not player.is_player() :
+				continue
+			#name = Args.args.aka_xor_name( player )
+			#print( name, avg_apms[ pid ] )
+			plt.write( "%f title \"%s\" linecolor %d linetype 0 linewidth 2, \\\n" % ( avg_apms[ pid ], avg_apm_texts[pid], color ) )
+			color += 1
+
+		plt.data_plot_command() # data plot expr.
 
 		plt.close()
 
