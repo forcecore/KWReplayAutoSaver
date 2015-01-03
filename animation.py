@@ -21,6 +21,7 @@ UNIT_COLORS = [
 		'#ff7f00', # Orange
 		'#00ffff', # Cyan
 		'#ff7fff', # Pink
+		'#ffffff', # White
 	]
 
 BLDG_COLORS = [
@@ -31,6 +32,7 @@ BLDG_COLORS = [
 		'#7f3f00', # Orange
 		'#007f7f', # Cyan
 		'#7f667f', # Pink
+		'#7f7f7f', # White
 	]
 	
 
