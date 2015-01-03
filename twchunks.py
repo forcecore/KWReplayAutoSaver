@@ -7,7 +7,7 @@
 ###
 
 import chunks
-from kwchunks import UNITNAMES, UNITCOST, AFLD_UNITS, POWERNAMES, UPGRADENAMES, POWERCOST, UPGRADECOST
+from kwchunks import UNITNAMES, UNITCOST, AFLD_UNITS, POWERNAMES, UPGRADENAMES, POWERCOST, UPGRADECOST, FREEUNITS
 
 
 
@@ -48,7 +48,7 @@ class TWChunk( chunks.Chunk ) :
 	# Decode decodable commands
 	def decode_cmd( self, cmd ) :
 		if cmd.cmd_id == 0x27 :
-			cmd.decode_placedown_cmd( UNITNAMES, UNITCOST )
+			cmd.decode_placedown_cmd( UNITNAMES, UNITCOST, FREEUNITS )
 		elif cmd.cmd_id == 0x23 :
 			cmd.decode_queue_cmd( UNITNAMES, AFLD_UNITS, UNITCOST )
 		elif cmd.cmd_id == 0x1C :

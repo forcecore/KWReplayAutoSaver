@@ -381,12 +381,13 @@ class Command :
 	
 
 
-	def decode_placedown_cmd( self, UNITNAMES, UNITCOST ) :
+	def decode_placedown_cmd( self, UNITNAMES, UNITCOST, FREEUNITS ) :
 		self.cmd_ty = Command.PLACEDOWN
 		data = self.payload
 		self.building_type = uint42int( data[6:10] )
 		self.substructure_cnt = data[10]
 		self.substructures = []
+		self.free_unit = None # harvesters.
 
 		# substructure X and Y decoding.
 		pos = 11
@@ -402,6 +403,9 @@ class Command :
 			self.cost = UNITCOST[ self.building_type ]
 
 		if self.building_type in UNITNAMES :
+			if self.building_type in FREEUNITS :
+				self.free_unit = FREEUNITS[ self.building_type ]
+				self.free_unit = UNITNAMES[ self.free_unit ]
 			self.building_type = UNITNAMES[ self.building_type ]
 		else :
 			self.building_type = "Bldg 0x%08X" % self.building_type

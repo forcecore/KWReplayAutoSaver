@@ -327,6 +327,10 @@ class FactorySim() :
 			else :
 				assert 0, "Units require cost info."
 
+			# Well, if we have free units to track, track now... um,
+			# how about cancel?! oh no...  don't count it here.
+			# self.count_unit( cmd.player_id, cmd.free_unit )
+
 			if FactorySim.verbose :
 				print( "Factory 0x%08X" % fa.factory_id )
 				fivex = ""
@@ -510,10 +514,25 @@ class ResourceAnalyzer() :
 		self.spents = [ [] for i in range( self.nplayers ) ] # remember who spent what.
 		self.units = [ {} for i in range( self.nplayers ) ] # remember who built what how many.
 		# spents[ pid ] = [ (t1, cost1), (t2, cost2), ... ]
+	
+
+
+	# keep track of #of a unit type by player pid.
+	def count_unit( self, pid, unit ) :
+		# count units produced, too, for histogram.
+		histo = self.units[ pid ]
+		unit = unit.replace( " (NavYd)", "" ) # naval yard created units are the same units u know.
+		if unit in histo :
+			histo[ unit ] += 1
+		else :
+			histo[ unit ] = 1
 
 
 
 	def calc( self ) :
+		if self.kwr.game == "RA3" :
+			import ra3chunks
+
 		# determine end time of Q simulation.
 		# Must be done before step 1.
 		if len( self.kwr.replay_body.chunks ) > 0 :
@@ -533,13 +552,15 @@ class ResourceAnalyzer() :
 				pid, time_code, cost, unit = spent
 				t = int( time_code / 15 )
 				self.spents[ pid ].append( (t, cost) )
+				self.count_unit( pid, unit )
 
-				# count units produced, too, for histogram.
-				histo = self.units[ pid ]
-				if unit in histo :
-					histo[ unit ] += 1
-				else :
-					histo[ unit ] = 1
+				# some dirty job...
+				# empire ref core is a UNIT. :(
+				# works differently from placedown commands.
+				if self.kwr.game == "RA3" :
+					if unit in ra3chunks.FREEUNITS :
+						freeunit = ra3chunks.FREEUNITS[ unit ]
+						self.count_unit( pid, freeunit )
 
 		# step 3. Sort events by time.
 		for spent in self.spents :
@@ -654,6 +675,9 @@ class ResourceAnalyzer() :
 		t = int( cmd.time_code / 15 ) # in seconds
 		if cmd.is_placedown() :
 			self.collect( cmd.player_id, t, cmd.cost )
+			if cmd.free_unit :
+				# keep track of free harvesters.
+				self.count_unit( cmd.player_id, cmd.free_unit )
 		elif cmd.is_skill_use() :
 			self.collect( cmd.player_id, t, cmd.cost )
 		elif cmd.is_upgrade() :
