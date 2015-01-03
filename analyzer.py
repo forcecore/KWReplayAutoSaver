@@ -928,6 +928,37 @@ class APMAnalyzer() :
 
 
 
+	def draw_peak_labels( self, plt, apmss ) :
+		peak_apms = self.calc_peak_apm( apmss )
+
+		max_apm = 0
+		for pid in range( self.nplayers ) :
+			player = self.kwr.players[pid]
+			if not player.is_player() :
+				continue
+			t, peak = peak_apms[ pid ]
+			max_apm = max( max_apm, peak )
+
+		offset = int( 0.1 * max_apm )
+
+		cnt = 1
+		for pid in range( self.nplayers ) :
+			player = self.kwr.players[pid]
+			if not player.is_player() :
+				continue
+			t, peak = peak_apms[ pid ]
+
+			#print( t, peak )
+
+			plt.write( "set arrow %d from %f, %f to %f, %f\n" % ( cnt, t, peak+offset/2, t, peak ) )
+			plt.write( "set label %d '%.2f' at %f, %f centre\n" % ( cnt, peak, t, peak+0.75*offset ) )
+
+
+			cnt += 1
+		plt.write( "set yrange [0:%f]\n" % ( max_apm+1.1*offset ) )
+
+
+
 	# I think this is the way to go...
 	# um... nah. it sucks. you should be able to compare!
 	# http://gnuplot.sourceforge.net/demo/layout.html
@@ -965,24 +996,9 @@ class APMAnalyzer() :
 		avg_apm_texts = self.avg_apm2txts( avg_apms )
 
 		# draw peak arrow.
-		peak_apms = self.calc_peak_apm( apmss )
-		cnt = 1
-		max_apm = 0
-		for pid in range( self.nplayers ) :
-			player = self.kwr.players[pid]
-			if not player.is_player() :
-				continue
-			t, peak = peak_apms[ pid ]
+		self.draw_peak_labels( plt, apmss )
 
-			plt.write( "set arrow %d from %f, %f to %f, %f\n" % ( cnt, t, peak+10, t, peak ) )
-			plt.write( "set label %d '%.2f' at %f, %f centre\n" % ( cnt, peak, t, peak+15 ) )
-
-			max_apm = max( max_apm, peak )
-
-			cnt += 1
-		plt.write( "set yrange [0:%f]\n" % ( max_apm+20 ) )
-
-
+		# now the plot begins.
 		plt.write( 'plot \\\n' ) # begin the plot command.
 
 		color = 1
