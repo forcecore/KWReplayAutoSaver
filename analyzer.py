@@ -606,6 +606,13 @@ class ResourceAnalyzer() :
 			#	plt.write( cmd )
 			#	i += 1
 
+			# y range, manually.
+			max_cnt = 0
+			for unit, cnt in histo.items() :
+				max_cnt = max( max_cnt, cnt )
+			print( max_cnt )
+			plt.write( "set yrange [0:%f]\n" % ( 1.2*max_cnt ) )
+
 			# feed data
 			cmd = 'plot "-" using 0:1 with boxes linecolor %s, ' % color
 			cmd += "'-' using 0:1:1 with labels offset 0, 1\n"
@@ -1136,14 +1143,14 @@ if __name__ == "__main__" :
 	kw = KWReplayWithCommands( fname=fname, verbose=False )
 	#kw.replay_body.dump_commands()
 
-	ana = APMAnalyzer( kw )
-	ana.plot( 10 )
+	#ana = APMAnalyzer( kw )
+	#ana.plot( 10 )
 	#ana.emit_apm_csv( 10, file=sys.stdout )
 
-	#res = ResourceAnalyzer( kw )
-	#res.calc()
+	res = ResourceAnalyzer( kw )
+	res.calc()
 	#res.print_unit_distribution()
-	#res.plot_unit_distribution()
+	res.plot_unit_distribution()
 	#res.emit_csv()
 	#res.plot()
 
