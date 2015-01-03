@@ -592,6 +592,9 @@ class ReplayList( wx.ListCtrl ) :
 		for rep in reps.items :
 			self.add_replay( rep, filter=filter )
 
+		# after filtering, sort.
+		self.sort()
+
 
 
 	def add_replay( self, rep, filter=None ) :
