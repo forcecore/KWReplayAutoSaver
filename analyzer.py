@@ -902,6 +902,32 @@ class APMAnalyzer() :
 
 
 
+	# get peak APM for each player.
+	def calc_peak_apm( self, apmss ) :
+		peaks = [] # (time, max pair).
+
+		for pid in range( self.nplayers ) :
+			player = self.kwr.players[pid]
+			if not player.is_player() :
+				peaks.append( (0,0) )
+				continue
+
+			apms = apmss[ pid ]
+
+			peak_time = 0
+			peak_apm = 0
+
+			for t, apm in enumerate( apms ) :
+				if apm > peak_apm :
+					peak_apm = apm
+					peak_time = t
+
+			peaks.append( (peak_time, peak_apm) )
+
+		return peaks
+
+
+
 	# I think this is the way to go...
 	# um... nah. it sucks. you should be able to compare!
 	# http://gnuplot.sourceforge.net/demo/layout.html
@@ -938,8 +964,24 @@ class APMAnalyzer() :
 		avg_apms = self.calc_avg_apm( cmds_at_second )
 		avg_apm_texts = self.avg_apm2txts( avg_apms )
 
-		#peak_apms = self.calc_peak_apm( apmss )
-		#plt.show()
+		# draw peak arrow.
+		peak_apms = self.calc_peak_apm( apmss )
+		cnt = 1
+		max_apm = 0
+		for pid in range( self.nplayers ) :
+			player = self.kwr.players[pid]
+			if not player.is_player() :
+				continue
+			t, peak = peak_apms[ pid ]
+
+			plt.write( "set arrow %d from %f, %f to %f, %f\n" % ( cnt, t, peak+10, t, peak ) )
+			plt.write( "set label %d '%.2f' at %f, %f centre\n" % ( cnt, peak, t, peak+15 ) )
+
+			max_apm = max( max_apm, peak )
+
+			cnt += 1
+		plt.write( "set yrange [0:%f]\n" % ( max_apm+20 ) )
+
 
 		plt.write( 'plot \\\n' ) # begin the plot command.
 
@@ -953,7 +995,7 @@ class APMAnalyzer() :
 			plt.write( "%f title \"%s\" linecolor %d linetype 0 linewidth 2, \\\n" % ( avg_apms[ pid ], avg_apm_texts[pid], color ) )
 			color += 1
 
-		plt.data_plot_command() # data plot expr.
+		plt.data_plot_command() # plot apm(player, t) data.
 
 		plt.close()
 
