@@ -7,6 +7,20 @@ from chunks import KWReplayWithCommands, Command
 
 
 
+# Gnuplot title can get ... busted if
+# player name contains " or \... tough one, eh?
+def sanitize_name( player, xor=False ) :
+	if not xor :
+		name = Args.args.akaed_name( player )
+	else :
+		name = Args.args.aka_xor_name( player )
+	name = name.replace( "\\", "\\\\" )
+	name = name.replace( "\"", "\\\"" )
+	name = name.replace( "`", "\\`" )
+	return name
+
+
+
 def merge_lines( f, players, xss, yss ) :
 	# data check.
 	for xs, ys in zip( xss, yss ) :
@@ -542,7 +556,7 @@ class ResourceAnalyzer() :
 			player = self.kwr.players[i]
 			if not player.is_player() :
 				continue
-			print( Args.args.aka_xor_name( player ) )
+			print( sanitize_name( player, xor=True ) )
 
 			histo = self.units[ i ]
 			for unit, cnt in histo.items() :
@@ -569,7 +583,7 @@ class ResourceAnalyzer() :
 			plt.write( 'set style fill solid\n' )
 			plt.write( 'set key off\n' )
 			plt.write( 'set boxwidth 0.5\n' )
-			plt.write( 'set title "%s"\n' % Args.args.akaed_name( player ) )
+			plt.write( 'set title "%s"\n' % sanitize_name( player ) )
 
 			n_kinds = len( histo )
 			plt.write( 'set xrange[-1:%d]\n' % n_kinds )
@@ -708,7 +722,7 @@ class ResourceAnalyzer() :
 			ts, costs = pair
 
 			plt.plot( ts, costs )
-			labels.append( Args.args.aka_xor_name( player ) )
+			labels.append( sanitize_name( player, xor=True ) )
 
 		plt.legend( labels )
 		plt.show()
@@ -736,7 +750,7 @@ class ResourceAnalyzer() :
 
 			xss.append( ts )
 			yss.append( costs )
-			players.append( Args.args.akaed_name( player ) )
+			players.append( sanitize_name( player ) )
 
 		print( "t,$$$ spent", file=file )
 		merge_lines( file, players, xss, yss )
@@ -820,7 +834,7 @@ class APMAnalyzer() :
 		for player in self.kwr.players :
 			if not player.is_player() :
 				continue
-			print( '"' + Args.args.akaed_name( player ) + '"', end=",", file=file )
+			print( '"' + sanitize_name( player  ) + '"', end=",", file=file )
 		print( file=file )
 
 		for t in range( len( counts_at_second ) ) :
@@ -859,7 +873,7 @@ class APMAnalyzer() :
 		#	player = self.kwr.players[i]
 		#	if not player.is_player() :
 		#		continue
-		#	name = Args.args.aka_xor_name( player )
+		#	name = sanitize_name( player, xor=True )
 		#	# print( name, avg_apms[ pid ] )
 
 		return avg_apms
@@ -875,7 +889,7 @@ class APMAnalyzer() :
 			if not player.is_player() :
 				texts.append( "" )
 				continue
-			name = Args.args.aka_xor_name( player )
+			name = sanitize_name( player, xor=True )
 			#print( name, avg_apms[ pid ] )
 			#plt.write( "plot %f\n" % avg_apms[ pid ] )
 			text = "%s avg = %.2f" % ( name, avg_apms[ pid ] )
@@ -985,7 +999,8 @@ class APMAnalyzer() :
 				continue
 
 			plt.plot( ts, apmss[ i ] )
-			labels.append( Args.args.aka_xor_name( player ) )
+			name = sanitize_name( player, xor=True )
+			labels.append( name )
 
 		# touch up label of the curve
 
@@ -1006,7 +1021,7 @@ class APMAnalyzer() :
 			player = self.kwr.players[pid]
 			if not player.is_player() :
 				continue
-			#name = Args.args.aka_xor_name( player )
+			#name = sanitize_name( player, xor=True )
 			#print( name, avg_apms[ pid ] )
 			plt.write( "%f title \"%s\" linecolor %d linetype 0 linewidth 2, \\\n" % ( avg_apms[ pid ], avg_apm_texts[pid], color ) )
 			color += 1
