@@ -489,6 +489,7 @@ class FactorySim() :
 class ResourceAnalyzer() :
 	def __init__( self, kwr_chunks ) :
 		self.kwr = kwr_chunks
+		self.kwr.fix_pid()
 		self.nplayers = len( self.kwr.players )
 		self.sim = FactorySim()
 
@@ -745,6 +746,7 @@ class ResourceAnalyzer() :
 class APMAnalyzer() :
 	def __init__( self, kwr_chunks ) :
 		self.kwr = kwr_chunks
+		self.kwr.fix_pid()
 		self.nplayers = len( self.kwr.players )
 
 
@@ -864,6 +866,35 @@ class APMAnalyzer() :
 
 
 
+	# Turn apm into text, suitable for gnuplot label.
+	def avg_apm2txts( self, avg_apms ) :
+		# lets print
+		texts = []
+		for pid in range( self.nplayers ) :
+			player = self.kwr.players[pid]
+			if not player.is_player() :
+				continue
+			name = Args.args.aka_xor_name( player )
+			#print( name, avg_apms[ pid ] )
+			#plt.write( "plot %f\n" % avg_apms[ pid ] )
+			text = "%s avg: %.2f" % ( name, avg_apms[ pid ] )
+			texts.append( text )
+
+		# slice the texts into groups of 3.
+		slice_len = 3
+		groups = []
+		for i in range( 0, len( texts ), slice_len ) :
+			groups.append( texts[ i:i+slice_len ] )
+
+		# then, we join each group as one string.
+		texts = []
+		for group in groups :
+			texts.append( ", ".join( group ) )
+
+		return texts
+
+
+
 	# I think this is the way to go...
 	# um... nah. it sucks. you should be able to compare!
 	# http://gnuplot.sourceforge.net/demo/layout.html
@@ -898,36 +929,24 @@ class APMAnalyzer() :
 		plt.legend( labels )
 
 		avg_apms = self.calc_avg_apm( cmds_at_second )
+		avg_apm_texts = self.avg_apm2txts( avg_apms )
+
+		for i, text in enumerate( avg_apm_texts ) :
+			y = 15 * ( len( avg_apm_texts ) - i )
+			plt.write( "set label %d \"%s\" at 10, %d\n" % ( i+1, text, y ) )
+
 		#peak_apms = self.calc_peak_apm( apmss )
-
-		# lets print
-		texts = []
-		for pid in range( self.nplayers ) :
-			player = self.kwr.players[pid]
-			if not player.is_player() :
-				continue
-			name = Args.args.aka_xor_name( player )
-			#print( name, avg_apms[ pid ] )
-			#plt.write( "plot %f\n" % avg_apms[ pid ] )
-			text = "%s avg: %.2f" % ( name, avg_apms[ pid ] )
-			texts.append( text )
-		text = ", ".join( texts )
-		plt.write( "set label 1 \"%s\" at 10, 10\n" % text )
-
-		plt.write( "set multiplot\n" )
-
 		plt.show()
 
-		for pid in range( self.nplayers ) :
-			player = self.kwr.players[pid]
-			if not player.is_player() :
-				continue
-			#name = Args.args.aka_xor_name( player )
-			#print( name, avg_apms[ pid ] )
-			plt.write( "replot %f\n" % avg_apms[ pid ] )
+		if 0 :
+			for pid in range( self.nplayers ) :
+				player = self.kwr.players[pid]
+				if not player.is_player() :
+					continue
+				#name = Args.args.aka_xor_name( player )
+				#print( name, avg_apms[ pid ] )
+				plt.write( "plot %f\n" % avg_apms[ pid ] )
 
-		plt.write( "clear\n" )
-		plt.write( "unset multiplot\n" )
 		plt.close()
 
 
@@ -964,6 +983,7 @@ class APMAnalyzer() :
 class PositionDumper() :
 	def __init__( self, kwr_chunks ) :
 		self.kwr = kwr_chunks
+		self.kwr.fix_pid()
 		self.nplayers = len( self.kwr.players )
 		self.commandss = None # populated by calc()
 

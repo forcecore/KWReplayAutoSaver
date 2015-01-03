@@ -1133,6 +1133,7 @@ class TimelineViewer( wx.Frame ) :
 
 	def load( self, kwr ) :
 		self.kwr = kwr
+		self.kwr.fix_pid()
 		assert len( kwr.replay_body.chunks ) > 0
 		# +1 second so that we can see the END of the replay.
 		self.length = int( kwr.replay_body.chunks[-1].time_code/15 ) + 1

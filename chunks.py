@@ -920,7 +920,31 @@ class KWReplayWithCommands( KWReplay ) :
 			print( "final_time_code:", self.final_time_code )
 			print( "footer_data:", self.footer_data )
 			print()
-	
+
+
+
+	# Sometimes, we get invalid player_id in some commands for unknown reason.
+	# See cornercases/big_player_id for example.
+	# Why do I do this? cos I work with pid as array indexes a lot.
+	def fix_pid( self ) :
+		discarded = 0
+		for chunk in self.replay_body.chunks :
+
+			# keep valid commands
+			commands = []
+			for cmd in chunk.commands :
+				# invalid player id!
+				if cmd.player_id < len( self.players ) :
+					commands.append( cmd )
+
+			if len( commands ) != len( chunk.commands ) :
+				discarded += len( chunk.commands ) - len( commands )
+				chunk.commands = commands
+
+		print( discarded, "commands with invalid player discarded" )
+
+
+
 	def loadFromFile( self, fname ) :
 		self.guess_game( fname )
 		f = open( fname, 'rb' )
