@@ -187,10 +187,12 @@ class Command :
 
 		if ( not data ) or ( len( data ) <= 2 ) : # Just "" for net payload (Only FF in payload)
 			# end of game marker?
-			self.cmd_ty = Command.LOSE
+			#self.cmd_ty = Command.LOSE incorrect :(
+			self.cmd_ty = Command.EOG
 			self.target = self.player_id
 		elif data[ 1 ] == 0x02 :
-			self.cmd_ty = Command.WIN
+			#self.cmd_ty = Command.WIN incorrect :(
+			self.cmd_ty = Command.EOG
 			self.target = self.player_id
 		elif len( data ) <= 18 :
 			self.cmd_ty = Command.EOG
