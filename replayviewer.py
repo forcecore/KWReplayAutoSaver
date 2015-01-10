@@ -939,6 +939,49 @@ class ReplayList( wx.ListCtrl ) :
 
 
 
+	# copy files to clipboard
+	def context_menu_copy( self, event ) :
+		args = Args.args
+
+		first_copy = args.get_bool( "1st_copy", default=True )
+		if first_copy :
+			wx.MessageBox( "Copied to clipboard, paste it into any folder!" )
+			called = args.set_var( "1st_copy", "false" )
+
+		fnames = []
+		for pos in selected( self ) :
+			rep_name = self.GetItem( pos, 0 ).GetText()
+			fname = os.path.join( self.path, rep_name )
+			fnames.append( fname )
+
+		# copy these into clipboard!
+		data = wx.FileDataObject()
+		for fname in fnames :
+			data.AddFile( fname )
+		wx.TheClipboard.Open()
+		wx.TheClipboard.SetData( data )
+		wx.TheClipboard.Close()
+
+
+
+#	def context_menu_cut( self, event ) :
+#		pass
+
+
+
+	#def context_menu_paste( self, event ) :
+	#	# paste, if file data.
+	#	if wx.TheClipboard.Open() :
+	#		if wx.TheClipboard.IsSupported( wx.DataFormat( wx.DF_FILENAME ) ) :
+	#			data = wx.FileDataObject()
+	#			wx.TheClipboard.GetData( data )
+#
+#				# paste these files!!
+#				wx.CallLater( 10, self.OnDropFiles, 0, 0, data.GetFilenames() )
+#
+#			wx.TheClipboard.Close()
+
+
 	# Delete this replay?
 	def context_menu_delete( self, event ) :
 		cnt = self.GetSelectedItemCount()
@@ -1078,6 +1121,31 @@ class ReplayList( wx.ListCtrl ) :
 
 		# make context menu
 		menu = wx.Menu()
+
+		# delete replay menu
+		item = wx.MenuItem( menu, -1, "&Delete (Del)" )
+		menu.Bind( wx.EVT_MENU, self.context_menu_delete, id=item.GetId() )
+		menu.Append( item )
+
+		item = wx.MenuItem( menu, -1, "Copy (Ctrl+&c)" )
+		menu.Bind( wx.EVT_MENU, self.context_menu_copy, id=item.GetId() )
+		menu.Append( item )
+
+		# I found copy cut paste is a mess...
+		# You can modify da clipboard, but it is impossible to discern whether
+		# it was cut or copy from the file browser.
+
+		#item = wx.MenuItem( menu, -1, "Cut (Ctrl+&x)" )
+		#menu.Bind( wx.EVT_MENU, self.context_menu_cut, id=item.GetId() )
+		#menu.Append( item )
+
+		#item = wx.MenuItem( menu, -1, "Paste (Ctrl+&v)" )
+		#menu.Bind( wx.EVT_MENU, self.context_menu_paste, id=item.GetId() )
+		#menu.Append( item )
+
+		# Sep
+		menu.AppendSeparator()
+
 		# context menu using self.names :
 		for i, txt in enumerate( self.names ) :
 			# variable txt is a copy of the variable. I may modify it safely without
@@ -1103,13 +1171,10 @@ class ReplayList( wx.ListCtrl ) :
 		menu.Bind( wx.EVT_MENU, self.context_menu_resolve_random, id=item.GetId() )
 		menu.Append( item )
 
-		# delete replay menu
-		item = wx.MenuItem( menu, -1, "&Delete (Del)" )
-		menu.Bind( wx.EVT_MENU, self.context_menu_delete, id=item.GetId() )
-		menu.Append( item )
-
 		# open contaning folder
 		if cnt == 1 :
+			menu.AppendSeparator()
+
 			item = wx.MenuItem( menu, -1, "&Open containing folder" )
 			menu.Bind( wx.EVT_MENU, self.open_containing_folder, id=item.GetId() )
 			menu.Append( item )
@@ -1580,13 +1645,16 @@ class ReplayViewer( wx.Frame ) :
 		# Accelerator table (short cut keys)
 		self.id_rename = wx.NewId()
 		self.id_del = wx.NewId()
+		self.id_copy = wx.NewId()
 
 		self.Bind( wx.EVT_MENU, self.rep_list.context_menu_rename, id=self.id_rename )
 		self.Bind( wx.EVT_MENU, self.rep_list.context_menu_delete, id=self.id_del )
+		self.Bind( wx.EVT_MENU, self.rep_list.context_menu_copy, id=self.id_copy )
 
 		accel_tab = wx.AcceleratorTable([
 				( wx.ACCEL_NORMAL, wx.WXK_F2, self.id_rename ),
 				( wx.ACCEL_NORMAL, wx.WXK_DELETE, self.id_del ),
+				( wx.ACCEL_CTRL, ord('C'), self.id_copy ),
 			])
 		self.SetAcceleratorTable( accel_tab )
 	
