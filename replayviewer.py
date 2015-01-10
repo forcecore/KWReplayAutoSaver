@@ -433,6 +433,11 @@ class PlayerList( wx.ListCtrl ) :
 		cached_apms = self.lookup_apm( kwr )
 		apms = cached_apms
 
+		if apms and len( apms) != self.GetItemCount() :
+			# cache collison occured or something.
+			# We let the below alg. to calculate the APM.
+			apms = None
+
 		if not apms :
 			if not Args.args.get_bool( 'calc_apm', default=False ) :
 				cnt = self.GetItemCount()
