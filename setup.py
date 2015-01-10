@@ -89,13 +89,60 @@ autosaver = Target(
     # dest_base = "autosaver",
 
     # Icon resources:[(resource_id, path to .ico file), ...]
-    icon_resources=[(1, "KW.ico")],
+    icon_resources=[(1, "kw.ico")],
 
     other_resources = [(RT_MANIFEST, 1, (manifest_template % dict(prog="autosaver", level="asInvoker")).encode("utf-8")),
     # for bitmap resources, the first 14 bytes must be skipped when reading the file:
     #                    (RT_BITMAP, 1, open("bitmap.bmp", "rb").read()[14:]),
                       ]
     )
+
+
+
+autosaver_cnc3 = Target(
+    # We can extend or override the VersionInfo of the base class:
+    # version = "1.0",
+    # file_description = "File Description",
+    # comments = "Some Comments",
+    # internal_name = "spam",
+
+    script="autosaver_cnc3.pyw", # path of the main script
+
+    # Allows to specify the basename of the executable, if different from 'autosaver'
+    # dest_base = "autosaver",
+
+    # Icon resources:[(resource_id, path to .ico file), ...]
+    icon_resources=[(1, "cnc3.ico")],
+
+    other_resources = [(RT_MANIFEST, 1, (manifest_template % dict(prog="autosaver_cnc3", level="asInvoker")).encode("utf-8")),
+    # for bitmap resources, the first 14 bytes must be skipped when reading the file:
+    #                    (RT_BITMAP, 1, open("bitmap.bmp", "rb").read()[14:]),
+                      ]
+    )
+
+
+
+autosaver_ra3 = Target(
+    # We can extend or override the VersionInfo of the base class:
+    # version = "1.0",
+    # file_description = "File Description",
+    # comments = "Some Comments",
+    # internal_name = "spam",
+
+    script="autosaver_ra3.pyw", # path of the main script
+
+    # Allows to specify the basename of the executable, if different from 'autosaver'
+    # dest_base = "autosaver",
+
+    # Icon resources:[(resource_id, path to .ico file), ...]
+    icon_resources=[(1, "ra3.ico")],
+
+    other_resources = [(RT_MANIFEST, 1, (manifest_template % dict(prog="autosaver_ra3", level="asInvoker")).encode("utf-8")),
+    # for bitmap resources, the first 14 bytes must be skipped when reading the file:
+    #                    (RT_BITMAP, 1, open("bitmap.bmp", "rb").read()[14:]),
+                      ]
+    )
+
 
 
 # ``zipfile`` and ``bundle_files`` options explained:
@@ -153,13 +200,14 @@ py2exe_options = dict(
 
 # Some options can be overridden by command line options...
 extra_files = [
-		( '.', ['README.txt', 'LICENSE.txt', 'CHANGELOG.txt', 'KW.ico', 'maps.zip'] )
+		( '.', ['README.txt', 'LICENSE.txt', 'CHANGELOG.txt', 'kw.ico',
+			'ra3.ico', 'cnc3.ico', 'maps.zip'] )
 	]
 
 setup(name="name",
       # console based executables
       #console=[autosaver],
-      windows = [autosaver],
+      windows = [autosaver, autosaver_cnc3, autosaver_ra3],
 	  data_files = extra_files,
 
       # windows subsystem executables (no console)

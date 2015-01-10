@@ -17,11 +17,14 @@ import io
 class Args :
 	args = None
 
-	def __init__( self, fname ) :
+	def __init__( self, fname, game='kw' ) :
 		# Yeah global variable!
 		# Cos one program can have only one configuration duh...
 		# I'm tired of copying args to everywhere.
 		Args.args = self
+
+		self.icon = 'kw.ico' # default
+		self.game = game
 
 		#self.dirty = False # Has non-saved + changed options?
 		self.cfg_fname = fname # for saving to disk on exit.
@@ -147,6 +150,14 @@ class Args :
 			"Kane's Wrath Replays (*.KWReplay)|*.KWReplay" +
 			"|Tiberium Wars Replays (*.CNC3Replay)|*.CNC3Replay" +
 			"|RA3 Replays (*.RA3Replay)|*.RA3Replay", wx.FD_OPEN | wx.FD_FILE_MUST_EXIST )
+
+		args = Args.args
+		if args.game == "kw" :
+			diag.SetFilterIndex( 0 )
+		elif args.game == "cnc3" :
+			diag.SetFilterIndex( 1 )
+		elif args.game == "ra3" :
+			diag.SetFilterIndex( 2 )
 		
 		if diag.ShowModal() == wx.ID_OK :
 			# if dialog set properly, set it.
@@ -183,7 +194,8 @@ class Args :
 			}
 		self.cfg.read_dict( defaults ) # please call this before cfg.read()!!
 
-		self.cfg.read( fname )
+		if os.path.isfile( fname ) :
+			self.cfg.read( fname )
 
 		self.last_replay = self.get_var( 'last_replay' )
 		if not self.last_replay :

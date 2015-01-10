@@ -8,4 +8,4 @@ sys.stdout = open(os.devnull, 'w')
 sys.stderr = open(os.devnull, 'w')
 
 import autosaverapp
-autosaverapp.main( 'kw', 'config.ini' )
+autosaverapp.main( 'ra3', 'config_ra3.ini', icon='ra3.ico' )

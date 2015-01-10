@@ -22,8 +22,6 @@ import traceback
 import tempfile
 import utils
 
-KWICO='KW.ico'
-
 
 
 def calc_props( kwr ) :
@@ -1470,8 +1468,9 @@ class ReplayViewer( wx.Frame ) :
 		self.SetAcceleratorTable( accel_tab )
 	
 	def set_icon( self ) :
-		if os.path.isfile( KWICO ) :
-			icon = wx.Icon( KWICO, wx.BITMAP_TYPE_ICO )
+		icon = Args.args.icon
+		if os.path.isfile( icon ) :
+			icon = wx.Icon( icon, wx.BITMAP_TYPE_ICO )
 			self.SetIcon( icon )
 
 	def on_refresh_btnClick( self, event ) :

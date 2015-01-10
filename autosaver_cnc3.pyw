@@ -8,4 +8,4 @@ sys.stdout = open(os.devnull, 'w')
 sys.stderr = open(os.devnull, 'w')
 
 import autosaverapp
-autosaverapp.main( 'kw', 'config.ini' )
+autosaverapp.main( 'cnc3', 'config_cnc3.ini', icon='cnc3.ico' )

@@ -28,10 +28,9 @@ class AutoSaverAppIcon( wx.adv.TaskBarIcon ) :
 	def __init__( self, frame, iconf ) :
 		super().__init__()
 
+		self.args = Args.args
 		self.POLL_INTERVAL = 2000 # in msec
-		self.CONFIGF = 'config.ini'
 		self.frame = frame
-		self.args = Args( self.CONFIGF )
 		self.watcher = Watcher( self.args.last_replay )
 
 		#
@@ -163,11 +162,15 @@ class AutoSaverAppIcon( wx.adv.TaskBarIcon ) :
 ### http://wiki.wxpython.org/OneInstanceRunning
 ###
 class AutoSaverApp( wx.App ) :
+	def __init__( self, game ) :
+		self.game = game
+		super().__init__()
+
 	def OnInit( self ) :
-		self.name = "KWRAS-" + wx.GetUserId()
+		self.name = self.game + "RAS-" + wx.GetUserId()
 		self.instance = wx.SingleInstanceChecker( self.name )
 		if self.instance.IsAnotherRunning() :
-			wx.MessageBox( "An instance of KWRAS is already running", "ERROR" )
+			wx.MessageBox( "An instance of this program is already running", "ERROR" )
 			return False
 		return True
 
@@ -201,10 +204,12 @@ class AutoSaverForm( wx.Frame ) :
 #			wx.OK|wx.ICON_ERROR )
 #	return result
 
-def main() :
-	ICONF = 'KW.ico'
+def main( game, configf, icon='kw.ico' ) :
 	#MAPF = 'maps.zip'
-	app = AutoSaverApp()
+	app = AutoSaverApp( game )
+
+	args = Args( configf, game=game )
+	args.icon = icon
 	
 	#if not os.path.isfile( MAPF ) :
 	#	msg = "Download map preview data?"
@@ -213,7 +218,7 @@ def main() :
 	#	if result == wx.YES :
 	#		download_maps( MAPF )
 
-	frame = AutoSaverForm( ICONF )
+	frame = AutoSaverForm( icon )
 	frame.tray_icon.open_replay_viewer()
 	#frame.Show( show=False ) dont need this, hidden app!
 	app.MainLoop()
@@ -221,4 +226,6 @@ def main() :
 ###
 ### main
 ###
-main()
+if __name__ == "__main__" :
+	main( 'kw', 'config.ini' )
+	#main( 'cnc3', 'config_cnc3.ini', icon='cnc3.ico' )
