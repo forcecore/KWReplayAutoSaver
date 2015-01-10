@@ -81,12 +81,19 @@ class Gnuplot() :
 			# launch gnuplot will get rid of the tmp file afterwards.
 			# Tempfile, on win7, is here:
 			# C:\Users\USERID\AppData\Local\Temp
+
 	
+	# There's a historical reason of using write function.
+	# In pipes, I have to use write, not print().
+	# But now that I've moved away from pipe and using temp files instead on windows,
+	# I can start moving away from this write function, if I want to, but that's tedius.
 	def write( self, cmd ) :
 		#self.f.stdin.write( bytes( cmd, "UTF-8" ) )
 		#self.f.stdin.flush()
 		self.f.write( bytes( cmd, "UTF-8" ) )
-	
+
+
+
 	def find_gnuplot() :
 		is_win32 = (sys.platform == 'win32')
 		if not is_win32:

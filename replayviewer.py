@@ -830,7 +830,12 @@ class ReplayList( wx.ListCtrl ) :
 				dest = pname + " (" + faction + ")"
 				new_stem = new_stem.replace( src, dest )
 
-			self.rename_with_stem( pos, old_name, new_stem )
+			if old_stem == new_stem :
+				diag = wx.MessageBox(
+						"Unable to rename, probably because AKA information for some players is missing.",
+						"Error", wx.OK|wx.ICON_ERROR )
+			else :
+				self.rename_with_stem( pos, old_name, new_stem )
 
 		wx.MessageBox( "Done", "Info", wx.OK )
 
