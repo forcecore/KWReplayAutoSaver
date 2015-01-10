@@ -380,7 +380,82 @@ class PlayerList( wx.ListCtrl ) :
 			if fil and len( fil.postfix ) > 0 and filter_hit( fil, props ) :
 				self.SetItemBackgroundColour( pos, wx.YELLOW )
 
+		self.populate_apm( kwr )
+	
+
+
+	# Look up APM in the pre-calculated cache first.
+	# return None if not calculated yet.
+	def lookup_apm( self, kwr ) :
+		if not "apm" in self.frame.cache :
+			self.frame.cache[ "apm" ] = dict()
+		cache = self.frame.cache[ "apm" ]
+
+		# I'll use timestamp as its replay's UID...
+		# It will work, almost 100%.
+		key = kwr.timestamp
+
+		if key in cache :
+			return cache[ key ]
+		else :
+			return None
+	
+
+
+	def calc_apms( self, kwr ) :
+		# Check if replay is selected.
+		fname = self.frame.get_selected_replay()
+		if not fname :
+			# error message is shown by get_selected_replay.
+			return None
+
+		kwr_chunks = KWReplayWithCommands( fname=fname, verbose=False )
+		ana = analyzer.APMAnalyzer( kwr_chunks )
+		cmds_at_second = ana.group_commands_by_time()
+		avg_apms = ana.calc_avg_apm( cmds_at_second )
+
+		result = [ int(val) for val in avg_apms ]
+		return result
+
+	
+
+	def cache_apms( self, kwr, apms ) :
+		# by now, this should hold.
+		assert "apm" in self.frame.cache
+		cache = self.frame.cache[ "apm" ]
+		key = kwr.timestamp
+		cache[ key ] = apms
+
+
+
+	def populate_apm( self, kwr ) :
 		# Well, lets populate APM.
+		cached_apms = self.lookup_apm( kwr )
+		apms = cached_apms
+
+		if not apms :
+			if not Args.args.get_bool( 'calc_apm', default=False ) :
+				cnt = self.GetItemCount()
+				for pos in range( cnt ) :
+					self.SetItem( pos, 4, "Enable APM analysis option in options menu!" )
+				return
+
+			try :
+				apms = self.calc_apms( kwr )
+			except :
+				msg = "APM analysis failed!"
+				wx.MessageBox( msg, "Error", wx.OK|wx.ICON_ERROR )
+
+		# successful lookup or calculation.
+		# poopuate the list for real!
+		if apms :
+			cnt = self.GetItemCount()
+			for pos in range( cnt ) :
+				self.SetItem( pos, 4, str( apms[ pos ] ) )
+
+		# not cached so calculated -> newly save it in the cache!
+		if ( not cached_apms ) and apms :
+			self.cache_apms( kwr, apms )
 	
 
 

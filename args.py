@@ -78,7 +78,6 @@ class Args :
 	def get_var( self, key, default=None, section='options' ) :
 		if not self.cfg.has_section( section ) :
 			self.cfg.add_section( section )
-			return default
 
 		if not key in self.cfg[ section ] :
 			return default
@@ -99,6 +98,12 @@ class Args :
 		val = self.get_var( key )
 
 		if val == None :
+			# Write the default values to the config
+			if default == True :
+				self.set_var( key, 'true', section )
+			else :
+				self.set_var( key, 'false', section )
+
 			return default
 		else :
 			return self.cfg.getboolean( section, key )
@@ -109,6 +114,7 @@ class Args :
 	def get_int( self, key, default=0, section='options' ) :
 		val = self.get_var( key )
 		if val == None :
+			self.set_var( key, str( default ), section )
 			return default
 		else :
 			return self.cfg.getint( section, key )
