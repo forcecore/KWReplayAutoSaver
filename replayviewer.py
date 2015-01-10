@@ -404,7 +404,13 @@ class PlayerList( wx.ListCtrl ) :
 
 	def calc_apms( self, kwr ) :
 		# Check if replay is selected.
-		fname = self.frame.get_selected_replay()
+		# frame.get_selected_replay will not work since it requires
+		# selection of only one replay.
+		# For this one, focused one is enough.
+		pos = self.frame.rep_list.GetFocusedItem()
+		rep_name = self.frame.rep_list.GetItem( pos, 0 ).GetText()
+		fname = os.path.join( self.frame.rep_list.path, rep_name )
+
 		if not fname :
 			# error message is shown by get_selected_replay.
 			return None
