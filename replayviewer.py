@@ -19,6 +19,8 @@ import webbrowser
 import urllib.parse
 import repair
 import traceback
+import tempfile
+import utils
 
 KWICO='KW.ico'
 
@@ -1210,6 +1212,12 @@ class ReplayList( wx.ListCtrl ) :
 class ReplayViewer( wx.Frame ) :
 	def __init__( self, parent ) :
 		super().__init__( parent, title='Replay Info Viewer', size=(1024,800) )
+
+		self.temp_files = [] # temp files...
+		# temp files is required by "view commands" currently.
+		# gnuplot has its own list to save temp files.
+		# These files will be unlinked by on_close().
+
 		path = os.path.dirname( Args.args.last_replay )
 
 		self.is_min = False # on close, discern if this is actually a minimization action.
@@ -1673,7 +1681,29 @@ class ReplayViewer( wx.Frame ) :
 		kwr_chunks.replay_body.dump_commands()
 		f.close()
 		sys.stdout = tmp
-	
+
+
+
+	def on_view_cmds( self, evt ) :
+		# Check if replay is selected.
+		fname = self.get_selected_replay()
+		if not fname :
+			# error message is shown by get_selected_replay.
+			return
+
+		of = tempfile.NamedTemporaryFile( mode="w", suffix=".txt", delete=False )
+		assert of
+		self.temp_files.append( of.name ) # remember this one, for deletion.
+
+		kwr_chunks = KWReplayWithCommands( fname=fname, verbose=False )
+		tmp = sys.stdout # intercept stdout temporarily.
+		sys.stdout = of
+		kwr_chunks.replay_body.dump_commands()
+		of.close()
+		sys.stdout = tmp
+
+		utils.open_in_default_app( of.name )
+
 
 
 	def on_dump_dist( self, evt ) :
@@ -1755,6 +1785,10 @@ class ReplayViewer( wx.Frame ) :
 			os.unlink( fname )
 		Gnuplot.temp_files = [] # purge the list.
 
+		for fname in self.temp_files :
+			os.unlink( fname )
+		self.temp_files = [] # purge the list.
+
 		par = self.Parent
 		if par :
 			args = Args.args
@@ -1788,6 +1822,38 @@ class ReplayViewer( wx.Frame ) :
 
 
 
+	def make_dump_menu( self ) :
+		dump_menu = wx.Menu()
+
+		# dump build order
+		build_order_menu_item = dump_menu.Append( wx.NewId(), "Dump &Build Order",
+				"Dump build order to file" )
+		dump_menu.Bind( wx.EVT_MENU, self.on_build_order, build_order_menu_item )
+
+		# dump commands
+		dump_cmds_menu_item = dump_menu.Append( wx.NewId(), "Dump &Commands",
+				"Dump commands to file" )
+		dump_menu.Bind( wx.EVT_MENU, self.on_dump_cmds, dump_cmds_menu_item )
+
+		# APM to CSV
+		apm_csv_menu_item = dump_menu.Append( wx.NewId(), "Dump &APM to CSV file",
+				"Analyze the replay and calculate actions per minute of each player" )
+		dump_menu.Bind( wx.EVT_MENU, self.on_apm_csv, apm_csv_menu_item )
+
+		# Res to CSV
+		res_csv_menu_item = dump_menu.Append( wx.NewId(), "Dump &Resource Spent to CSV file",
+				"Analyze the replay and calculate resource spent of each player" )
+		dump_menu.Bind( wx.EVT_MENU, self.on_res_csv, res_csv_menu_item )
+
+		# dump unit distribution.
+		dump_dist_menu_item = dump_menu.Append( wx.NewId(), "Dump &Unit Distribution",
+				"Dump unit distribution to file" )
+		dump_menu.Bind( wx.EVT_MENU, self.on_dump_dist, dump_dist_menu_item )
+
+		return dump_menu
+
+
+
 	def make_analysis_menu( self ) :
 		analysis_menu = wx.Menu()
 
@@ -1806,38 +1872,15 @@ class ReplayViewer( wx.Frame ) :
 				"Show timeline along with movements on the minimap" )
 		analysis_menu.Bind( wx.EVT_MENU, self.on_timeline, timeline_menu_item )
 
-		# dump build order
-		build_order_menu_item = analysis_menu.Append( wx.NewId(), "Dump &Build Order",
-				"Dump build order to file" )
-		analysis_menu.Bind( wx.EVT_MENU, self.on_build_order, build_order_menu_item )
-
 		# Plot unit distribution
 		plot_unit_dist_menu_item = analysis_menu.Append( wx.NewId(), "Plot Estimated &Unit Distribution",
 				"Plots estimated unit distribution" )
 		analysis_menu.Bind( wx.EVT_MENU, self.on_plot_unit_dist, plot_unit_dist_menu_item )
 
-		# dump commands
-		dump_cmds_menu_item = analysis_menu.Append( wx.NewId(), "&Dump Commands",
-				"Dump commands to file" )
-		analysis_menu.Bind( wx.EVT_MENU, self.on_dump_cmds, dump_cmds_menu_item )
-
-		# Sep.
-		analysis_menu.AppendSeparator()
-
-		# APM to CSV
-		apm_csv_menu_item = analysis_menu.Append( wx.NewId(), "Dump APM to CSV file",
-				"Analyze the replay and calculate actions per minute of each player" )
-		analysis_menu.Bind( wx.EVT_MENU, self.on_apm_csv, apm_csv_menu_item )
-
-		# Res to CSV
-		res_csv_menu_item = analysis_menu.Append( wx.NewId(), "Dump Resource Spent to CSV file",
-				"Analyze the replay and calculate resource spent of each player" )
-		analysis_menu.Bind( wx.EVT_MENU, self.on_res_csv, res_csv_menu_item )
-
-		# dump unit distribution.
-		dump_dist_menu_item = analysis_menu.Append( wx.NewId(), "Dump Unit Distribution",
-				"Dump unit distribution to file" )
-		analysis_menu.Bind( wx.EVT_MENU, self.on_dump_dist, dump_dist_menu_item )
+		# View commands
+		view_cmds_menu_item = analysis_menu.Append( wx.NewId(), "&View Commands",
+				"Shows commands in the replay" )
+		analysis_menu.Bind( wx.EVT_MENU, self.on_view_cmds, view_cmds_menu_item )
 
 		# Sep.
 		analysis_menu.AppendSeparator()
@@ -1908,6 +1951,9 @@ class ReplayViewer( wx.Frame ) :
 
 		analysis_menu = self.make_analysis_menu()
 		menubar.Append( analysis_menu, "&Analysis" )
+
+		dump_menu = self.make_dump_menu()
+		menubar.Append( dump_menu, "&Dump" )
 
 		options_menu = self.make_options_menu()
 		menubar.Append( options_menu, "&Options" )

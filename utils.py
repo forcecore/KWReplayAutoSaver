@@ -4,6 +4,19 @@ import struct # bin file enc/dec
 import hashlib
 import datetime
 import time
+import subprocess
+import os
+import sys
+
+
+
+def open_in_default_app( fname ) :
+	if sys.platform.startswith( 'darwin' ) :
+		subprocess.call( ('open', fname ) )
+	elif os.name == 'nt' :
+		os.startfile( fname )
+	elif os.name == 'posix' :
+		subprocess.call( ('xdg-open', fname) )
 
 
 
