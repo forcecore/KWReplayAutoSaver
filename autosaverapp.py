@@ -147,7 +147,13 @@ class AutoSaverAppIcon( wx.adv.TaskBarIcon ) :
 
 	def on_set_last_replay( self, event ) :
 		self.args.set_last_replay() # invoke open dialog
+
+		self.timer.Stop()
 		self.watcher.last_replay = self.args.last_replay # and pass the information to watcher.
+		self.watcher = Watcher( self.args.last_replay ) # re-init watcher to prevent bug.
+			# If you switch games or change last repaly, the watcher thinks the
+			# replay has changed! In a sense, it is correct but it's not the time to sample the replay.
+		self.timer.Start()
 
 	def on_exit(self, event):
 		self.args.save()

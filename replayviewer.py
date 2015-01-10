@@ -152,8 +152,12 @@ class ReplayItems() :
 			i = ReplayItem()
 			i.fname = f
 			full_name = os.path.join( path, f )
-			i.kwr = KWReplay( fname=full_name )
-			self.append( i )
+			try :
+				i.kwr = KWReplay( fname=full_name )
+				self.append( i )
+			except :
+				msg = full_name + " is an invalid replay!"
+				wx.MessageBox( msg, "Error", wx.OK|wx.ICON_ERROR )
 
 	
 
