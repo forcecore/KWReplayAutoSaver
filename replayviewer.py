@@ -21,6 +21,7 @@ import repair
 import traceback
 import tempfile
 import utils
+import imp
 
 
 
@@ -336,6 +337,7 @@ class PlayerList( wx.ListCtrl ) :
 		self.InsertColumn( 1, 'Name' )
 		self.InsertColumn( 2, 'Faction' )
 		self.InsertColumn( 3, 'Color' )
+		self.InsertColumn( 4, 'Avg. APM' )
 		self.SetColumnWidth( 1, 400 )
 		#self.SetMinSize( (600, 200) )
 
@@ -377,6 +379,8 @@ class PlayerList( wx.ListCtrl ) :
 				props.append( aka )
 			if fil and len( fil.postfix ) > 0 and filter_hit( fil, props ) :
 				self.SetItemBackgroundColour( pos, wx.YELLOW )
+
+		# Well, lets populate APM.
 	
 
 
@@ -1244,6 +1248,29 @@ class ReplayViewer( wx.Frame ) :
 
 		# don't need DB. we just set the image name right.
 		#self.map_db = self.load_map_db( 'MapDB.txt' )
+
+		# Save some calculated stuff in here, for acceleration.
+		self.cachef = 'cache.py'
+		self.cache = self.load_cache( self.cachef )
+	
+
+
+	def load_cache( self, fname ) :
+		if os.path.isfile( fname ) :
+			cache = imp.load_source( 'cache', fname )
+			return cache.cache
+		else :
+			# if not exists, init a dictionary.
+			return dict()
+
+
+
+	def save_cache( self, fname ) :
+		f = open( fname, "w" )
+		print( "#!/usr/bin/python3", file=f )
+		print( "cache = ", file=f, end="" )
+		print( self.cache, file=f )
+		f.close()
 	
 
 
@@ -1797,6 +1824,8 @@ class ReplayViewer( wx.Frame ) :
 			os.unlink( fname )
 		self.temp_files = [] # purge the list.
 
+		self.save_cache( self.cachef )
+
 		par = self.Parent
 		if par :
 			args = Args.args
@@ -1916,6 +1945,14 @@ class ReplayViewer( wx.Frame ) :
 	def on_min_to_tbar( self, event ) :
 		args = Args.args
 		args.set_var( 'min_to_tray', 'false' )
+	
+	def on_calc_apm( self, event ) :
+		args = Args.args
+		if event.IsChecked() :
+			val = 'true'
+		else :
+			val = 'false'
+		args.set_var( 'calc_apm', val )
 
 
 
@@ -1938,6 +1975,10 @@ class ReplayViewer( wx.Frame ) :
 		options_menu.Append( wx.ID_ANY, "Close...", on_close )
 		options_menu.Append( wx.ID_ANY, "Minimize...", on_minimize )
 
+		# calculate apm?
+		calc_apm = options_menu.Append( wx.ID_ANY, 'Calculate APM', kind=wx.ITEM_CHECK )
+		options_menu.Bind( wx.EVT_MENU, self.on_calc_apm, calc_apm )
+
 		# read the val and apply it.
 		args = Args.args
 		if args.get_bool( 'close_to_tray', default=True ) :
@@ -1950,10 +1991,18 @@ class ReplayViewer( wx.Frame ) :
 		else :
 			on_minimize.Check( min_to_tbar.GetId(), True )
 
+		# calc apm option
+		checked = args.get_bool( 'calc_apm', default=False )
+		options_menu.Check( calc_apm.GetId(), checked )
+
 		return options_menu
 
 
 
+	# This function is a very important one.
+	# Many Args class variable are initialized here!
+	# Those options not defined in args.py...
+	# calc_apm, min_to_tray to name a few.
 	def make_menu( self ) :
 		menubar = wx.MenuBar()
 
