@@ -451,7 +451,13 @@ class PlayerList( wx.ListCtrl ) :
 		if apms :
 			cnt = self.GetItemCount()
 			for pos in range( cnt ) :
-				self.SetItem( pos, 4, str( apms[ pos ] ) )
+				faction = self.GetItem( pos, 2 ).GetText()
+				if faction in [ "Obs", "PostCommentator" ] :
+					self.SetItem( pos, 4, "-" )
+				elif apms[ pos ] == 0 :
+					self.SetItem( pos, 4, "-" )
+				else :
+					self.SetItem( pos, 4, str( apms[ pos ] ) )
 
 		# not cached so calculated -> newly save it in the cache!
 		if ( not cached_apms ) and apms :
