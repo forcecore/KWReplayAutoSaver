@@ -1,3 +1,52 @@
+1.5.2
+* Copy replays added. Select multiple replays, right click on the files then
+  choose copy file (or ctrl+c for short). It can be pasted in the Explorer.
+* Players' average APM is now shown in the player list of the replay. This
+  feature can be enabled in the options menu.
+* The bug that caused the replay viewer to crash when last replay setting is
+  changed is now fixed. (If you switched between the games, it crashed).
+* 3 executables for 3 games! TW/KW/RA3 launchers are added so that users don't
+  have to keep switching the last replays setting.
+* Dump commands are separated into dump menu.
+
+1.5.1
+* RA3 map preview added
+* TW hold/cancel bug fixed
+* Free harvesters are now counted in the unit distribution
+* Better APM plot, with average values shown.
+* Resolve random. First, rename the replays to contain faction information
+  then run "resolve random" after selecting multiple replays and right
+  clicking. Any replays that contain (rnd) in its name will be renamed
+  to contain rnd + resolved faction, like (rnd_nod).
+* Window preferences such as window size and position will be saved.
+* Replay manager's behavior when minimized/closed can be chosen in the options
+  menu.
+
+1.5.0
+* Replay analysis support for Tiberium wars and Red alert 3!
+* Logical search added. and or not, parenthesis are supported.
+** It is possible to search replays like:
+** (sc or r17) and mok and 1v1     parenthesis for prioritizing operators
+** "(e)" and "(a)"    for red alert 3, quote for literal search.
+** (not gdi) and (not nod)
+
+1.4.4
+* Can now fix corrupt replays
+* Time line can be exported as PNG.
+* Stabilized replay decoding and analysis
+
+1.4.3
+* Tiberium wars, Red alert 3 headers are now recognized.
+* ZOCOM unit decoding bug fixed
+* Kane's Wrath 1.02+ R10 tags are recognized
+* Shatabrick search added
+* Also known as (AKAs) feature added - Smurfing users can be tracked easily.
+
+1.4.1
+* Actions Per Minute (APM) plot
+* Estimated resource spent
+* Time line feature: Build order analysis like BWChart / Scelight
+
 1.3.2
 * Replay viewer starts at program start! (not just the tray icon!)
 * Can discern the release (R6, R7, R8, R9) of the 1.02+ maps.
