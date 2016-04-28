@@ -1,3 +1,6 @@
+1.5.3
+* Bug fix: when config.ini is not writable, the app won't terminate!
+
 1.5.2
 * Copy replays added. Select multiple replays, right click on the files then
   choose copy file (or ctrl+c for short). It can be pasted in the Explorer.

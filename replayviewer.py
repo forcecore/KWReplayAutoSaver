@@ -1973,7 +1973,10 @@ class ReplayViewer( wx.Frame ) :
 
 
 	def on_close( self, evt ) :
-		self.save_win_props()
+		try :
+			self.save_win_props()
+		except :
+			wx.MessageBox( "Failed to save settings to disk.\nPlease check if config.ini can be created/written in the folder where the replay viewer is!", "Warning", wx.OK|wx.ICON_ERROR )
 
 		# remove gnuplot temp files
 		for fname in Gnuplot.temp_files :

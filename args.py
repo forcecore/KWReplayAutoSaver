@@ -245,9 +245,8 @@ class Args :
 
 
 	def save_to_file( self, fname ) :
-		f = open( fname, 'w' )
-		self.cfg.write( f )
-		f.close()
+		with open( fname, 'w' ) as f :
+			self.cfg.write( f )
 		
 
 

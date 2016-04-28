@@ -156,7 +156,10 @@ class AutoSaverAppIcon( wx.adv.TaskBarIcon ) :
 		self.timer.Start()
 
 	def on_exit(self, event):
-		self.args.save()
+		try :
+			self.args.save()
+		except :
+			wx.MessageBox( "Failed to save settings to disk.\nPlease check if config.ini can be created/written in the folder where the replay viewer is!", "Warning", wx.OK|wx.ICON_ERROR )
 		self.Destroy() # self kill
 		self.frame.Destroy() # parent kill
 		# These two kills will kill all frames of the app, exiting the app!
