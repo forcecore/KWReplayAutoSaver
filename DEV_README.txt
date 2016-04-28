@@ -13,11 +13,18 @@ Environmental setup, quick guide
 * Checkout the project with git.
 * Install Python 3. As of now, I've installed it using python-3.4.2.msi.
   Check add python to path option during the install to use PIP.
-  (As of 2016-04-27, I tried installing wxPython with Python 3.5.1 (32bits) and it seems to work.)
-* Update PIP.
+  As of 2016-04-28, wxPython works for Python 3.5.1.
+  However, py2exe only works for Python 3.4,
+  thus I recommend 3.4.
+* Update PIP, otherwise --trusted-host in pip command will not work!
+* pip install -U pip
+* It will show a bunch of errors after cleaning up bit pip will work just
+  fine.
 * Launch command shell and run the following command to install
   wxPython_Phoenix :
   pip install --trusted-host wxpython.org -U --pre -f http://wxpython.org/Phoenix/snapshot-builds/ wxPython_Phoenix
+  (As of 2016-04-27, I tried installing wxPython with Python 3.5.1 (32bits) and it seems to work.
+  The problem is that py2exe doesn't work for 3.5.1)
 * Note that https doesn't work.
 * Install py2exe with the following command:
   pip install py2exe
