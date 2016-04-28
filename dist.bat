@@ -13,4 +13,4 @@ rem copy KW.ico dist
 rem copy maps.zip dist
 
 @echo Remember to zip maps directory as maps.zip!
-py -3.4 setup.py py2exe
+py -3.5 setup.py py2exe
